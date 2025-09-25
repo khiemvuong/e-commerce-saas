@@ -2,7 +2,7 @@ import  swaggerUi from 'swagger-ui-express';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { errorMiddleware } from '../../../packages/error-handler/error-middleware';
+import { errorMiddleware } from '@packages/error-handler/error-middleware';
 import router from './routes/auth.router';
 const swaggerDocument = require('./swagger-output.json');
 
@@ -10,8 +10,8 @@ const app = express();
 
 
 app.use(cors({
-origin: 'http://localhost:3000',
-allowedHeaders: ['Content-Type', 'Authorization'],
+origin: ['http://localhost:3000', 'http://localhost:8080'], 
+allowedHeaders: ['Authorization','Content-Type'],
 credentials: true,
 })
 );

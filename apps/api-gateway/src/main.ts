@@ -9,8 +9,8 @@ import cookieParser from 'cookie-parser';
 const app = express();
 
 app.use(cors({
-  origin: 'http://localhost:3000',
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: ['http://localhost:3000', 'http://localhost:8080'], 
+  allowedHeaders: [ 'Authorization','Content-Type'],
   credentials: true,
 })
 );

@@ -11,7 +11,7 @@
     "http"
   ],
   "paths": {
-    "/user-registration": {
+    "/api/user-registration": {
       "post": {
         "description": "",
         "parameters": [
@@ -26,11 +26,13 @@
                 },
                 "email": {
                   "example": "vuongkhiem@gmail.com"
-                }
+                },
+                "password": {
+                  "example": "123456"
               }
             }
           }
-        ],
+      }],
         "responses": {
           "200": {
             "description": "OK"

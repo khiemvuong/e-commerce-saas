@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
     service: process.env.SMTP_SERVICE,
     auth: {
         user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASSWORD,
+        pass: process.env.SMTP_PASS,
     },
 });
 
@@ -33,7 +33,6 @@ const renderEmailTemplate = async (templateName: string, data: Record<string,any
 export const sendEmail = async (to: string, subject: string, templateName: string, data: Record<string,any>) => {
     try {
         const html = await renderEmailTemplate(templateName, data);
-
         await transporter.sendMail({
         from: `${process.env.SMTP_USER}`,
         to,

@@ -8,6 +8,7 @@
   "private": true,
   "dependencies": {
     "@prisma/client": "^6.16.2",
+    "@upstash/redis": "^1.35.4",
     "axios": "^1.12.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
