@@ -10,7 +10,7 @@ const app = express();
 
 
 app.use(cors({
-origin: ['http://localhost:3000', 'http://localhost:8080'], 
+origin: ['http://localhost:3000'], 
 allowedHeaders: ['Authorization','Content-Type'],
 credentials: true,
 })
@@ -31,7 +31,7 @@ app.use("/api",router);
 app.use(errorMiddleware)
 
 
-const port = process.env.PORT || 6001;
+const port = 6001;
 const server = app.listen(port, () => {
     console.log(`Auth service is running at http://localhost:${port}/api`);
     console.log(`Swagger docs available at http://localhost:${port}/docs`);
