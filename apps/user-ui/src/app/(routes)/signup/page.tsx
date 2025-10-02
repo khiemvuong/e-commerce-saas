@@ -9,11 +9,10 @@ import Link from 'next/link';
 import React, {useState} from 'react'
 import { useRouter } from 'next/navigation';
 import {useForm} from 'react-hook-form';
-import GoogleButton from '../../shared/components/google-button';
+import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { sign } from 'crypto';
 const Signup = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
@@ -114,6 +113,9 @@ const Signup = () => {
         }
     };
     const resendOtp = () => {
+        if(userData){
+            signupMutation.mutate(userData)
+        }
     };
 
 return (
@@ -240,7 +242,7 @@ return (
                         </div>
                         <button className="w-full mt-4 text-lg cursor-pointer bg-blue-500 text-white py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                         disabled={verifyOtpMutation.isPending || otp.some(d => d === "")}
-                        onClick={() => {
+                        onClick={() => {verifyOtpMutation.mutate();
                             setServerError(null);
                             console.log('Current OTP:', otp.join(""));
                             console.log('User data:', userData);
@@ -258,11 +260,6 @@ return (
                                     `Resend code in ${timer} seconds`
                                 )}
                         </p>
-                        {serverError && (
-                            <p className="text-red-500 text-sm mt-2 text-center">
-                                {serverError}
-                            </p>
-                        )}
                         {verifyOtpMutation.isError && !serverError && (
                             <p className="text-red-500 text-sm mt-2 text-center">
                                 {verifyOtpMutation.error instanceof AxiosError 

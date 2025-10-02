@@ -8,8 +8,10 @@ import Link from 'next/link';
 import React, {useState} from 'react'
 import { useRouter } from 'next/navigation';
 import {useForm} from 'react-hook-form';
-import GoogleButton from '../../shared/components/google-button';
+import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
+import axios, { Axios, AxiosError } from 'axios';
+import { useMutation } from '@tanstack/react-query';
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
@@ -17,8 +19,26 @@ const Login = () => {
     const router = useRouter();
     const {register, handleSubmit, formState: {errors}} = useForm<FormData>();
 
-    const onSubmit = async (data: FormData) => {
+    const loginMutation = useMutation({
+        mutationFn: async (data: FormData) => {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/login-user`, data, {
+                withCredentials: true,
+            });
+            return response.data;
+        },
+        onSuccess: (data) => {
+            console.log("Login successful:", data);
+            setServerError(null);
+            router.push("/");
+        },
+        onError: (error: AxiosError) => {
+            const errorMessage = (error.response?.data as { message?: string })?.message || "Invalid credentials!";
+            setServerError(errorMessage);
+        }
+    });
 
+    const onSubmit = async (data: FormData) => {
+        loginMutation.mutate(data);
     }
 return (
     <div className="w-full py-10 min-h-[80vh] bg-[f1f1f1]">
@@ -102,8 +122,8 @@ return (
                                 Forgot Password?
                             </Link>
                     </div>
-                    <button type="submit" className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-00 transition">
-                        Login
+                    <button type="submit" disabled={loginMutation.isPending} className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-00 transition">
+                        {loginMutation.isPending ? "Logging in..." : "Login"}
                     </button>
                     {serverError && (
                         <p className="text-red-500 text-sm mt-2">

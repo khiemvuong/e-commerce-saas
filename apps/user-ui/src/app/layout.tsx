@@ -1,6 +1,6 @@
 import './global.css';
 import Providers from './providers';
-import Header from './shared/widgets/header';
+import Header from '../shared/widgets/header';
 import {Poppins, Roboto} from "next/font/google"
 export const metadata = {
   title: 'Ilan',
