@@ -21,14 +21,14 @@ export const validateRegistrationData = (data: any, userType: "user" | "seller")
     }
 };
 export const checkOtpRestrictions = async (email: string, next: NextFunction) => {
-    if(await redis.get('otp_lock:${email}')){
+    if(await redis.get(`otp_lock:${email}`)){
         return next(
             new ValidationError(
                 "Account locked due to multiple failed attempts! Try again after 30 minutes."
             )
         );
     }
-    if(await redis.get('otp_spam_lock:${email}')){
+    if(await redis.get(`otp_spam_lock:${email}`)){
         return next(
             new ValidationError(
                 "Too many OTP requests! Try again after 60 minutes."
@@ -73,21 +73,26 @@ export const sendOtp = async (name: string, email:string, template: string) => {
 }
 
 export const verifyOtp = async (email: string, otp: string, next: NextFunction) => {
-    const storedOtp = await redis.get(`otp:${email}`);
+const storedOtpRaw = await redis.get(`otp:${email}`);
+    // ép chắc chắn về string, loại null
+const storedOtp = (storedOtpRaw ?? "").toString().trim();
+// ép OTP nhận từ client cũng về string
+const providedOtp = String(otp).trim();
     if (!storedOtp) {
         throw new ValidationError("Invalid or expired OTP");
     }
-
     const failedAttemptsKey = `otp_attempts:${email}`;
     const failedAttempts = parseInt((await redis.get(failedAttemptsKey)) || '0');
-    if (storedOtp !== otp) {
+    if (storedOtp !== providedOtp) {
         if (failedAttempts >= 5) {
             await redis.set(`otp_lock:${email}`, 'true', { ex: 1800 });
             await redis.del(`otp:${email}`, failedAttemptsKey);
             throw new ValidationError("Account locked due to multiple failed attempts! Try again after 30 minutes."
             );
+            
         }
-        await redis.set(failedAttemptsKey, failedAttempts + 1, { ex: 1800 });
+        await redis.set(failedAttemptsKey, failedAttempts + 1, { ex: 300 });
+
         throw new ValidationError(`Incorrect OTP. ${5 - failedAttempts} attempts left. Please try again.`);
     }
     await redis.del(`otp:${email}`, failedAttemptsKey);
@@ -112,7 +117,7 @@ export const handleForgotPassword = async (req: any, res: any, next: NextFunctio
         await trackOtpRequest(email, next);
 
         //Generate and send otp
-        await sendOtp(user.name, email, `${userType}-forgot-password-user-mail`);
+        await sendOtp(user.name, email, `forgot-password-user-mail`);
 
         res.status(200).json({
             message: "OTP sent to email. Please check your email."
@@ -133,6 +138,7 @@ export const verifyForgotPasswordOtp = async (req: any, res: any, next: NextFunc
             message: "OTP verified successfully. You can now reset your password."
         });
     } catch (error) {
+        next(error);
         
     }
 }

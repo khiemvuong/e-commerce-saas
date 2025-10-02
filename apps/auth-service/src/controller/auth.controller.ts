@@ -4,7 +4,7 @@ import { checkOtpRestrictions, sendOtp, trackOtpRequest, validateRegistrationDat
 import prisma from '@packages/libs/prisma';
 import { AuthError, ValidationError } from '@packages/error-handler';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { setCookie } from '../utils/cookies/setCookie';
 export const userRegistetration = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -90,15 +90,61 @@ export const userLogin = async (req: Request, res: Response, next: NextFunction)
                 expiresIn: '7d'
             });
         // Store the refresh and access token in httpOnly secure cookies
-        setCookie(res, 'refreshToken', refreshToken);
-        setCookie(res, 'accessToken', accessToken);
+        setCookie(res, 'refresh_token', refreshToken);
+        setCookie(res, 'access_token', accessToken);
         //Send response
         res.status(200).json({
             message: "Login successful",
             user:{ id: user.id, name: user.name, email: user.email },
         });
     } catch (error) {
-        
+        next(error);
+    }
+}
+
+//Reresh token user
+export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const refreshToken = req.cookies.refresh_token;
+        if (!refreshToken) {
+            throw new ValidationError("Unauthorized! No refresh token provided");
+        }
+
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET as string) as { id: string, role: string };
+        if (!decoded || !decoded.id || !decoded.role) {
+            return new JsonWebTokenError("Forbidden! Invalid refresh token.");
+        }
+
+        // let account;
+        // if (decoded.role === "user") {
+            // account = 
+        const user = await prisma.users.findUnique({ where: { id: decoded.id } });
+        if (!user) {
+            return new AuthError("Forbidden! User not found");
+        }
+
+        const newAccessToken = jwt.sign({ id:decoded.id, role: decoded.role },
+            process.env.ACCESS_TOKEN_SECRET as string, {
+            expiresIn: '15min'
+        });
+
+        setCookie(res, 'access_token', newAccessToken);
+        return res.status(201).json({success: true, message: "Access token"})
+        //}
+
+
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// get logged in user
+export const getUser = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const user=req.user;
+        res.status(201).json({success: true, user})
+    } catch (error) {
+        next(error);
     }
 }
 
@@ -139,6 +185,6 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
             message: "Password reset successfully"
         });
     } catch (error) {
-        
+        return next(error);
     }
 }
