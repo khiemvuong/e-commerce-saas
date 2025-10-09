@@ -29,7 +29,6 @@ const ForgotPassword = () => {
     register: registerEmail,
     handleSubmit: handleSubmitEmail,
     formState: { errors: emailErrors },
-    trigger: triggerEmail,
   } = useForm<EmailForm>();
 
   // Reset form
@@ -37,7 +36,6 @@ const ForgotPassword = () => {
     register: registerReset,
     handleSubmit: handleSubmitReset,
     formState: { errors: resetErrors },
-    trigger: triggerReset,
   } = useForm<ResetForm>();
 
   const clearTimer = () => {
@@ -65,7 +63,7 @@ const ForgotPassword = () => {
 
   useEffect(() => () => clearTimer(), []);
   useEffect(() => {
-    setServerError(null); // dọn lỗi khi đổi bước
+    setServerError(null); 
     if (step === "otp") inputRefs.current[0]?.focus();
   }, [step]);
 
