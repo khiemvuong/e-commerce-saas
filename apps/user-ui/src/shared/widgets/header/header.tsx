@@ -1,20 +1,33 @@
 'use client';
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Heart, ShoppingCart } from "lucide-react";
 import ProfileIcon from "../../../assets/svgs/profile-icon";
 import HeaderBottom from "./header-bottom";
 import useUser from "apps/user-ui/src/hooks/useUser";
-
 const Header = () => {
   const { user, isLoading } = useUser();
 
   return (
     <div>
+      <div className="h-9 bg-black justify-center flex items-center text-white text-2xl- font-Roboto">
+        <span>Summer Sale For All Swim Suits And Free Express Delivery - OFF 50%!</span>
+        <Link href="/product" className="font-bold font-Roboto ml-2">Don't miss out!</Link>
+      </div>
       <header className="w-full bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             {/* Logo */}
-            <div className="text-[22px] font-bold text-gray-900">Ilan Shop</div>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo.png"
+                alt="Ilan Shop Logo"
+                width={80}
+                height={60}
+                className="h-auto w-auto"
+                priority
+              />
+            </Link>
 
             {/* Right Section: Search + User Actions */}
             <div className="flex items-center gap-6">
