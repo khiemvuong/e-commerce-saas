@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import {useForm} from 'react-hook-form';
 import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
-import axios, { Axios, AxiosError } from 'axios';
+import axios, {  AxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
