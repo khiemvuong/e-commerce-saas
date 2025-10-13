@@ -2,24 +2,25 @@
 
 import Link from 'next/link';
 import React, {useState} from 'react'
-import { useRouter } from 'next/navigation';
 import { useForm} from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { countries } from 'apps/seller-ui/src/app/utils/countries';
+import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
+import StripeLogo from '../../../assets/svgs/stripe-logo';
 const Signup = () => {
-    const [activeStep] = useState(1);
+    const [activeStep, setActiveStep] = useState(3);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
     const [showOtp, setShowOtp] = useState(false);
     const [canResend, setCanResend] = useState(true);
     const [timer, setTimer] = useState(60);
     const [otp,setOtp] = useState(["", "", "", ""]);
-    const [userData, setUserData] = useState<FormData | null>(null);
+    const [sellerData, setSellerData] = useState<FormData | null>(null);
     const inputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
-    const router = useRouter();
     const {register, handleSubmit, formState: {errors}} = useForm();
+    const [sellerId, setSellerId] = useState("");
     const startResendTimer = () => {
         const interval = setInterval(() => {
             setTimer((prev) => {
@@ -34,11 +35,11 @@ const Signup = () => {
     };
     const signupMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/user-registration`, data);
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/seller-registration`, data);
             return response.data;
-        },  
+        },
         onSuccess: (_, formData) => {
-            setUserData(formData);
+            setSellerData(formData);
             setShowOtp(true);
             setCanResend(false);
             setTimer(60);
@@ -54,16 +55,16 @@ const Signup = () => {
 
     const verifyOtpMutation = useMutation({
         mutationFn: async () => {
-            if (!userData) throw new Error("User data is missing");
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-user`, {
-                ...userData,
+            if (!sellerData) throw new Error("Seller data is missing");
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-seller`, {
+                ...sellerData,
                 otp: otp.join(""),
             });
             return response.data;
         },
         onSuccess: (data) => {
-            console.log('OTP verification successful:', data);
-            router.push('/login');
+            setSellerId(data?.seller?.id);
+            setActiveStep(2);
         },
         onError: (error: any) => {
             console.error('OTP verification error:', error);
@@ -97,9 +98,13 @@ const Signup = () => {
         }
     };
     const resendOtp = () => {
-        if(userData){
-            signupMutation.mutate(userData)
+        if(sellerData){
+            signupMutation.mutate(sellerData)
         }
+    };
+
+    const connectStripe = async () => {
+
     };
 
 return (
@@ -143,7 +148,7 @@ return (
                     />
                     {errors.email && (
                         <p className="text-red-500 text-sm mb-2">
-                            {errors.password?.message as string}
+                            {String(errors.email.message)}
                         </p>
                     )}
                     <label className="block text-gray-700 mb-1">
@@ -163,7 +168,7 @@ return (
                     />
                     {errors.email && (
                         <p className="text-red-500 text-sm mb-2">
-                            {errors.email.message as string}
+                            {String(errors.email.message)}
                         </p>
                     )}
                     <label className="block text-gray-700 mb-1 mt-5">
@@ -214,7 +219,7 @@ return (
                     />
                     {errors.phone_number && (
                         <p className="text-red-500 text-sm mb-2">
-                            {errors.phone_number.message as string}
+                            {String(errors.phone_number.message)}
                         </p>
                     )}
                     <label className="block text-gray-700 mb-1 mt-5">
@@ -228,7 +233,7 @@ return (
                     </select>
                     {errors.country && (
                         <p className="text-red-500 text-sm mb-2">
-                            {errors.country.message as string}
+                            {String(errors.country.message)}
                         </p>
                     )}
 
@@ -281,7 +286,7 @@ return (
                         onClick={() => {verifyOtpMutation.mutate();
                             setServerError(null);
                             console.log('Current OTP:', otp.join(""));
-                            console.log('User data:', userData);
+                            console.log('Seller data:', sellerData);
                             verifyOtpMutation.mutate();
                         }}
                         >
@@ -309,6 +314,25 @@ return (
                     </div>
                 )}
                 </>
+            )}
+            {activeStep === 2 && (             
+                <CreateShop
+                    sellerId={sellerId}
+                    setActiveStep={setActiveStep}
+                />
+            )}
+            {activeStep === 3 && (
+                <div className="text-center">
+                    <h3 className ="text-2xl font-semibold mb-4">
+                        Withdraw Method
+                    </h3>
+                    <br/>
+                    <button
+                    onClick={connectStripe}
+                    className="w-full m-auto justify-center flex items-center gap-3 p-2 bg-black text-white font-Roboto text-lg hover:bg-gray-700 transition">
+                        Connect with Stripe <StripeLogo />
+                    </button>
+                </div>
             )}
 
         </div>
