@@ -3,16 +3,16 @@ const StripeLogo = (props: any) => (
 <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 120 60"
-    width={100}
-    height={50}
+    width={40}
+    height={20}
     id="stripe"
     {...props}
 >
     <g id="Layer_2">
         <g id="Layer_1-2">
             <rect 
-                width={100} 
-                height={50} 
+                width={120} 
+                height={60} 
                 rx={6.48} 
                 ry={6.48}
             style={{ fill: "#6772e5" }}

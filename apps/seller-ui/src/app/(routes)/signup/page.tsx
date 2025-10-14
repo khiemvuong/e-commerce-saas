@@ -9,8 +9,9 @@ import axios, { AxiosError } from 'axios';
 import { countries } from 'apps/seller-ui/src/app/utils/countries';
 import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
 import StripeLogo from '../../../assets/svgs/stripe-logo';
+
 const Signup = () => {
-    const [activeStep, setActiveStep] = useState(3);
+    const [activeStep, setActiveStep] = useState(1);
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
     const [showOtp, setShowOtp] = useState(false);
@@ -104,7 +105,20 @@ const Signup = () => {
     };
 
     const connectStripe = async () => {
-
+        try {
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_SERVER_URL}/api/create-stripe-link`,
+                { sellerId }
+            );
+            if (response.data.url) {
+                window.location.href = response.data.url;
+            }
+            else{
+                console.error("No URL returned from server");
+            }
+        } catch (error) {
+            console.error("Stripe connection error:", error);
+        }
     };
 
 return (
@@ -283,7 +297,7 @@ return (
                         </div>
                         <button className="w-full mt-4 text-lg cursor-pointer bg-black text-white py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                         disabled={verifyOtpMutation.isPending || otp.some(d => d === "")}
-                        onClick={() => {verifyOtpMutation.mutate();
+                        onClick={() => {
                             setServerError(null);
                             console.log('Current OTP:', otp.join(""));
                             console.log('Seller data:', sellerData);
@@ -322,15 +336,16 @@ return (
                 />
             )}
             {activeStep === 3 && (
-                <div className="text-center">
-                    <h3 className ="text-2xl font-semibold mb-4">
+                <div className="text-center rounded-lg">
+                    <h3 className ="text-2xl font-bold mb-4">
                         Withdraw Method
                     </h3>
                     <br/>
                     <button
                     onClick={connectStripe}
-                    className="w-full m-auto justify-center flex items-center gap-3 p-2 bg-black text-white font-Roboto text-lg hover:bg-gray-700 transition">
-                        Connect with Stripe <StripeLogo />
+                    className="w-full m-auto justify-center flex items-center gap-3 p-2 bg-black text-white font-Roboto text-lg hover:bg-gray-700 transition rounded-xl">
+                        Connect with
+                        <StripeLogo className="min-h-[40px] min-w-[80px]" />
                     </button>
                 </div>
             )}

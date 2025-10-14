@@ -65,7 +65,7 @@ model sellers {
   name         String
   email        String   @unique
   password     String
-  phone_number String   @unique
+  phone_number String
   country      String
   stripeId     String?
   shop         shops?

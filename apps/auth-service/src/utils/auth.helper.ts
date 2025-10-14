@@ -1,9 +1,8 @@
 import crypto from 'crypto';
 import redis from '../../../../packages/libs/redis';
-
 import { ValidationError } from '../../../../packages/error-handler';
 import { sendEmail } from './sendMail';
-import { NextFunction } from 'express';
+import { Request, Response,NextFunction } from 'express';
 import prisma from '@packages/libs/prisma';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,9 +73,7 @@ export const sendOtp = async (name: string, email:string, template: string) => {
 
 export const verifyOtp = async (email: string, otp: string, next: NextFunction) => {
 const storedOtpRaw = await redis.get(`otp:${email}`);
-    // ép chắc chắn về string, loại null
 const storedOtp = (storedOtpRaw ?? "").toString().trim();
-// ép OTP nhận từ client cũng về string
 const providedOtp = String(otp).trim();
     if (!storedOtp) {
         throw new ValidationError("Invalid or expired OTP");
@@ -98,7 +95,7 @@ const providedOtp = String(otp).trim();
     await redis.del(`otp:${email}`, failedAttemptsKey);
 };
 
-export const handleForgotPassword = async (req: any, res: any, next: NextFunction, userType: "user" | "seller") => {
+export const handleForgotPassword = async (req: Request, res: Response, next: NextFunction, userType: "user" | "seller") => {
     try {
         const { email } = req.body;
         if (!email) {
@@ -127,7 +124,7 @@ export const handleForgotPassword = async (req: any, res: any, next: NextFunctio
     }
 }
 
-export const verifyForgotPasswordOtp = async (req: any, res: any, next: NextFunction) => {
+export const verifyForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const {email,otp} = req.body;
         if(!email || !otp){
