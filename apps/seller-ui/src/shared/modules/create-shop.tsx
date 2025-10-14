@@ -2,7 +2,7 @@ import React from 'react'
 import {useForm} from "react-hook-form"
 import  {useMutation} from "@tanstack/react-query"
 import axios from 'axios';
-import { shopCategories } from '../../app/utils/categories';
+import { shopCategories } from '../../utils/categories';
 const CreateShop = ({
     sellerId,
     setActiveStep

@@ -6,7 +6,7 @@ import { useForm} from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { countries } from 'apps/seller-ui/src/app/utils/countries';
+import { countries } from 'apps/seller-ui/src/utils/countries';
 import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
 import StripeLogo from '../../../assets/svgs/stripe-logo';
 
