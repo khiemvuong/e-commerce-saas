@@ -78,10 +78,10 @@ const SidebarWrapper = () => {
                         </SidebarMenu>
                         <SidebarMenu title='Products'>
                             <SidebarItem
-                                title='Products'
-                                icon={<ShoppingBasket fill={getIconColor('/products')} />}
-                                isActive={activeSidebar === '/dashboard/products'}
-                                href="/dashboard/products"
+                                title='Create Product'
+                                icon={<ShoppingBasket fill={getIconColor('/create-products')} />}
+                                isActive={activeSidebar === '/dashboard/create-products'}
+                                href="/dashboard/create-products"
                             />
                             <SidebarItem
                                 title='All Products'
