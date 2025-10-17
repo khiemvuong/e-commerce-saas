@@ -52,29 +52,25 @@ const Page = () => {
     const handleImageChange = (file: File | null, index: number) => {
       const updatedImages = [...images];
       updatedImages[index] = file;
-
-      if(index === images.length - 1 && images.length < 8 && file) {
+      let lastIndex = updatedImages.length - 1;
+      if(file && index === lastIndex && images.length < 8) {
           updatedImages.push(null); // Add a new placeholder if the last one is filled
       }
-
+      console.log(updatedImages);
       setImages(updatedImages);
       setValue('images', updatedImages); // Update form value
     }
 
     const handleRemoveImage = (index: number) => {
-      setImages(prevImages => {
-          let updatedImages = [...prevImages];
-          if (index === -1) {
-              updatedImages[0] = null; // Reset the first image if index is -1
-          } else {
-              updatedImages.splice(index, 1); // Remove the image at the specified index
-          }
-
-          if(updatedImages.includes(null) === false && updatedImages.length < 8) {
-              updatedImages.push(null);
-          }
-          return updatedImages;
-      });
+      setImages((prev) => {
+    const newImages = [...prev];
+    newImages.splice(index, 1); // Remove the image at the specified index
+    // Nếu xóa hết ảnh, thêm lại placeholder null
+        if (newImages.length === 0) {
+          return [null];
+        }
+    return newImages;
+  });
       setValue('images', images); // Update form value
     }
 
@@ -101,18 +97,21 @@ const Page = () => {
             index={0}
             onImageChange={handleImageChange}
             onRemove={handleRemoveImage}
+            defaultImage={images[0] ? URL.createObjectURL(images[0]) : null}
+              key={`image-0-${images[0]?.name || 'empty'}`}
             />
           )}
           <div className="grid grid-cols-2 gap-3 mt-4">
-            {images?.slice(1).map((_, index) => (
+            {images?.slice(1).map((image, index) => (
               <ImagePlaceHolder
                 setOpenImageModal={setOpenImageModal}
                 size="765 x 850"
-                key={index}
+                key={`image-${index + 1}-${image?.name || 'empty'}`}
                 small
                 index={index + 1}
                 onImageChange={handleImageChange}
-                onRemove={handleRemoveImage}
+                onRemove={ handleRemoveImage}
+                defaultImage={image ? URL.createObjectURL(image) : null}
               />
             ))}
           </div>
