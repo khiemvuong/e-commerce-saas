@@ -78,7 +78,7 @@ return (
         {isSticky && (
         <div className="flex items-center gap-6">
             {/* User Actions */}
-              <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
                 {/* Profile */}
                 {(!isLoading && user) ? (
                   // ĐÃ ĐĂNG NHẬP: toàn khối trỏ tới /profile
