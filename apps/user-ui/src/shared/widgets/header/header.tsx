@@ -1,10 +1,10 @@
 'use client';
 import Link from "next/link";
-import Image from "next/image";
 import { Search, Heart, ShoppingCart } from "lucide-react";
 import ProfileIcon from "../../../assets/svgs/profile-icon";
 import HeaderBottom from "./header-bottom";
 import useUser from "apps/user-ui/src/hooks/useUser";
+import IlanIcon from "apps/user-ui/src/assets/svgs/ilan-logo";
 const Header = () => {
   const { user, isLoading } = useUser();
 
@@ -19,14 +19,8 @@ const Header = () => {
           <div className="flex justify-between items-center py-4">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Ilan Shop Logo"
-                width={80}
-                height={60}
-                className="h-auto w-auto"
-                priority
-              />
+              
+              <IlanIcon className="ml-2" />
             </Link>
 
             {/* Right Section: Search + User Actions */}
