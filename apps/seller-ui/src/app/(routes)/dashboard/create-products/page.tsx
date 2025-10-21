@@ -11,14 +11,24 @@ import Input from 'packages/components/input';
 import RichTextEditor from 'packages/components/rich-text-editor';
 import SizeSelector from 'packages/components/size-selector';
 import React, { useMemo, useState } from 'react'
-import { Controller, set, useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+interface UploadedImage {
+  url: string;
+  fileId: string;
+  thumbnailUrl?: string;
+}
 
 const Page = () => {
     const {register,control,watch,setValue,handleSubmit,formState:{errors}} = useForm();
     const [openImageModal, setOpenImageModal] = useState(false);
-    const[isChanged,setIsChanged] = useState(true);
-    const [images,setImages] = useState<(File | null)[]>([null]);
-    const[loading,setLoading] = useState(false);
+    const [isChanged, setIsChanged] = useState(true);
+    const [images, setImages] = useState<(UploadedImage | null)[]>([null]);
+    const [loading, setLoading] = useState(false);
+    const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
+    const [previews, setPreviews] = useState<Record<number, string>>({});
+
+
 
     const {data,isLoading,isError} = useQuery({
       queryKey: ['categories'],
@@ -52,8 +62,8 @@ const Page = () => {
       }, [selectedCategory, subCategoriesData]);
 
 
-    const onSubmit = (data:any) => {
-      console.log(data);
+    const onSubmit = (formData:any) => {
+      console.log(formData);
     }
 
     const convertToBase64 = (file: File) => {
@@ -61,52 +71,138 @@ const Page = () => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
-          resolve(reader.result);
+          resolve(reader.result as string);
         };
         reader.onerror = (error) => {
           reject(error);
         };
       });
     };
-    const handleImageChange = async (file: File | null, index: number) => {
-      if(!file) return;
+    // Upload ảnh: tạo preview ngay, upload qua backend -> ImageKit (@imagekit/nodejs chạy ở BE)
+  const handleImageChange = async (file: File | null, index: number) => {
+    if (!file) return;
 
-      try {
-        const fileName= await convertToBase64(file);
-
-        const response=await axiosInstance.post('/product/api/upload-product-image',fileName
-        );
-        const updatedImages = [...images];
-        updatedImages[index] = response.data.fileName;
-        if(file && index === images.length - 1 && images.length < 8) {
-            updatedImages.push(null); // Add a new placeholder if the last one is filled
-        }
-        setImages(updatedImages);
-        setValue('images', updatedImages); // Update form value
-      } catch (error) {
-        console.error("Error uploading image:", error);
-      }
-      
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image size must be less than 10MB');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload a valid image');
+      return;
     }
 
-    const handleRemoveImage = async(index: number) => {
-      try {
-        const updatedImages = [...images];
-        const imageToDelete = updatedImages[index];
-        if (imageToDelete && typeof imageToDelete === 'string') {
+    // Tạo preview tức thời
+    const objectUrl = URL.createObjectURL(file);
+    setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
+
+    // Bắt đầu upload
+    setUploadingIndexes((prev) => new Set(prev).add(index));
+
+    try {
+      const base64String = await convertToBase64(file);
+
+      const response = await axiosInstance.post('/product/api/upload-product-image', {
+        fileName: base64String,
+      });
+
+      if (response.data?.success) {
+        const uploaded: UploadedImage = {
+          url: response.data.file_url,
+          fileId: response.data.fileId,
+          thumbnailUrl: response.data.thumbnailUrl,
+        };
+
+        const updated = [...images];
+        updated[index] = uploaded;
+
+        // Nếu đang thêm ở ô cuối cùng và chưa đủ 8 ảnh thì thêm placeholder
+        if (index === images.length - 1 && images.length < 8) {
+          updated.push(null);
         }
-        updatedImages.splice(index, 1); // Remove the image at the specified index
-        //Add a null placeholder if there are less than 8 images
-        if (updatedImages.length < 8 && !updatedImages.includes(null)) {
-          updatedImages.push(null);
-        }
-        setImages(updatedImages);
-        setValue('images', updatedImages); // Update form value
-        }
-      catch (error) {
-        console.error("Error deleting image:", error);        
+
+        setImages(updated);
+        setValue(
+          'images',
+          updated.filter(Boolean).map((img) => (img as UploadedImage).fileId)
+        );
+        setIsChanged(true);
+        toast.success('Image uploaded successfully');
+      } else {
+        toast.error('Upload failed');
       }
-    };
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.error || 'Failed to upload image');
+    } finally {
+      // Clear uploading + preview + revoke blob
+      setUploadingIndexes((prev) => {
+        const s = new Set(prev);
+        s.delete(index);
+        return s;
+      });
+      setPreviews((prev) => {
+        const next = { ...prev };
+        const url = next[index];
+        if (url) URL.revokeObjectURL(url);
+        delete next[index];
+        return next;
+      });
+    }
+  };
+
+  const handleRemoveImage = async (index: number) => {
+    // Nếu đang upload thì không cho xóa tại thời điểm đó
+    if (uploadingIndexes.has(index)) return;
+
+    const img = images[index];
+
+    try {
+      if (img?.fileId) {
+        await axiosInstance.delete('/product/api/delete-product-image', {
+          data: { fileId: img.fileId },
+        });
+      }
+
+      // Xóa phần tử và dồn index
+      const updated = [...images];
+      updated.splice(index, 1);
+
+      // Nếu rỗng thì thêm lại placeholder
+      if (updated.length === 0) {
+        updated.push(null);
+      }
+
+      // Nếu phần tử cuối cùng không phải placeholder và chưa đủ 8 ảnh -> thêm placeholder
+      if (updated[updated.length - 1] !== null && updated.length < 8) {
+        updated.push(null);
+      }
+
+      setImages(updated);
+      setValue(
+        'images',
+        updated.filter(Boolean).map((i) => (i as UploadedImage).fileId)
+      );
+      setIsChanged(true);
+
+      // Clear preview của index vừa xóa
+      setPreviews((prev) => {
+        const next: Record<number, string> = {};
+        // Do đã shift index, ta dựng lại mapping preview theo index mới (chỉ giữ preview còn tồn tại)
+        Object.keys(prev).forEach((k) => {
+          const oldIdx = Number(k);
+          const newIdx = oldIdx > index ? oldIdx - 1 : oldIdx;
+          if (oldIdx !== index) next[newIdx] = prev[oldIdx];
+          if (oldIdx === index) URL.revokeObjectURL(prev[oldIdx]);
+        });
+        return next;
+      });
+
+      toast.success('Image removed');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err?.response?.data?.error || 'Failed to remove image');
+    }
+  };
     // setImages((prev) => {
     //   const newImages = [...prev];
     //   newImages.splice(index, 1); // Remove the image at the specified index
@@ -142,24 +238,29 @@ const Page = () => {
             small={false}
             index={0}
             onImageChange={handleImageChange}
+            isUploading={uploadingIndexes.has(0)}
             onRemove={handleRemoveImage}
-            defaultImage={images[0] ? URL.createObjectURL(images[0]) : null}
-              key={`image-0-${images[0]?.name || 'empty'}`}
+            defaultImage={previews[0] || images[0]?.url || null}
+            key={`image-0-${images[0]?.fileId || previews[0] || 'empty'}`}
             />
           )}
           <div className="grid grid-cols-2 gap-3 mt-4">
-            {images?.slice(1).map((image, index) => (
-              <ImagePlaceHolder
-                setOpenImageModal={setOpenImageModal}
-                size="765 x 850"
-                key={`image-${index + 1}-${image?.name || 'empty'}`}
-                small
-                index={index + 1}
-                onImageChange={handleImageChange}
-                onRemove={ handleRemoveImage}
-                defaultImage={image ? URL.createObjectURL(image) : null}
-              />
-            ))}
+            {images.slice(1).map((img, i) => {
+              const realIndex = i + 1;
+              return (
+                <ImagePlaceHolder
+                  setOpenImageModal={setOpenImageModal}
+                  size="765 x 850"
+                  key={`image-${realIndex}-${img?.fileId || previews[realIndex] || 'empty'}`}
+                  small
+                  index={realIndex}
+                  onImageChange={handleImageChange}
+                  onRemove={handleRemoveImage}
+                  defaultImage={previews[realIndex] || img?.url || null}
+                  isUploading={uploadingIndexes.has(realIndex)}
+                />
+              );
+            })}
           </div>
         </div>
         {/* Right Side - form inputs */}
@@ -529,23 +630,14 @@ const Page = () => {
       </div>
       {/* Save Draft Buttons */}
       <div className="mt-6 flex justify-end gap-3">
-              {isChanged &&(
-                <button
-                  type="button"
-                  onClick={handleSaveDraft}
-                  className='px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors'
-                  >
-                  Save Draft
-                </button>
-              )
-              }
-              <button
-                type="submit"
-                disabled={loading}
-                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors'
-              >
-                {loading ? 'Creating...' : 'Create Product'}
-              </button>
+        {isChanged && (
+          <button type="button" className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600">
+            Save Draft
+          </button>
+        )}
+        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500">
+          Create Product
+        </button>
       </div>
 
     </form>

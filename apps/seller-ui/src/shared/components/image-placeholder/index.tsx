@@ -1,98 +1,107 @@
-import { Pencil, WandSparkles, X } from 'lucide-react';
+// ...existing code...
+import { Loader2, Pencil, WandSparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
-
 const ImagePlaceHolder = (
-    {
-        size,
-        small,
-        onImageChange,
-        onRemove,
-        defaultImage = null,
-        index = 0,
-        setOpenImageModal,
-    }: {
-        size: string;
-        small?: boolean;
-        onImageChange: (file: File | null, index: number) => void;
-        onRemove?: (index: number) => void;
-        defaultImage?: string | null;
-        setOpenImageModal: (openImageModal: boolean) => void;
-        index?: number;
-    }
+  {
+    size,
+    small,
+    onImageChange,
+    onRemove,
+    defaultImage = null,
+    index = 0,
+    setOpenImageModal,
+    isUploading = false
+  }: {
+    size: string;
+    small?: boolean;
+    onImageChange: (file: File | null, index: number) => void;
+    onRemove?: (index: number) => void;
+    defaultImage?: string | null;
+    setOpenImageModal: (openImageModal: boolean) => void;
+    index?: number;
+    isUploading?: boolean;
+  }
 ) => {
-    const [imagePreview, setImagePreview] = useState<string | null>(defaultImage);
+  const [imagePreview, setImagePreview] = useState<string | null>(defaultImage);
 
-    // Đồng bộ imagePreview với defaultImage khi defaultImage thay đổi
-    useEffect(() => {
-        setImagePreview(defaultImage);
-    }, [defaultImage]);
+  useEffect(() => {
+    setImagePreview(defaultImage);
+  }, [defaultImage]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const previewUrl = URL.createObjectURL(file);
-            setImagePreview(previewUrl);
-            onImageChange(file, index);
-        }
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      onImageChange(file, index);
+    }
+  };
 
-    const handleRemove = () => {
-        setImagePreview(null);
-        onRemove?.(index);
-    };
+  const handleRemove = () => {
+    if (isUploading) return;
+    setImagePreview(null);
+    onRemove?.(index);
+  };
 
-    return (
-        <div className={`relative ${small ? "h-[180px]" : "h-[450px]"} w-full cursor-pointer bg-[#1e1e1e] border border-gray-600 rounded-lg flex flex-col justify-center items-center`}>
-            <input 
-                type="file" 
-                accept='image/*' 
-                className="hidden" 
-                id={`image-upload-${index}`} 
-                onChange={handleFileChange} 
-            />
-            {imagePreview ? (
-                <>
-                    <button 
-                        type="button" 
-                        onClick={handleRemove}
-                        className="absolute top-3 right-3 p-2 !rounded bg-red-600 shadow-lg text-white hover:bg-red-500 z-10"
-                    >
-                        <X size={16} />
-                    </button>
-                    <button 
-                        type="button"
-                        className='absolute top-3 right-[70px] p-2 !rounded bg-blue-500 shadow-lg cursor-pointer z-10'
-                        onClick={() => setOpenImageModal(true)}
-                    >
-                        <WandSparkles size={16} color='white' />
-                    </button>
-                </>
-            ) : (
-                <label
-                    htmlFor={`image-upload-${index}`}
-                    className="absolute top-3 right-3 p-2 rounded bg-slate-700 shadow-lg cursor-pointer z-10"
-                >
-                    <Pencil size={16} color='white' />
-                </label>
-            )}
+  return (
+    <div className={`relative ${small ? 'h-[180px]' : 'h-[450px]'} w-full bg-[#1e1e1e] border border-gray-600 rounded-lg flex flex-col justify-center items-center overflow-hidden`}>
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        id={`image-upload-${index}`}
+        onChange={handleFileChange}
+        disabled={isUploading}
+      />
 
-            {imagePreview ? (
-                <Image
-                    src={imagePreview}
-                    alt="uploaded"
-                    className="w-full h-full object-cover rounded-lg"
-                    width={400}
-                    height={300}
-                />
-            ) : (
-                <>
-                    <p className={`text-gray-400 ${small ? "text-xl" : "text-4xl"} font-semibold`}>{size}</p>
-                    <p className={`text-gray-500 ${small ? "text-sm" : "text-lg"} font-semibold`}>Upload Image</p>
-                </>
-            )}
+      {isUploading && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
+          <Loader2 className="animate-spin text-white" size={28} />
         </div>
-    );
+      )}
+
+      {imagePreview ? (
+        <>
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isUploading}
+            className="absolute top-3 right-3 p-2 rounded bg-red-600 text-white hover:bg-red-500 z-10 disabled:opacity-50"
+          >
+            <X size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenImageModal(true)}
+            disabled={isUploading}
+            className="absolute top-3 right-[56px] p-2 rounded bg-blue-500 text-white z-10 disabled:opacity-50"
+          >
+            <WandSparkles size={16} />
+          </button>
+        </>
+      ) : (
+        <label
+          htmlFor={`image-upload-${index}`}
+          className={`absolute top-3 right-3 p-2 rounded bg-slate-700 text-white shadow cursor-pointer z-10 ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}
+        >
+          <Pencil size={16} />
+        </label>
+      )}
+
+      {imagePreview ? (
+        <img
+          src={imagePreview}
+          alt="uploaded"
+          className="w-full h-full object-cover"
+          width={800}
+          height={600}
+        />
+      ) : (
+        <>
+          <p className={`text-gray-400 ${small ? 'text-xl' : 'text-4xl'} font-semibold`}>{size}</p>
+          <p className={`text-gray-500 ${small ? 'text-sm' : 'text-lg'} font-semibold`}>Upload Image</p>
+        </>
+      )}
+    </div>
+  );
 };
 
 export default ImagePlaceHolder;
