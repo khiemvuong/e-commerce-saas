@@ -11,12 +11,12 @@ import Input from 'packages/components/input';
 import RichTextEditor from 'packages/components/rich-text-editor';
 import SizeSelector from 'packages/components/size-selector';
 import React, { useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, set, useForm } from 'react-hook-form';
 
 const Page = () => {
     const {register,control,watch,setValue,handleSubmit,formState:{errors}} = useForm();
     const [openImageModal, setOpenImageModal] = useState(false);
-    const[isChanged,setIsChanged] = useState(false);
+    const[isChanged,setIsChanged] = useState(true);
     const [images,setImages] = useState<(File | null)[]>([null]);
     const[loading,setLoading] = useState(false);
 
@@ -33,6 +33,13 @@ const Page = () => {
         staleTime: 5 * 60 * 1000, // 5 minutes
         retry: 2,
       });
+      const{data:discountCodes=[],isLoading:discountLoading}=useQuery({
+        queryKey:['shop-discounts'],
+        queryFn: async ()=>{
+            const res=await axiosInstance.get('/product/api/get-discount-codes');
+            return res?.data?.discount_codes || [];
+        },
+    });
 
       const categories = data?.categories || [];
       const subCategoriesData = data?.subCategories || [];
@@ -49,29 +56,68 @@ const Page = () => {
       console.log(data);
     }
 
-    const handleImageChange = (file: File | null, index: number) => {
-      const updatedImages = [...images];
-      updatedImages[index] = file;
-      let lastIndex = updatedImages.length - 1;
-      if(file && index === lastIndex && images.length < 8) {
-          updatedImages.push(null); // Add a new placeholder if the last one is filled
+    const convertToBase64 = (file: File) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          resolve(reader.result);
+        };
+        reader.onerror = (error) => {
+          reject(error);
+        };
+      });
+    };
+    const handleImageChange = async (file: File | null, index: number) => {
+      if(!file) return;
+
+      try {
+        const fileName= await convertToBase64(file);
+
+        const response=await axiosInstance.post('/product/api/upload-product-image',fileName
+        );
+        const updatedImages = [...images];
+        updatedImages[index] = response.data.fileName;
+        if(file && index === images.length - 1 && images.length < 8) {
+            updatedImages.push(null); // Add a new placeholder if the last one is filled
+        }
+        setImages(updatedImages);
+        setValue('images', updatedImages); // Update form value
+      } catch (error) {
+        console.error("Error uploading image:", error);
       }
-      console.log(updatedImages);
-      setImages(updatedImages);
-      setValue('images', updatedImages); // Update form value
+      
     }
 
-    const handleRemoveImage = (index: number) => {
-      setImages((prev) => {
-    const newImages = [...prev];
-    newImages.splice(index, 1); // Remove the image at the specified index
-    // Nếu xóa hết ảnh, thêm lại placeholder null
-        if (newImages.length === 0) {
-          return [null];
+    const handleRemoveImage = async(index: number) => {
+      try {
+        const updatedImages = [...images];
+        const imageToDelete = updatedImages[index];
+        if (imageToDelete && typeof imageToDelete === 'string') {
         }
-    return newImages;
-  });
-      setValue('images', images); // Update form value
+        updatedImages.splice(index, 1); // Remove the image at the specified index
+        //Add a null placeholder if there are less than 8 images
+        if (updatedImages.length < 8 && !updatedImages.includes(null)) {
+          updatedImages.push(null);
+        }
+        setImages(updatedImages);
+        setValue('images', updatedImages); // Update form value
+        }
+      catch (error) {
+        console.error("Error deleting image:", error);        
+      }
+    };
+    // setImages((prev) => {
+    //   const newImages = [...prev];
+    //   newImages.splice(index, 1); // Remove the image at the specified index
+    //       if (newImages.length === 0) {
+    //         return [null];
+    //       }
+    //     return newImages;
+    //   });
+    //   setValue('images', images); // Update form value
+    const handleSaveDraft = () => {
+      // Implement save draft functionality here
     }
 
   return (
@@ -444,11 +490,64 @@ const Page = () => {
                         errors={errors}
                       />
                   </div>
+                  {/* Vouchers */}
+                  <div className="mt-3">
+                    <label className="block font-semibold text-gray-300 mb-1">
+                      Select Discount Codes(Optional)
+                    </label>
+                    { discountLoading ? (
+                      <p className='text-gray-400'>Loading discount codes...</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-3">
+                        {discountCodes?.map((code:any) => (
+                          <button 
+                          key={code.id} type="button" 
+                          className={`px-3 py-1  text-sm font-semibold rounded-md ${watch(`discountCode`)
+                            ?.includes(code.id) ? 'bg-gray-700 border border-[#ffffff6b] text-white' : 'bg-gray-800 hover:bg-gray-600 border-gray-600 text-gray-300'
+                          } `} 
+                          onClick={()=>
+                          {
+                            const currentSelection = watch('discountCode') || [];
+                            const updatedSelection = currentSelection?.includes(code.id) 
+                            ? currentSelection.filter((id:string) => id !== code.id) : [...currentSelection, code.id];
+                            setValue('discountCode', updatedSelection);
+                          }}
+                          >
+                            {code.public_name} ({code.discountValue}
+                          {code.discountType === 'percentage' ? '%' : '$'} Off
+                            )
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                  </div>
               </div>
-            </div>
-          </div>
+            </div>           
+          </div>          
         </div>
       </div>
+      {/* Save Draft Buttons */}
+      <div className="mt-6 flex justify-end gap-3">
+              {isChanged &&(
+                <button
+                  type="button"
+                  onClick={handleSaveDraft}
+                  className='px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 transition-colors'
+                  >
+                  Save Draft
+                </button>
+              )
+              }
+              <button
+                type="submit"
+                disabled={loading}
+                className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors'
+              >
+                {loading ? 'Creating...' : 'Create Product'}
+              </button>
+      </div>
+
     </form>
   )
 }

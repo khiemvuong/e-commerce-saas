@@ -236,12 +236,24 @@ return (
                                         value={digit}
                                         onChange={(e) => handleOtpChange(e.target.value, index)}
                                         onKeyDown={(e) => handleOtpKeyDown(e, index)}
+                                        //press enter to submit
+                                        onKeyUp={(e) => {
+                                            if(e.key === "Enter" && otp.every(d => d !== "")){
+                                                setServerError(null);
+                                                console.log('Current OTP:', otp.join(""));
+                                                console.log('User data:', userData);
+                                                verifyOtpMutation.mutate();
+                                            }
+                                        }}
+
                                     />
                                 ))
                             }
                         </div>
+                        
                         <button className="w-full mt-4 text-lg cursor-pointer bg-blue-500 text-white py-2 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
                         disabled={verifyOtpMutation.isPending || otp.some(d => d === "")}
+                        
                         onClick={() => {
                             setServerError(null);
                             console.log('Current OTP:', otp.join(""));
