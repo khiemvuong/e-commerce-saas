@@ -1,4 +1,4 @@
-import { notFoundError, ValidationError } from "@packages/error-handler";
+import { AuthError, notFoundError, ValidationError } from "@packages/error-handler";
 import { client } from "@packages/libs/imagekit";
 import { toFile } from "@imagekit/nodejs";
 import prisma from "@packages/libs/prisma";
@@ -131,7 +131,7 @@ export const uploadProductImage = async (req: Request, res: Response, next: Next
   }
 };
 
-// Xóa ảnh (tùy chọn nếu có nút remove ảnh ở FE)
+// Delete product image
 export const deleteProductImage = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { fileId } = req.body;
@@ -144,3 +144,83 @@ export const deleteProductImage = async (req: Request, res: Response, next: Next
     return res.status(500).json({ error: 'Failed to delete image', details: error?.message });
   }
 };
+
+//Create product
+export const createProduct = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const {
+            title,
+            short_description,
+            detailed_description,
+            warranty,
+            custom_specifications,
+            slug,
+            tags,
+            cash_on_delivery,
+            brand,
+            video_url,
+            category,
+            colors=[],
+            sizes=[],
+            discountCodes=[],
+            stock,
+            sale_price,
+            regular_price,
+            sub_category,
+            customProperties={},
+            images=[],
+        }=req.body;
+        console.log('Received data:', req.body);
+        if(!title || !short_description || !detailed_description || !slug || !category || !stock || !sale_price || !regular_price||images.length===0){
+            return next (new ValidationError("Please fill all required fields"));
+        }
+        if(!req.seller.id){
+            return next (new AuthError("Only sellers can create products"));
+        }
+
+        const slugCheck=await prisma.products.findUnique({
+            where:{slug}
+        });
+        if(slugCheck){
+            return next (new ValidationError("Slug already exists. Please choose another one"));
+        }
+        const newProduct=await prisma.products.create({
+            data:{
+                title, 
+                short_description, 
+                detailed_description, 
+                warranty, 
+                slug, 
+                cash_on_delivery: cash_on_delivery, 
+                brand, 
+                video_url, 
+                category, 
+                sub_category, 
+                stock: parseInt(stock), 
+                sale_price: parseFloat(sale_price), 
+                regular_price: parseFloat(regular_price), 
+                shopId: req.seller?.shop?.id,
+                tags:Array.isArray(tags) ? tags : tags.split(","),
+                colors:colors || [], 
+                sizes: sizes || [],
+                discount_codes: discountCodes.map((codeId:string) => ({ id: codeId })),
+                images: {
+                    create:images
+                        .filter((img:any)=> img && img.file_url && img.fileId)
+                        .map((img:any) =>({
+                            file_url: img.file_url,
+                            fileId: img.fileId,
+                        })),
+            },
+                custom_properties: customProperties || {},
+                custom_specifications: custom_specifications || {},
+            },
+            include:{ images:true }
+        });
+        return res.status(201).json({success:true,newProduct});
+
+    } catch (error) {
+        console.error("Create product error:", error);
+        return next(error);
+    }
+}

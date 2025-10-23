@@ -12,7 +12,7 @@ const CustomProperties = ({ control, errors }:any) => {
         <div>
             <div className="flex flex-col gap-3">
                 <Controller
-                    name={`customProperties`}
+                    name={`custom_properties`}
                     control={control}
                     render={({ field }) => {
                         useEffect(() => {
