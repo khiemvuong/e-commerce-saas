@@ -224,3 +224,87 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
         return next(error);
     }
 }
+
+//Get loggin seller products
+export const getShopProducts = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const products=await prisma.products.findMany({
+            where:{ shopId: req.seller?.shop?.id },
+            include:{ images:true }
+        });
+        res.status(201).json({success:true,products});
+
+    } catch (error) {
+        console.error("Get shop products error:", error);
+        return next(error);
+    }
+}
+
+//Delete product
+export const deleteProduct = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const {productId}=req.params;
+        const sellerId=req.seller?.shop?.id;
+        const product=await prisma.products.findUnique({
+            where:{id:productId},
+            select:{id:true,shopId:true,isDeleted:true}
+        });
+        if(!product){
+            return next (new ValidationError("Product not found"));
+        }
+        if(product.shopId !== sellerId){
+            return next (new ValidationError("You are not authorized to delete this product"));
+        }
+        if(product.isDeleted){
+            return next (new ValidationError("Product is already deleted"));
+        }
+        const deletedProduct=await prisma.products.update({
+            where:{id:productId},
+            data:{
+                isDeleted:true,
+                deletedAt: new Date(Date.now()+24*60*60*1000), //24 hours from now
+            }
+        });
+        return res.status(200).json({
+            message:"Product deletion status updated successfully",
+            deletedAt:deletedProduct.deletedAt,
+        });
+    } catch (error) {
+        console.error("Delete product error:", error);
+        return next(error);
+    }
+};
+
+//Restor deleted product
+export const restoreProduct = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const {productId}=req.params;
+        const sellerId=req.seller?.shop?.id;
+        const product=await prisma.products.findUnique({
+            where:{id:productId},
+            select:{id:true,shopId:true,isDeleted:true}
+        });
+        if(!product){
+            return next (new ValidationError("Product not found"));
+        }
+        if(product.shopId !== sellerId){
+            return next (new ValidationError("You are not authorized to restore this product"));
+        }
+        if(!product.isDeleted){
+            return next (new ValidationError("Product is not deleted state"));
+        }
+        await prisma.products.update({
+            where:{id:productId},
+            data:{
+                isDeleted:false,
+                deletedAt:null,
+            }
+        });
+        return res.status(200).json({
+            message:"Product restored successfully",
+        });
+    } 
+    catch (error) {
+        return res.status(500).json({error:"Error restoring product"});
+    }
+};
