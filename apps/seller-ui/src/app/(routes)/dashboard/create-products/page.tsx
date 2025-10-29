@@ -2,8 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query';
 import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeholder';
+import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
-import {  ChevronRight } from 'lucide-react';
+import {  ChevronRight, Wand, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
 import CustomSpecifications from 'packages/components/custom-specification';
@@ -14,7 +16,7 @@ import React, { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 interface UploadedImage {
-  url: string;
+  file_url: string;
   fileId: string;
   thumbnailUrl?: string;
 }
@@ -22,13 +24,15 @@ interface UploadedImage {
 const Page = () => {
     const {register,control,watch,setValue,handleSubmit,formState:{errors}} = useForm();
     const [openImageModal, setOpenImageModal] = useState(false);
+    const [activeEffect, setActiveEffect] = useState<string | null>(null);
     const [isChanged, setIsChanged] = useState(true);
     const [images, setImages] = useState<(UploadedImage | null)[]>([null]);
-    const [loading, setLoading] = useState(false);
     const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
-
-
+    const [selectedImage, setSelectedImage] = useState('');
+    const [processing, setProcessing] = useState(false);
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
 
     const {data,isLoading,isError} = useQuery({
       queryKey: ['categories'],
@@ -62,8 +66,16 @@ const Page = () => {
       }, [selectedCategory, subCategoriesData]);
 
 
-    const onSubmit = (formData:any) => {
-      console.log(formData);
+    const onSubmit = async(data:any) => {
+      try {
+        setLoading(true);
+        await axiosInstance.post('/product/api/create-product', data);
+        router.push('/dashboard/all-products');
+      } catch (error:any) {
+        toast.error('Failed to create product');
+      } finally {
+        setLoading(false);
+      }
     }
 
     const convertToBase64 = (file: File) => {
@@ -78,77 +90,75 @@ const Page = () => {
         };
       });
     };
-    // Upload ảnh: tạo preview ngay, upload qua backend -> ImageKit (@imagekit/nodejs chạy ở BE)
-  const handleImageChange = async (file: File | null, index: number) => {
-    if (!file) return;
+    const syncImagesField = (list: (UploadedImage | null)[]) => {
+    const sanitized = list
+      .filter((img): img is UploadedImage => !!img?.file_url && !!img.fileId)
+      .map((img) => ({
+        file_url: img.file_url,
+        fileId: img.fileId,
+        thumbnailUrl: img.thumbnailUrl ?? null,
+      }));
+      setValue('images', sanitized, { shouldDirty: true, shouldValidate: true });
+    };
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Image size must be less than 10MB');
-      return;
+const handleImageChange = async (file: File | null, index: number) => {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) {
+    toast.error('Image size must be less than 10MB');
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    toast.error('Please upload a valid image');
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
+  setUploadingIndexes((prev) => new Set(prev).add(index));
+
+  try {
+    const base64String = await convertToBase64(file);
+    const { data } = await axiosInstance.post('/product/api/upload-product-image', {
+      fileName: base64String,
+    });
+
+    if (!data?.success) throw new Error('Upload failed');
+
+    const uploaded: UploadedImage = {
+      file_url: data.file_url,
+      fileId: data.fileId,
+      thumbnailUrl: data.thumbnailUrl ?? null,
+    };
+
+    const updated = [...images];
+    updated[index] = uploaded;
+
+    if (index === images.length - 1 && images.length < 8) {
+      updated.push(null);
     }
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload a valid image');
-      return;
-    }
 
-    // Tạo preview tức thời
-    const objectUrl = URL.createObjectURL(file);
-    setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
-
-    // Bắt đầu upload
-    setUploadingIndexes((prev) => new Set(prev).add(index));
-
-    try {
-      const base64String = await convertToBase64(file);
-
-      const response = await axiosInstance.post('/product/api/upload-product-image', {
-        fileName: base64String,
-      });
-
-      if (response.data?.success) {
-        const uploaded: UploadedImage = {
-          url: response.data.file_url,
-          fileId: response.data.fileId,
-          thumbnailUrl: response.data.thumbnailUrl,
-        };
-
-        const updated = [...images];
-        updated[index] = uploaded;
-
-        // Nếu đang thêm ở ô cuối cùng và chưa đủ 8 ảnh thì thêm placeholder
-        if (index === images.length - 1 && images.length < 8) {
-          updated.push(null);
-        }
-
-        setImages(updated);
-        setValue(
-          'images',
-          updated.filter(Boolean).map((img) => (img as UploadedImage).fileId)
-        );
-        setIsChanged(true);
-        toast.success('Image uploaded successfully');
-      } else {
-        toast.error('Upload failed');
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.response?.data?.error || 'Failed to upload image');
-    } finally {
-      // Clear uploading + preview + revoke blob
-      setUploadingIndexes((prev) => {
-        const s = new Set(prev);
-        s.delete(index);
-        return s;
-      });
-      setPreviews((prev) => {
-        const next = { ...prev };
-        const url = next[index];
-        if (url) URL.revokeObjectURL(url);
-        delete next[index];
-        return next;
-      });
-    }
-  };
+    setImages(updated);
+    syncImagesField(updated);
+    setIsChanged(true);
+    toast.success('Image uploaded successfully');
+  } catch (err: any) {
+    console.error(err);
+    toast.error(err?.response?.data?.error || 'Failed to upload image');
+  } finally {
+    setUploadingIndexes((prev) => {
+      const next = new Set(prev);
+      next.delete(index);
+      return next;
+    });
+    setPreviews((prev) => {
+      const next = { ...prev };
+      const url = next[index];
+      if (url) URL.revokeObjectURL(url);
+      delete next[index];
+      return next;
+    });
+  }
+};
 
   const handleRemoveImage = async (index: number) => {
     // Nếu đang upload thì không cho xóa tại thời điểm đó
@@ -203,15 +213,24 @@ const Page = () => {
       toast.error(err?.response?.data?.error || 'Failed to remove image');
     }
   };
-    // setImages((prev) => {
-    //   const newImages = [...prev];
-    //   newImages.splice(index, 1); // Remove the image at the specified index
-    //       if (newImages.length === 0) {
-    //         return [null];
-    //       }
-    //     return newImages;
-    //   });
-    //   setValue('images', images); // Update form value
+
+  const applyTransformation = async (transformation: string) => {
+      if (!selectedImage || processing) return;
+      setProcessing(true);
+      setActiveEffect(transformation);
+      try {
+        const baseUrl = selectedImage.split('?')[0];
+        const transformedUrl=`${baseUrl}?tr=${transformation}`;
+        setSelectedImage(transformedUrl);
+        toast.success('Enhancement applied!');
+      } catch (error) {
+        console.log('Error applying transformation:', error);
+      } finally {
+        setProcessing(false);
+      }
+
+  }
+
     const handleSaveDraft = () => {
       // Implement save draft functionality here
     }
@@ -237,10 +256,12 @@ const Page = () => {
             size="765 x 850"
             small={false}
             index={0}
+            images={images}
             onImageChange={handleImageChange}
             isUploading={uploadingIndexes.has(0)}
+            setSelectedImage={setSelectedImage}
             onRemove={handleRemoveImage}
-            defaultImage={previews[0] || images[0]?.url || null}
+            defaultImage={previews[0] || images[0]?.file_url || null}
             key={`image-0-${images[0]?.fileId || previews[0] || 'empty'}`}
             />
           )}
@@ -254,9 +275,11 @@ const Page = () => {
                   key={`image-${realIndex}-${img?.fileId || previews[realIndex] || 'empty'}`}
                   small
                   index={realIndex}
+                  images={images}
+                  setSelectedImage={setSelectedImage}
                   onImageChange={handleImageChange}
                   onRemove={handleRemoveImage}
-                  defaultImage={previews[realIndex] || img?.url || null}
+                  defaultImage={previews[realIndex] || img?.file_url || null}
                   isUploading={uploadingIndexes.has(realIndex)}
                 />
               );
@@ -287,7 +310,7 @@ const Page = () => {
                   cols={10}
                   label="Short Description *(Max 150 words)"
                   placeholder='Enter product short description for quick overview'
-                  {...register('description',{
+                  {...register('short_description',{
                     required:"Short description is required",
                     validate: (value) =>{
                       const wordCount = value.trim().split(/\s+/).length;
@@ -295,8 +318,8 @@ const Page = () => {
                     }
                   })}
                 />
-                {errors.description &&
-                <p className="text-red-500 text-sm mt-1">{errors.description.message as string}
+                {errors.short_description &&
+                <p className="text-red-500 text-sm mt-1">{errors.short_description.message as string}
                 </p>}
               </div>
 
@@ -327,7 +350,7 @@ const Page = () => {
                 <Input
                   label="Product Slug *"
                   placeholder='e.g. , apple-iphone-14-pro'
-                  {...register('product_slug',{
+                  {...register('slug',{
                     required:"Product slug is required",
                     pattern:{
                       value:/^[a-z0-9]+(?:-[a-z0-9]+)*$/,
@@ -453,9 +476,9 @@ const Page = () => {
                               <option value="" className='bg-black'>
                                 Select Sub Category
                               </option>
-                            {subCategories.map((subCategory: string) => (
-                              <option key={subCategory} value={subCategory} className='bg-black'>
-                                {subCategory}
+                            {subCategories.map((sub_category: string) => (
+                              <option key={sub_category} value={sub_category} className='bg-black'>
+                                {sub_category}
                               </option>
                             ))}
                             
@@ -628,6 +651,65 @@ const Page = () => {
           </div>          
         </div>
       </div>
+      {openImageModal && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg w-[450px] text-white">
+            <div className="flex justify-between items-center pb-3 mb-4">
+              <h2 className='text-lg font-semibold'>Enhaunce Product Image</h2>
+              <X size={20} className="ml-2 cursor-pointer" onClick={() => setOpenImageModal(!openImageModal)} />
+            </div>
+            <div className="w-full h-[300px] rounded-md overflow-hidden border border-gray-600 relative">
+              {selectedImage ? (
+                <img
+                src={selectedImage}
+                alt='product-image'
+                className=" object-cover w-full h-full"
+              />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-[#1e1e1e]">
+                  <p className="text-gray-400">No image selected</p>
+                </div>
+              )}
+            </div>
+            {selectedImage && (
+              <div className="mt-4 space-y-2">
+                <h3 className='text-white text-sm font-semibold'>
+                  AI Enhancement
+                </h3>
+                <div className="grid grid-cols-2 gap-3 mx-h-[250px] overflow-y-auto">
+                {enhancements?.map(({label,effect})=>(
+                  <button
+                  key={effect}
+                  className={`p-2 rounded-md flex items-center gap-2 ${activeEffect === effect ? 'bg-blue-600 text-white'  : 'bg-gray-700 hover:bg-gray-600'}`}
+                  onClick={()=>applyTransformation(effect)}
+                  disabled={processing}
+                  >
+                    <Wand size={18} />
+                    {label}
+                  </button>
+                ))}
+                </div>
+                {/*Reset Button*/}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const baseUrl = selectedImage.split('?')[0];
+                    setSelectedImage(baseUrl);
+                    setActiveEffect(null);
+                    toast.success('Reset to original');
+                  }}
+                  className="w-full mt-3 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
+                  disabled={processing}
+                  >
+                    Reset to Original
+                </button>
+              </div>
+            )
+
+            }
+          </div>
+        </div>
+      )}
       {/* Save Draft Buttons */}
       <div className="mt-6 flex justify-end gap-3">
         {isChanged && (
