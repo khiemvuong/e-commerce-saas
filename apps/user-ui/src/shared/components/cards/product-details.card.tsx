@@ -1,0 +1,214 @@
+import {  Heart, MapPin, MessageCircle, ShoppingCartIcon, X } from 'lucide-react';
+import Image from 'next/image'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useState } from 'react'
+import Rating from '../ratings';
+
+const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => void}) => {
+    const [activeImage, setActiveImage] = useState(0);
+    const router = useRouter();
+    const [isSelected, setIsSelect] = useState(data?.colors?.[0] || '');
+    const [isSizeSelected, setIsSizeSelect] = useState(data?.sizes?.[0] || '');  
+    const [quantity, setQuantity] = useState(1);
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
+    return (
+    <div 
+    className="fixed flex items-center justify-center top-0 left-0 h-screen w-full inset-0 bg-black bg-opacity-50 z-50"
+    onClick={() => setOpen(false)}
+    >
+        <div 
+        onClick={(e)=>e.stopPropagation()}
+        
+        className="w-[70%] md:w[50%] md:mt-14 2xl:mt-0 max-h-[90vh] overflow-y-auto min-h-[70vh] p-4 md:p-6 bg-white rounded-lg shadow-lg">
+            <div className="w-full flex flex-col md:flex-row p-0 mt-10 ">
+                {/* Thumbnails */}
+                <div className="flex gap-2 mt-4 md:mt-0 md:flex-col md:w-1/6 overflow-x-auto">
+                    {data?.images?.map((image:any, index:number) => (
+                        <div className={`w-20 h-20 object-contain rounded-lg cursor-pointer border-2 ${activeImage === index ? 'border-gray-500' : 'border-transparent'}`}
+                            key={index}
+                            onClick={() => setActiveImage(index)}
+                            >
+                            <Image
+                                src={image?.file_url || '/placeholder.png'}
+                                alt={`Thumbnail ${index}`}
+                                width={80}
+                                height={80}
+                                className="w-full h-full object-contain rounded-lg"
+                            />
+                        </div>
+                    ))}
+                </div>
+                <div className="w-full md:w-1/2 md:pr-6">
+                    <Image
+                    src={data?.images[activeImage]?.file_url || '/placeholder.png'}
+                    alt={data?.images?.[activeImage]?.file_url }
+                    width={400}
+                    height={400}
+                    className='w-full rounded-lg object-contain'
+                    />
+                </div>
+                
+                
+                <div className="w-full md:w-1/2 md:pl-6 mt-4 md:mt-0">
+                    {/*Seller info*/}
+                    <div className="border-b relative pb-3 border-gray-200 mb-4 flex items-start gap-4">
+                        {/*Shop logo*/}
+                        <Image
+                            src={data?.Shop?.avatar || 'https://img.favpng.com/8/20/24/computer-icons-online-shopping-png-favpng-QuiWDXbsc69EE92m3bZ2i0ybS.jpg'}
+                            alt={data?.Shop?.name || 'Shop Logo'}
+                            width={50}
+                            height={50}
+                            className="rounded-full w-[50px] h-[50px] object-cover"
+                        />
+                        {/*Shop name*/}
+                        <div>
+                            <Link href={`/shop/${data?.Shop?.id}`} className="text-lg font-medium text-gray-900">
+                                {data?.Shop?.name || 'Shop Name'}
+                            </Link>
+                            {/*Shop rating*/}
+                            <div className="text-sm text-gray-500">
+                                <Rating size='sm'
+                                rating={data?.Shop?.rating} />
+                            </div>
+                            {/*Shop location*/}
+                            <div className="text-sm text-gray-500 flex items-center">
+                                <MapPin size={14} className="inline-block mr-1"/>
+                                {data?.Shop?.address || 'Unknown Location'}
+                            </div>
+                        </div>
+                        {/*Chat with seller button*/}
+                        <button
+                        className="absolute right-0 mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
+                        onClick={() => {
+                            router.push(`/inbox?shopId=${data?.Shop?.id}`);
+                        }}
+                        >
+                        <MessageCircle size={16} /> Chat with Seller
+                        </button>
+                        {/*Close button*/}
+                        <button
+                            className='w-full absolute cursor-pointer right-[-5px] top-[-10px] flex justify-end my-2 mt-[-10px] text-gray-500 font-bold hover:text-gray-800'
+                            onClick={() => {
+                                setOpen(false);
+                            }}
+                        >
+                            <X size={25} />
+                        </button>
+                    </div>
+                    {/*Product Title*/}
+                    <h3 className="text-2xl font-semibold text-gray-900 mt-3">
+                        {data?.title}
+                    </h3>
+                    {/*Product rating and Stock*/}
+                    <div className="flex col-2 flex-wrap items-center">
+                        <Rating size='md' rating={data?.product?.rating} />
+                        {/*Line break*/}
+                        <span className="mx-3 text-gray-500">|</span>
+                        {data.stock >0 ?(
+                            <span className=" text-sm text-green-400 font-medium">In Stock</span>
+                        ):(
+                            <span className="ml-4 text-sm text-red-600 font-medium">Out of Stock</span>
+                        )}
+                    </div>
+                    {/*Price*/}
+                    <div className="mt-1 flex items-center gap-4">
+                        <span className="text-2xl font-semibold  text-gray-900">
+                            ${data?.sale_price ? data?.sale_price.toFixed(2) : data?.regular_price.toFixed(2)}
+                        </span>
+                        {data?.sale_price && (
+                            <span className="text-lg text-gray-500 line-through">
+                                ${data?.regular_price.toFixed(2)}
+                            </span>
+                        )}
+                    </div>
+                    {/*Product details*/}
+                    <div className="text-sm text-gray-500 mt-2">
+                        {data?.short_description || 'No description available.'}
+                    </div>
+                    {/*Line Break*/}
+                    <hr className="my-4 border-gray-300" />
+                    {/*Brand*/}
+                    {data?.brand && (
+                        <div className="mt-2">
+                            <strong className="font-medium text-gray-700">Brand: </strong>{data.brand}
+                        </div>
+                    )}
+                    {/*Color and Size options*/}
+                        {/*Colors*/}
+                        {data?.colors.length > 0 && (
+                            <div className='flex items-center flex-col-2 gap-4 mt-4'>
+                                <span className='font-medium text-gray-700'>Colours:</span>
+                                <div className='flex gap-2 mt-1'>
+                                    {data.colors.map((color:string, index:number) => (
+                                        <button
+                                        key={index}
+                                        className={`w-5 h-5 rounded-full border-2 ${isSelected===color ? 'border-gray-800' : 'border-transparent'}`}
+                                        style={{ backgroundColor: color }}
+                                        onClick={() => setIsSelect(color)}
+                                        ></button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {/*Sizes*/}
+                        {data?.sizes?.length > 0 && (
+                            <div className='flex items-center flex-col-2 gap-4 mt-4 ml-2'>
+                                <span className='font-medium text-gray-700'>Size:</span>
+                                <div className='flex gap-2 mt-1'>
+                                    {data.sizes.map((size:string, index:number) => (
+                                        <button
+                                        key={index}
+                                        className={`w-12 h-9 rounded-md border-2 ${isSizeSelected===size ? 'bg-gray-800 text-white' : 'bg-gray-200 text-black' } flex items-center justify-center`}
+                                        onClick={() => setIsSizeSelect(size)}
+                                        >
+                                            {size}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {/*Quantity selector*/}
+                        <div className="mt-5  flex items-center gap-4">
+                            <div className="flex items-center rounded-md border border-gray-300">
+                                <button
+                                    className="px-3 cursor-pointer py-1 bg-gray-300 text-gray-900 hover:bg-gray-500 font-semibold rounded-l-md text-2xl"
+                                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                                >
+                                    -
+                                </button>
+                                <span className="px-10 py-1 text-gray-700 font-semibold">{quantity}</span>
+                                <button
+                                    className="px-3 cursor-pointer py-1 bg-black text-white hover:bg-gray-500 font-semibold rounded-r-md text-2xl"
+                                    onClick={() => setQuantity((prev) => prev + 1)}
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </div>
+                        {/*Add to cart and wishlist buttons*/}
+                        <div className="mt-6 flex flex-col-2 gap-3">
+                                <button className={'flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition-colors duration-300  justify-center'}>
+                                    <ShoppingCartIcon size={18} /> Add to Cart
+                                </button>
+
+                                <button className={'flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-md hover:bg-gray-300 transition-colors duration-300  justify-center'}>
+                                    <Heart fill='black' size={18} /> Add to Wishlist
+                                </button>
+                        </div>
+                        <div className="mt-3 text-gray-600 text-sm">
+                            Estimated Delivery:{" "}
+                            <strong>
+                                {estimatedDelivery.toDateString()}
+                            </strong>
+                        </div>
+                    </div>
+                
+            </div>
+        </div>
+    </div>
+  )
+}
+
+export default ProductDetailsCard

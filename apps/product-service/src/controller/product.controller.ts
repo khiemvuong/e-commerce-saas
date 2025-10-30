@@ -308,3 +308,56 @@ export const restoreProduct = async (req:any, res:Response, next:NextFunction) =
         return res.status(500).json({error:"Error restoring product"});
     }
 };
+
+// Get All Products
+export const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const page = parseInt((req.query.page as string) || "1", 10);
+        const limit = parseInt((req.query.limit as string) || "20", 10);
+        const skip = Math.max(0, (page - 1) * limit);
+        const type = String(req.query.type || "");
+
+        const baseFilter: any = {
+            OR: [
+                { isDeleted: false },
+                { isDeleted: null }
+            ]
+        };
+        const orderBy: any =
+            type === "latest" ? { createdAt: "desc" } : { totalSales: "desc" };
+
+        const [products, total, top10Products] = await Promise.all([
+            prisma.products.findMany({
+                skip,
+                take: limit,
+                include: {
+                    images: true,
+                    Shop: true,
+                },
+                where: baseFilter,
+                orderBy: orderBy,
+            }),
+            prisma.products.count({
+                where: baseFilter,
+            }),
+            prisma.products.findMany({
+                take: 10,
+                where: baseFilter,
+                orderBy,
+            }),
+        ]);
+        
+        return res.status(200).json({
+            products,
+            top10By:type==="latest" ? "latest":"topSales",
+            top10Products,
+            total,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+        });
+        
+    } catch (error) {
+        console.error("Get all products error:", error);
+        return next(error);
+    }
+};
