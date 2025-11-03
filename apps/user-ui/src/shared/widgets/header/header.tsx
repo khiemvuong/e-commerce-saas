@@ -5,8 +5,11 @@ import ProfileIcon from "../../../assets/svgs/profile-icon";
 import HeaderBottom from "./header-bottom";
 import useUser from "apps/user-ui/src/hooks/useUser";
 import IlanIcon from "apps/user-ui/src/assets/svgs/ilan-logo";
+import { useStore } from "apps/user-ui/src/store";
 const Header = () => {
   const { user, isLoading } = useUser();
+  const wishlist = useStore((state: any) => state.wishlist);
+  const cart = useStore((state: any) => state.cart);
 
   return (
     <div>
@@ -77,20 +80,20 @@ const Header = () => {
                 )}
 
                 {/* Wishlist */}
-                <button className="relative p-2 rounded-full hover:bg-gray-100 hover:text-red-500 transition">
+                <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 hover:text-red-500 transition">
                   <Heart size={20} />
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
-                    0
+                    {wishlist?.length || 0}
                   </span>
-                </button>
+                </Link>
 
                 {/* Cart */}
-                <button className="relative p-2 rounded-full hover:bg-gray-100 hover:text-blue-600 transition">
+                <Link href="/cart" className="relative p-2 rounded-full hover:bg-gray-100 hover:text-blue-600 transition">
                   <ShoppingCart size={20} />
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
-                    0
+                    {cart?.length || 0}
                   </span>
-                </button>
+                </Link>
               </div>
             </div>
           </div>

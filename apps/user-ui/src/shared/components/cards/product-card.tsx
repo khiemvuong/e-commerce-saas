@@ -1,13 +1,28 @@
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react'
+import React, {  useEffect, useState } from 'react'
 import Rating from '../ratings';
-import { Eye, Heart } from 'lucide-react';
+import { Eye, Heart, ShoppingBag } from 'lucide-react';
 import ProductDetailsCard from './product-details.card';
 import Image from 'next/image';
+import { useStore } from 'apps/user-ui/src/store';
+import useUser from 'apps/user-ui/src/hooks/useUser';
+import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
+import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 
 const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
   const [timeLeft, setTimeLeft] = useState("")
   const [open, setOpen] = useState(false);
+  const{user} =useUser();
+  const location = useLocationTracking();
+  const deviceInfo = useDeviceTracking();
+  const addToCart = useStore((state:any) => state.addToCart);
+  const removeFromCart = useStore((state:any) => state.removeFromCart);
+  const addToWishlist = useStore((state:any) => state.addToWishlist);
+  const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
+  const wishlist = useStore((state:any) => state.wishlist);
+  const isWishlisted = wishlist.some((item:any) => item.id === product.id);
+  const cart = useStore((state:any) => state.cart);
+  const isInCart = cart.some((item:any) => item.id === product.id);
   useEffect(() => {
     if (isEvent && product?.ending_date) {
       const interval = setInterval(() => {
@@ -40,26 +55,35 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
                 Limmited Stock
             </div>
         )}
+        <div className="relative group overflow-hidden rounded-t-lg">
+            <Link href={`/product/${product?.slug}`}>
+                <Image
+                src={product?.images?.[0]?.file_url || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
+                alt={product?.title}
+                width={400}
+                height={400}
+                className="w-full h-[200px] object-scale-down group-hover:scale-105 transition-transform duration-300 bg-gray-100"
+                />
+            </Link>
+           <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                !isInCart && addToCart({...product, quantity: 1}, user, location, deviceInfo);
+              }}
+              className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-black w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0">
+              <ShoppingBag size={18} />
+              Add to Cart
+            </button>
+        </div>
         <Link
           href={`/product/${product?.slug}`}
-        >
-            <Image
-            src={product?.images?.[0]?.file_url || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
-            alt={product?.title}
-            width={400}
-            height={400}
-            className="w-full h-[200px] object-scale-down rounded-t-lg hover:scale-105 transition-transform duration-300 bg-gray-100"
-            />
-        </Link>
-        <Link
-          href={`/product/${product?.slug}`}
-          className="block px-4 pt-2 text-xl text-gray-900 font-bold truncate"
+          className="block px-4 pt-2 text-xl text-gray-900 font-semibold truncate"
         >
             {product?.title}
         </Link>
         <div className="mt-2 flex justify-between items-center px-3">
             <div className="flex items-center gap-2">
-                <span className="text-lg font-bold text-red-600">
+                <span className="text-lg font-medium text-red-600">
                     ${product?.sale_price ? product?.sale_price.toFixed(2) : product?.regular_price.toFixed(2)}
                 </span>
                 {product?.sale_price && (
@@ -85,7 +109,16 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
         )}
         <div className="absolute z-10 flex flex-col gap-2 right-3 top-3">
           <div className="bg-white rounded-full p-[6px] shadow-md hover:scale-110 transition-transform duration-300 cursor-pointer">
-            <Heart size={20} className="text-gray-600"/>
+            <Heart 
+            fill={isWishlisted ? "red" : "transparent"}
+            onClick={() => {
+              isWishlisted 
+                ? removeFromWishlist(product.id, user, location, deviceInfo) 
+                : addToWishlist({...product, quantity: 1}, user, location, deviceInfo);
+            }}
+            size={20}
+            stroke={isWishlisted ? "red" : "gray"}
+            className="text-gray-600"/>
           </div>
           <div className="bg-white rounded-full p-[6px] shadow-md hover:scale-110 transition-transform duration-300 cursor-pointer">
             <Eye 
@@ -96,10 +129,7 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
           </div>
 
         </div>
-        {/*Add to cart buttonr*/}
-        <button className="bg-black w-full text-white px-4 py-2 shadow-md hover:bg-gray-600 transition-colors duration-300">
-          Add to Cart
-        </button>
+        
         {open && (
           <ProductDetailsCard data={product} setOpen={setOpen} />
         )}

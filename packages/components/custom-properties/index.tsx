@@ -86,7 +86,7 @@ const CustomProperties = ({ control, errors }:any) => {
                                     {/* Add New Property */}
                                     <div className="flex item-center gap-2 mt-1">
                                         <Input
-                                            placeholder='Enter property label (e.g. , Material, Warranty'
+                                            placeholder='e.g. , Material, Warranty'
                                             value={newLabel}
                                             onChange={(e:any)=>setNewLabel(e.target.value)}
                                         />

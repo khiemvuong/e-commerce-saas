@@ -41,6 +41,7 @@
     "stripe": "^19.1.0",
     "styled-components": "^6.1.19",
     "swagger-ui-express": "^5.0.1",
+    "ua-parser-js": "^2.0.6",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

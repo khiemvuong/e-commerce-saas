@@ -2,8 +2,12 @@ import {  Heart, MapPin, MessageCircle, ShoppingCartIcon, X } from 'lucide-react
 import Image from 'next/image'
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+import React, {  useState } from 'react'
 import Rating from '../ratings';
+import { useStore } from 'apps/user-ui/src/store';
+import useUser from 'apps/user-ui/src/hooks/useUser';
+import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
+import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 
 const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => void}) => {
     const [activeImage, setActiveImage] = useState(0);
@@ -13,6 +17,16 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const [quantity, setQuantity] = useState(1);
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
+    const cart = useStore((state:any) => state.cart);
+    const addToCart = useStore((state:any) => state.addToCart);
+    const isInCart = cart.some((item:any) => item.id === data.id);
+    const wishlist = useStore((state:any) => state.wishlist);
+    const addToWishlist = useStore((state:any) => state.addToWishlist);
+    const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
+    const isWishlisted = wishlist.some((item:any) => item.id === data.id);
+    const {user} = useUser();
+    const location = useLocationTracking();
+    const deviceInfo = useDeviceTracking();
     return (
     <div 
     className="fixed flex items-center justify-center top-0 left-0 h-screen w-full inset-0 bg-black bg-opacity-50 z-50"
@@ -26,12 +40,12 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                 {/* Thumbnails */}
                 <div className="flex gap-2 mt-4 md:mt-0 md:flex-col md:w-1/6 overflow-x-auto">
                     {data?.images?.map((image:any, index:number) => (
-                        <div className={`w-20 h-20 object-contain rounded-lg cursor-pointer border-2 ${activeImage === index ? 'border-gray-500' : 'border-transparent'}`}
+                        <div className={`w-20 h-20 object-contain rounded-lg cursor-pointer border-2 ${activeImage === index ? 'border-gray-200' : 'border-none'}`}
                             key={index}
                             onClick={() => setActiveImage(index)}
                             >
                             <Image
-                                src={image?.file_url || '/placeholder.png'}
+                                src={image?.file_url || 'https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg'}
                                 alt={`Thumbnail ${index}`}
                                 width={80}
                                 height={80}
@@ -189,12 +203,39 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                         </div>
                         {/*Add to cart and wishlist buttons*/}
                         <div className="mt-6 flex flex-col-2 gap-3">
-                                <button className={'flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition-colors duration-300  justify-center'}>
+                                <button 
+                                disabled={isInCart}
+                                onClick={() => addToCart({
+                                    ...data, 
+                                    quantity,
+                                    selectedOption:{
+                                    color:isSelected,
+                                    size:isSizeSelected
+                                }}, 
+                                user, 
+                                location, 
+                                deviceInfo)}
+                                className={'flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition-colors duration-300  justify-center'}>
                                     <ShoppingCartIcon size={18} /> Add to Cart
                                 </button>
 
-                                <button className={'flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-md hover:bg-gray-300 transition-colors duration-300  justify-center'}>
-                                    <Heart fill='black' size={18} /> Add to Wishlist
+                                <button 
+                                onClick={() => {
+                                    isWishlisted 
+                                        ? removeFromWishlist(data.id, user, location, deviceInfo) 
+                                        : addToWishlist({
+                                            ...data, 
+                                            quantity,
+                                            selectedOption:{
+                                                color:isSelected,
+                                                size:isSizeSelected
+                                            }}, 
+                                        user, 
+                                        location, 
+                                        deviceInfo);
+                                }}
+                                className={'flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-900 rounded-md hover:bg-gray-300 transition-colors duration-300  justify-center'}>
+                                    <Heart stroke={isWishlisted ? "red" : "gray"} fill={isWishlisted ? "red" : "gray"} size={18} /> Add to Wishlist
                                 </button>
                         </div>
                         <div className="mt-3 text-gray-600 text-sm">
