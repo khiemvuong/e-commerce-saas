@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import React, {  useEffect, useState } from 'react'
 import Rating from '../ratings';
-import { Eye, Heart, ShoppingBag } from 'lucide-react';
+import { Eye, Heart } from 'lucide-react';
 import ProductDetailsCard from './product-details.card';
 import Image from 'next/image';
 import { useStore } from 'apps/user-ui/src/store';
 import useUser from 'apps/user-ui/src/hooks/useUser';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
+import AddToCartButton from '../buttons/add-to-cart-button';
 
 const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
   const [timeLeft, setTimeLeft] = useState("")
@@ -15,14 +16,10 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
   const{user} =useUser();
   const location = useLocationTracking();
   const deviceInfo = useDeviceTracking();
-  const addToCart = useStore((state:any) => state.addToCart);
-  const removeFromCart = useStore((state:any) => state.removeFromCart);
   const addToWishlist = useStore((state:any) => state.addToWishlist);
   const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
   const wishlist = useStore((state:any) => state.wishlist);
   const isWishlisted = wishlist.some((item:any) => item.id === product.id);
-  const cart = useStore((state:any) => state.cart);
-  const isInCart = cart.some((item:any) => item.id === product.id);
   useEffect(() => {
     if (isEvent && product?.ending_date) {
       const interval = setInterval(() => {
@@ -65,15 +62,8 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
                 className="w-full h-[200px] object-scale-down group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                 />
             </Link>
-           <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                !isInCart && addToCart({...product, quantity: 1}, user, location, deviceInfo);
-              }}
-              className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-black w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0">
-              <ShoppingBag size={18} />
-              Add to Cart
-            </button>
+            {/* Add to Cart Button Component */}
+            <AddToCartButton product={product} variant="hover" />
         </div>
         <Link
           href={`/product/${product?.slug}`}

@@ -1,4 +1,4 @@
-import {  Heart, MapPin, MessageCircle, ShoppingCartIcon, X } from 'lucide-react';
+import {  Heart, MapPin, MessageCircle, X } from 'lucide-react';
 import Image from 'next/image'
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -8,6 +8,7 @@ import { useStore } from 'apps/user-ui/src/store';
 import useUser from 'apps/user-ui/src/hooks/useUser';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
+import AddToCartButton from '../buttons/add-to-cart-button';
 
 const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => void}) => {
     const [activeImage, setActiveImage] = useState(0);
@@ -17,9 +18,6 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const [quantity, setQuantity] = useState(1);
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
-    const cart = useStore((state:any) => state.cart);
-    const addToCart = useStore((state:any) => state.addToCart);
-    const isInCart = cart.some((item:any) => item.id === data.id);
     const wishlist = useStore((state:any) => state.wishlist);
     const addToWishlist = useStore((state:any) => state.addToWishlist);
     const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
@@ -203,21 +201,15 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                         </div>
                         {/*Add to cart and wishlist buttons*/}
                         <div className="mt-6 flex flex-col-2 gap-3">
-                                <button 
-                                disabled={isInCart}
-                                onClick={() => addToCart({
-                                    ...data, 
-                                    quantity,
-                                    selectedOption:{
-                                    color:isSelected,
-                                    size:isSizeSelected
-                                }}, 
-                                user, 
-                                location, 
-                                deviceInfo)}
-                                className={'flex items-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-700 transition-colors duration-300  justify-center'}>
-                                    <ShoppingCartIcon size={18} /> Add to Cart
-                                </button>
+                                <AddToCartButton 
+                                    product={data}
+                                    quantity={quantity}
+                                    selectedOption={{
+                                        color: isSelected,
+                                        size: isSizeSelected
+                                    }}
+                                    variant="default"
+                                />
 
                                 <button 
                                 onClick={() => {

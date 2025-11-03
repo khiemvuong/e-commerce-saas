@@ -111,8 +111,8 @@ const CartPage = () => {
                                             {item?.selectedOption && (
                                             <div className="text-sm text-gray-600">
                                                 {item?.selectedOption?.color &&(
-                                                    <span className='mr-2'>
-                                                        Color: {item.selectedOption.color}
+                                                    <span className='mr-2 gap-2'>
+                                                        <span>Color: </span>
                                                         <span 
                                                         style={{ backgroundColor: item?.selectedOption?.color,
                                                         width: '12px', 

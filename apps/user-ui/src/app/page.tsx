@@ -5,6 +5,7 @@ import SectionTitle from '../shared/components/section/section-title'
 import { useQuery } from '@tanstack/react-query'
 import axiosInstance from '../utils/axiosInstance'
 import ProductCard from '../shared/components/cards/product-card'
+import ScrollToTop from '../shared/components/scroll-to-top'
 const page = () => {
   const {
     data:products,
@@ -55,6 +56,8 @@ const page = () => {
           </div>
         )}
       </div>
+      {/* Scroll to Top Button */}
+      <ScrollToTop />
     </div>
   )
 }

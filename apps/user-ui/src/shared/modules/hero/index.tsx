@@ -23,19 +23,25 @@ const Hero= () => {
             <a
               role="button"
               href="#"
-              className="text-sm text-white border-b border-white/25 pb-1 inline-flex items-center"
+              className="group cursor-pointer bg-transparent border-none"
             >
-              Shop Now&nbsp; →
+              <span className="relative inline-block pb-5 text-sm uppercase tracking-[4px] pr-4 text-white">
+                Shop Now
+                {/* Underline animation */}
+                <span className="absolute bottom-0 left-0 w-full h-[2px] bg-white scale-x-0 origin-bottom-right transition-transform duration-250 ease-out group-hover:scale-x-100 group-hover:origin-bottom-left"></span>
+              </span>
+              <svg
+                className="inline-block -translate-x-2 transition-all duration-300 group-hover:translate-x-0 group-active:scale-90"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+              >
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"></path>
+              </svg>
             </a>
 
-            {/* pagination dots (independent) */}
-            <nav aria-label="hero pagination" className="flex gap-3 items-center">
-              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-100" />
-              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
-              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
-              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
-              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
-            </nav>
+            
           </div>
         </div>
 
@@ -68,6 +74,14 @@ const Hero= () => {
         aria-hidden="true"
         className="absolute left-0 right-0 bottom-0 h-px bg-white/10"
       />
+      {/* pagination dots (independent) */}
+      <nav aria-label="hero pagination" className="flex gap-3 justify-center items-center">
+              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-100" />
+              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
+              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
+              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
+              <span className="w-2.5 h-2.5 rounded-full bg-white opacity-40" />
+      </nav>
     </section>
   );
 };
