@@ -228,11 +228,22 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
 //Get loggin seller products
 export const getShopProducts = async (req:any, res:Response, next:NextFunction) => {
     try {
+        // Check if seller is authenticated
+        if(!req.seller || !req.seller.id){
+            return next(new AuthError("Please login as seller to view shop products"));
+        }
+
+        // Check if seller has a shop
+        if(!req.seller.shop || !req.seller.shop.id){
+            return next(new ValidationError("You don't have a shop. Please create a shop first"));
+        }
+
         const products=await prisma.products.findMany({
-            where:{ shopId: req.seller?.shop?.id },
+            where:{ shopId: req.seller.shop.id },
             include:{ images:true }
         });
-        res.status(201).json({success:true,products});
+        
+        res.status(200).json({success:true,products});
 
     } catch (error) {
         console.error("Get shop products error:", error);

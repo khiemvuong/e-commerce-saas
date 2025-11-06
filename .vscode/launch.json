@@ -49,7 +49,6 @@
         "!**/node_modules/**"
       ]
     },
-    
     {
       "type": "node",
       "request": "launch",
@@ -71,6 +70,30 @@
       "sourceMaps": true,
       "outFiles": [
         "${workspaceFolder}/apps/product-service/dist/**/*.(m|c|)js",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug @eshop/kafka-service with Nx",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "nx",
+        "serve",
+        "@eshop/kafka-service"
+      ],
+      "env": {
+        "NODE_OPTIONS": "--inspect=9233"
+      },
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/apps/kafka-service/dist/**/*.(m|c|)js",
         "!**/node_modules/**"
       ]
     }

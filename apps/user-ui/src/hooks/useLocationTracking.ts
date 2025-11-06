@@ -6,19 +6,20 @@ const LOCATION_EXPIRY_DAYS = 20;
 const getStoredLocation = () => {
     const storedData = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (!storedData) {
+        console.log('📍 No stored location found');
         return null;
     }
-
     const parsedData = JSON.parse(storedData);
     const expiryTime = LOCATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000; // 20days
-    const isExpired = Date.now() - parsedData.timestamp > expiryTime;
+    const age = Date.now() - parsedData.timestamp;
+    const isExpired = age > expiryTime;
 
-    return isExpired ? null : parsedData;;
+    return isExpired ? null : parsedData;
 };
 
 
 const useLocationTracking = () => {
-    const [location, setLocation] = useState<{ country: string; city: string | null } | null>(getStoredLocation());
+    const [location, setLocation] = useState<{ country: string; city: string | null; timestamp?: number } | null>(getStoredLocation());
 
     useEffect(() => {
         if(location) return;
@@ -30,7 +31,7 @@ const useLocationTracking = () => {
                 setLocation(newLocation);
             })
             .catch(error => {
-                console.error("Error fetching location data:", error);
+                console.error("❌ Error fetching location data:", error);
             });
     }, []);
 

@@ -5,6 +5,7 @@ import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeho
 import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import {  ChevronRight, Wand, X } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
@@ -239,12 +240,12 @@ const handleImageChange = async (file: File | null, index: number) => {
     <form className="w-full mx-auto p-8 shadow-md rounded-lg text-white" onSubmit={handleSubmit(onSubmit)}>
       {/* Heading and Breadcrums */}
       <h2 className="text-2xl py-2 font-semibold font-poppins text-white"> Create Product</h2>
-      <div className="flex items-center">
-        <span className="text-[#80Deea] cursor-pointer">
-          Dashboard
-        </span>
-        <ChevronRight className="opacity-[.8]" size={16} />
-        <span>Create Product</span>
+      <div className='flex items-center mb-4'>
+        <Link href='/dashboard' className='hover:underline text-[#80Deea] cursor-pointer'>
+            Dashboard
+        </Link>
+        <ChevronRight size={20} className='text-gray-200'/>
+        <span className='text-white'>Create Products</span>
       </div>
       {/* Content Layout */}
       <div className="py-4 w-full flex gap-6">

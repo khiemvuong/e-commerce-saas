@@ -9,10 +9,10 @@ datasource db {
 
 model images {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  fileId    String
+  fileId     String
   file_url   String
-  userId     String?    @db.ObjectId
-  shopId     String?    @db.ObjectId
+  userId     String?   @db.ObjectId
+  shopId     String?   @db.ObjectId
   users      users?    @relation(fields: [userId], references: [id])
   shops      shops?    @relation(fields: [shopId], references: [id])
   products   products? @relation(fields: [productsId], references: [id])
@@ -102,9 +102,9 @@ enum productStatus {
 }
 
 model products {
-  id                    String        @id @default(auto()) @map("_id") @db.ObjectId
+  id                    String            @id @default(auto()) @map("_id") @db.ObjectId
   title                 String
-  slug                  String        @unique
+  slug                  String            @unique
   category              String
   sub_category          String
   short_description     String
@@ -120,18 +120,73 @@ model products {
   stock                 Int
   sale_price            Float
   regular_price         Float
-  rating                Float         @default(5)
+  rating                Float             @default(5)
   warranty              String?
   custom_specifications Json?
   custom_properties     Json?
-  isDeleted             Boolean?      @default(false)
+  isDeleted             Boolean?          @default(false)
   cash_on_delivery      String?
-  discount_codes        String[]      @db.ObjectId
-  status                productStatus @default(Active)
+  discount_codes        String[]          @db.ObjectId
+  status                productStatus     @default(Active)
   deletedAt             DateTime?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  shopId                String        @db.ObjectId
-  Shop                  shops         @relation(fields: [shopId], references: [id])
-  totalSales            Int           @default(0)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  shopId                String            @db.ObjectId
+  Shop                  shops             @relation(fields: [shopId], references: [id])
+  totalSales            Int               @default(0)
+  productAnalytics      productAnalytics?
+}
+
+// Product Analytics - Track product performance metrics
+model productAnalytics {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId String   @unique @db.ObjectId
+  product   products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId    String?  @db.ObjectId
+
+  // Metrics
+  views        Int @default(0) 
+  cartAdds     Int @default(0) 
+  wishlistAdds Int @default(0) 
+  purchases    Int @default(0) 
+
+  // Conversion rates (calculated fields)
+  cartConversionRate     Float @default(0) // % chuyển từ view -> add to cart
+  purchaseConversionRate Float @default(0) // % chuyển từ cart -> purchase
+
+  // Timestamps
+  lastViewedAt DateTime @default(now()) 
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([shopId])
+  @@index([views])
+  @@index([purchases])
+}
+
+// User Analytics - Track user behavior and preferences
+model userAnalytics {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+
+  // Location metadata
+  country String? 
+  city    String? 
+
+  // Device metadata
+  device String? 
+
+  // Activity tracking
+  lastVisited DateTime  @default(now()) 
+  lastTrained DateTime? 
+  actions     Json[]    @default([]) 
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([country])
+  @@index([city])
+  @@index([lastVisited])
+  @@index([lastTrained])
 }
