@@ -16,7 +16,10 @@ allowedHeaders: ['Authorization','Content-Type'],
 credentials: true,
 })
 );
-app.use(express.json());
+// Increase body size limits to allow base64 image data uploads from the frontend.
+// Default express.json limit is small (~100kb) and will reject large base64 payloads.
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 app.get('/', (req, res) => {
     res.send({ 'message': 'Product Service is running' });

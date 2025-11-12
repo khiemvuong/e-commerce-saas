@@ -1,17 +1,39 @@
 'use client';
-import { AlignLeft, ChevronDown, Heart, ShoppingCart } from 'lucide-react';
+import { AlignLeft, ChevronDown, ChevronRight, Heart, ShoppingCart } from 'lucide-react';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import ProfileIcon from '../../../assets/svgs/profile-icon';
 import { navItems } from 'apps/user-ui/src/configs/constants';
 import useUser from "apps/user-ui/src/hooks/useUser";
-// type NavItemsTypes = { title: string; href: string }; // nếu cần
+import { useStore } from 'apps/user-ui/src/store';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 
 const HeaderBottom = () => {
+const pathname = usePathname();
 const [show, setShow] = React.useState(false);
 const [isSticky, setIsSticky] = React.useState(false);
+const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
+const [categories, setCategories] = React.useState<string[]>([]);
+const [subCategories, setSubCategories] = React.useState<Record<string, string[]>>({});
 const menuRef = React.useRef<HTMLDivElement | null>(null);
+const cart = useStore((state: any) => state.cart);
+const wishlist = useStore((state: any) => state.wishlist);
 const { user, isLoading } = useUser();
+
+  // Fetch categories from API
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axiosInstance.get('/product/api/get-categories');
+        setCategories(data.categories || []);
+        setSubCategories(data.subCategories || {});
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
   // Sticky on scroll
 React.useEffect(() => {
     const handleScroll = () => setIsSticky(window.scrollY > 100);
@@ -54,12 +76,43 @@ return (
           {/* Dropdown Items  */}
         {show && (
             <div
-            className="absolute top-full left-0 w-full mt-1 z-50 rounded-b-md bg-[#3a3a3a] text-white shadow-lg overflow-hidden"
+            className="absolute top-full left-0 w-full mt-1 z-50 rounded-b-md bg-[#3a3a3a] text-white shadow-lg"
             onClick={(e) => e.stopPropagation()}
             >
-            <button className="w-full text-left px-4 py-2 hover:bg-[#2f2f2f]">Item 1</button>
-            <button className="w-full text-left px-4 py-2 hover:bg-[#2f2f2f]">Item 2</button>
-            <button className="w-full text-left px-4 py-2 hover:bg-[#2f2f2f]">Item 3</button>
+            {categories.map((category: string, index: number) => {
+              const hasSub = subCategories[category] && subCategories[category].length > 0;
+              return (
+                <div
+                  key={index}
+                  className="relative"
+                  onMouseEnter={() => setHoveredCategory(category)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
+                  <Link
+                    href={`/products?category=${encodeURIComponent(category)}`}
+                    className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#2f2f2f] transition"
+                  >
+                    <span>{category}</span>
+                    {hasSub && <ChevronRight size={16} />}
+                  </Link>
+
+                  {/* Subcategories - show on hover */}
+                  {hasSub && hoveredCategory === category && (
+                    <div className="absolute left-full top-0 ml-1 w-[260px] bg-[#3a3a3a] shadow-xl rounded-md border border-gray-600 z-[60]">
+                      {subCategories[category].map((sub: string, subIndex: number) => (
+                        <Link
+                          key={subIndex}
+                          href={`/products?category=${encodeURIComponent(category)}&subCategory=${encodeURIComponent(sub)}`}
+                          className="block px-4 py-3 hover:bg-[#2f2f2f] transition text-sm"
+                        >
+                          {sub}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             </div>
         )}
         </div>
@@ -67,7 +120,18 @@ return (
         {/* Navigation Links */}
         <div className="flex items-center">
         {navItems.map((i: any, index: number) => (
-            <Link className="px-5 font-medium text-lg hover:text-blue-600" href={i.href} key={index}>
+            <Link 
+              className="px-5 font-medium text-lg hover:text-blue-600" 
+              href={i.href} 
+              key={index}
+              onClick={(e) => {
+                // If clicking same page, force reload to reset filters/state
+                if (i.href === pathname) {
+                  e.preventDefault();
+                  window.location.href = i.href;
+                }
+              }}
+            >
             {i.title}
             </Link>
         ))}
@@ -117,20 +181,20 @@ return (
                 )}
 
                 {/* Wishlist */}
-                <button className="relative p-2 rounded-full hover:bg-gray-100 hover:text-red-500 transition">
-                <Heart size={20} />
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
-                    0
-                </span>
-                </button>
+                <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 hover:text-red-500 transition">
+                  <Heart size={20} />
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
+                    {wishlist?.length || 0}
+                  </span>
+                </Link>
 
                 {/* Cart */}
-                <button className="relative p-2 rounded-full hover:bg-gray-100 hover:text-blue-600 transition">
-                <ShoppingCart size={20} />
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
-                    0
-                </span>
-                </button>
+                <Link href="/cart" className="relative p-2 rounded-full hover:bg-gray-100 hover:text-blue-600 transition">
+                  <ShoppingCart size={20} />
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full px-1.5 leading-[14px]">
+                    {cart?.length || 0}
+                  </span>
+                </Link>
             </div>
             </div>
         )}

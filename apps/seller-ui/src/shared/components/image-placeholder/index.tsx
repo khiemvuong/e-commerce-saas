@@ -11,6 +11,7 @@ const ImagePlaceHolder = (
     index = 0,
     setOpenImageModal,
     setSelectedImage,
+    setSelectedImageIndex,
     isUploading = false,
     images,
   }: {
@@ -21,6 +22,7 @@ const ImagePlaceHolder = (
     defaultImage?: string | null;
     setOpenImageModal: (openImageModal: boolean) => void;
     setSelectedImage: (selectedImage: string) => void;
+    setSelectedImageIndex?: (index: number) => void;
     images: any;
     index?: number;
     isUploading?: boolean;
@@ -75,8 +77,9 @@ const ImagePlaceHolder = (
           <button
             type="button"
             onClick={() => {
+              setSelectedImageIndex?.(index);
               setOpenImageModal(true);
-              setSelectedImage(images[index].file_url || imagePreview || '');
+              setSelectedImage(images[index]?.file_url || imagePreview || '');
             }}
             disabled={isUploading}
             className="absolute top-3 right-[56px] p-2 rounded bg-blue-500 text-white z-10 disabled:opacity-50"

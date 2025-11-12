@@ -181,9 +181,7 @@ const ProductList = () => {
         <div className='w-full min-h-screen p-8'>
             {/*Header*/}
             <div className='flex justify-between items-center mb-1'>
-                <h2 className='text-2xl text-white font-semibold'>
-                    All Products
-                </h2>
+                <h2 className="text-2xl py-2 font-semibold font-poppins text-white"> All Product</h2>
                 <Link
                     href='/dashboard/create-products'
                     className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition'
@@ -194,7 +192,7 @@ const ProductList = () => {
             </div>
             {/* Breadcrumbs */}
             <div className='flex items-center mb-4'>
-                <Link href='/dashboard' className='hover:underline text-blue-400 cursor-pointer'>
+                <Link href='/dashboard' className='hover:underline text-[#80Deea] cursor-pointer'>
                     Dashboard
                 </Link>
                 <ChevronRight size={20} className='text-gray-200'/>
