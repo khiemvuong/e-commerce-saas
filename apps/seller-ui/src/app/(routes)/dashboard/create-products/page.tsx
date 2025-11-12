@@ -31,6 +31,7 @@ const Page = () => {
     const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
     const [selectedImage, setSelectedImage] = useState('');
+    const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -218,19 +219,59 @@ const handleImageChange = async (file: File | null, index: number) => {
   const applyTransformation = async (transformation: string) => {
       if (!selectedImage || processing) return;
       setProcessing(true);
-      setActiveEffect(transformation);
       try {
         const baseUrl = selectedImage.split('?')[0];
-        const transformedUrl=`${baseUrl}?tr=${transformation}`;
+        const transformedUrl = `${baseUrl}?tr=${transformation}`;
+
+        // Wait until the transformed image finishes loading before updating UI and showing success toast
+        await new Promise<void>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve();
+          img.onerror = (e) => reject(e);
+          img.src = transformedUrl;
+        });
+
+        // Apply transform in UI only (no persistence) and mark active effect
         setSelectedImage(transformedUrl);
+        setActiveEffect(transformation);
         toast.success('Enhancement applied!');
       } catch (error) {
         console.log('Error applying transformation:', error);
+        toast.error('Failed to apply enhancement');
       } finally {
         setProcessing(false);
       }
-
   }
+
+  const confirmEffect = () => {
+    if (selectedImageIndex === null || selectedImageIndex === undefined) {
+      toast.error('No image selected');
+      return;
+    }
+
+    const idx = selectedImageIndex;
+    const current = images[idx];
+
+    // Ensure the image was uploaded and has a fileId
+    if (!current || !current.fileId) {
+      toast.error('Please upload an image first');
+      return;
+    }
+
+    // Update the image with the transformed URL
+    const updated = [...images];
+    updated[idx] = {
+      ...current,
+      file_url: selectedImage,
+    };
+
+    setImages(updated);
+    syncImagesField(updated);
+    setIsChanged(true);
+    setOpenImageModal(false);
+    setActiveEffect(null);
+    toast.success('Effect confirmed and saved!');
+  };
 
     const handleSaveDraft = () => {
       // Implement save draft functionality here
@@ -261,6 +302,7 @@ const handleImageChange = async (file: File | null, index: number) => {
             onImageChange={handleImageChange}
             isUploading={uploadingIndexes.has(0)}
             setSelectedImage={setSelectedImage}
+            setSelectedImageIndex={setSelectedImageIndex}
             onRemove={handleRemoveImage}
             defaultImage={previews[0] || images[0]?.file_url || null}
             key={`image-0-${images[0]?.fileId || previews[0] || 'empty'}`}
@@ -278,6 +320,7 @@ const handleImageChange = async (file: File | null, index: number) => {
                   index={realIndex}
                   images={images}
                   setSelectedImage={setSelectedImage}
+                  setSelectedImageIndex={setSelectedImageIndex}
                   onImageChange={handleImageChange}
                   onRemove={handleRemoveImage}
                   defaultImage={previews[realIndex] || img?.file_url || null}
@@ -681,6 +724,7 @@ const handleImageChange = async (file: File | null, index: number) => {
                 {enhancements?.map(({label,effect})=>(
                   <button
                   key={effect}
+                  type="button"
                   className={`p-2 rounded-md flex items-center gap-2 ${activeEffect === effect ? 'bg-blue-600 text-white'  : 'bg-gray-700 hover:bg-gray-600'}`}
                   onClick={()=>applyTransformation(effect)}
                   disabled={processing}
@@ -690,23 +734,34 @@ const handleImageChange = async (file: File | null, index: number) => {
                   </button>
                 ))}
                 </div>
-                {/*Reset Button*/}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const baseUrl = selectedImage.split('?')[0];
-                    setSelectedImage(baseUrl);
-                    setActiveEffect(null);
-                    toast.success('Reset to original');
-                  }}
-                  className="w-full mt-3 px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600"
-                  disabled={processing}
+                {/*Action Buttons*/}
+                  {/* Confirm Button - only show if an effect is applied */}
+                  {activeEffect && (
+                    <button
+                      type="button"
+                      onClick={confirmEffect}
+                      className=" w-full my-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-500"
+                      disabled={processing}
+                    >
+                      Confirm Enhancement
+                    </button>
+                  )}
+                  {/*Reset Button*/}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const baseUrl = selectedImage.split('?')[0];
+                      setSelectedImage(baseUrl);
+                      setActiveEffect(null);
+                      toast.success('Reset to original');
+                    }}
+                    className={`w-full px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600`}
+                    disabled={processing}
                   >
                     Reset to Original
-                </button>
-              </div>
+                  </button>
+                </div>
             )
-
             }
           </div>
         </div>
@@ -714,7 +769,7 @@ const handleImageChange = async (file: File | null, index: number) => {
       {/* Save Draft Buttons */}
       <div className="mt-6 flex justify-end gap-3">
         {isChanged && (
-          <button type="button" className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600">
+          <button type="button" onClick={handleSaveDraft} className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600">
             Save Draft
           </button>
         )}

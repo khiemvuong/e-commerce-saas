@@ -2,6 +2,7 @@
 import { AlignLeft, ChevronDown, ChevronRight, Heart, ShoppingCart } from 'lucide-react';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import ProfileIcon from '../../../assets/svgs/profile-icon';
 import { navItems } from 'apps/user-ui/src/configs/constants';
 import useUser from "apps/user-ui/src/hooks/useUser";
@@ -9,6 +10,7 @@ import { useStore } from 'apps/user-ui/src/store';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 
 const HeaderBottom = () => {
+const pathname = usePathname();
 const [show, setShow] = React.useState(false);
 const [isSticky, setIsSticky] = React.useState(false);
 const [hoveredCategory, setHoveredCategory] = React.useState<string | null>(null);
@@ -118,7 +120,18 @@ return (
         {/* Navigation Links */}
         <div className="flex items-center">
         {navItems.map((i: any, index: number) => (
-            <Link className="px-5 font-medium text-lg hover:text-blue-600" href={i.href} key={index}>
+            <Link 
+              className="px-5 font-medium text-lg hover:text-blue-600" 
+              href={i.href} 
+              key={index}
+              onClick={(e) => {
+                // If clicking same page, force reload to reset filters/state
+                if (i.href === pathname) {
+                  e.preventDefault();
+                  window.location.href = i.href;
+                }
+              }}
+            >
             {i.title}
             </Link>
         ))}

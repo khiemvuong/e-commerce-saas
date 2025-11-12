@@ -22,7 +22,7 @@ const Hero= () => {
           <div className="flex items-center gap-8 mt-3">
             <a
               role="button"
-              href="#"
+              href="/products"
               className="group cursor-pointer bg-transparent border-none"
             >
               <span className="relative inline-block pb-5 text-sm uppercase tracking-[4px] pr-4 text-white">

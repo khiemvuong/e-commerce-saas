@@ -4,8 +4,8 @@ import { Search, Heart, ShoppingCart } from "lucide-react";
 import ProfileIcon from "../../../assets/svgs/profile-icon";
 import HeaderBottom from "./header-bottom";
 import useUser from "apps/user-ui/src/hooks/useUser";
-import IlanIcon from "apps/user-ui/src/assets/svgs/ilan-logo";
 import { useStore } from "apps/user-ui/src/store";
+import IlanLogo3 from "apps/user-ui/src/assets/svgs/ilan-logo-3";
 const Header = () => {
   const { user, isLoading } = useUser();
   const wishlist = useStore((state: any) => state.wishlist);
@@ -19,11 +19,10 @@ const Header = () => {
       </div>
       <header className="w-full bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              
-              <IlanIcon className="ml-2" />
+              <IlanLogo3 size={220}/>              
             </Link>
 
             {/* Right Section: Search + User Actions */}

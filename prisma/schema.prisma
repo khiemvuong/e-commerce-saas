@@ -43,6 +43,29 @@ model shopReviews {
   shop      shops?   @relation(fields: [shopId], references: [id])
 }
 
+// Orders model - Track customer orders
+model orders {
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String   @unique
+  userId          String   @db.ObjectId
+  shopId          String   @db.ObjectId
+  shop            shops    @relation(fields: [shopId], references: [id])
+  products        Json[] // Array of {productId, quantity, price, title, etc}
+  total           Float
+  status          String   @default("pending") // pending, processing, shipped, delivered, cancelled
+  paymentMethod   String?
+  paymentStatus   String   @default("unpaid") // unpaid, paid, refunded
+  shippingAddress Json
+  trackingNumber  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+}
+
 model shops {
   id            String        @id @default(auto()) @map("_id") @db.ObjectId
   name          String
@@ -56,11 +79,13 @@ model shops {
   socialLinks   Json[]
   rating        Float         @default(0)
   reviews       shopReviews[]
+  followers     String[]      @default([])
   sellerId      String        @unique @db.ObjectId
   sellers       sellers       @relation(fields: [sellerId], references: [id])
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   products      products[]
+  orders        orders[]
 }
 
 model sellers {
@@ -145,17 +170,17 @@ model productAnalytics {
   shopId    String?  @db.ObjectId
 
   // Metrics
-  views        Int @default(0) 
-  cartAdds     Int @default(0) 
-  wishlistAdds Int @default(0) 
-  purchases    Int @default(0) 
+  views        Int @default(0)
+  cartAdds     Int @default(0)
+  wishlistAdds Int @default(0)
+  purchases    Int @default(0)
 
   // Conversion rates (calculated fields)
   cartConversionRate     Float @default(0) // % chuyển từ view -> add to cart
   purchaseConversionRate Float @default(0) // % chuyển từ cart -> purchase
 
   // Timestamps
-  lastViewedAt DateTime @default(now()) 
+  lastViewedAt DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -170,16 +195,16 @@ model userAnalytics {
   userId String @unique @db.ObjectId
 
   // Location metadata
-  country String? 
-  city    String? 
+  country String?
+  city    String?
 
   // Device metadata
-  device String? 
+  device String?
 
   // Activity tracking
-  lastVisited DateTime  @default(now()) 
-  lastTrained DateTime? 
-  actions     Json[]    @default([]) 
+  lastVisited DateTime  @default(now())
+  lastTrained DateTime?
+  actions     Json[]    @default([])
 
   // Timestamps
   createdAt DateTime @default(now())

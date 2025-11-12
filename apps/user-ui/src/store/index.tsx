@@ -54,12 +54,14 @@ export const useStore = create<Store>()(
                     if(existing){
                         return {
                             cart: state.cart.map((item) =>
-                                item.id === product.id ? {...item, quantity: (item.quantity || 0) + 1} : item
+                                item.id === product.id 
+                                    ? {...item, quantity: (item.quantity || 0) + (product.quantity || 1)} 
+                                    : item
                             )
                         };
                     }
                     return {
-                        cart: [...state.cart, {...product, quantity: 1}]
+                        cart: [...state.cart, {...product, quantity: product.quantity || 1}]
                     };
                 });
                 // Send kafka event

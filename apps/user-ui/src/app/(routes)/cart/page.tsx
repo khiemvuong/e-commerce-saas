@@ -13,8 +13,8 @@ const CartPage = () => {
     const router = useRouter();
     const {user}= useUser();
     const location = useLocationTracking();
-    const quantity= 0;
     const deviceInfo = useDeviceTracking();
+    const quantity = useStore((state:any) => state.quantity);
     const addToCart = useStore((state:any) => state.addToCart);
     const [discountedProductId, setDiscountedProductId] = useState("")
     const removeFromCart = useStore((state:any) => state.removeFromCart);
@@ -111,8 +111,9 @@ const CartPage = () => {
                                             {item?.selectedOption && (
                                             <div className="text-sm text-gray-600">
                                                 {item?.selectedOption?.color &&(
-                                                    <span className='mr-2 gap-2'>
+                                                    <span className='mr-2 gap-2 flex items-center'>
                                                         <span>Color: </span>
+                                                        <span>{item?.selectedOption?.color}</span>
                                                         <span 
                                                         style={{ backgroundColor: item?.selectedOption?.color,
                                                         width: '12px', 

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 const LOCATION_STORAGE_KEY = "user_location";
 const LOCATION_EXPIRY_DAYS = 20;
 const getStoredLocation = () => {
+    if (typeof window === 'undefined') {
+        return null;
+    }
     const storedData = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (!storedData) {
         console.log('📍 No stored location found');
@@ -20,6 +23,9 @@ const getStoredLocation = () => {
 
 const useLocationTracking = () => {
     const [location, setLocation] = useState<{ country: string; city: string | null; timestamp?: number } | null>(getStoredLocation());
+    if (typeof window === 'undefined') {
+            return null;
+    }
 
     useEffect(() => {
         if(location) return;

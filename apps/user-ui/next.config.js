@@ -13,7 +13,7 @@ const nextConfig = {
   nx: {},
   //Image from image kit
   images: {
-    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com'],
+    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com','png.pngtree.com'],
   },
 };
 

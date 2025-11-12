@@ -57,8 +57,8 @@ const ProductCard = ({product,isEvent}:{product: any;isEvent?: boolean}) => {
                 <Image
                 src={product?.images?.[0]?.file_url || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
                 alt={product?.title}
-                width={400}
-                height={400}
+                width={500}
+                height={500}
                 className="w-full h-[200px] object-scale-down group-hover:scale-105 transition-transform duration-300 bg-gray-100"
                 />
             </Link>

@@ -40,13 +40,17 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isInCart) {
-      const productToAdd = {
-        ...product,
-        quantity,
-        ...(selectedOption && { selectedOption })
-      };
-      addToCart(productToAdd, user, location, deviceInfo);
+    const productToAdd = {
+      ...product,
+      quantity,
+      ...(selectedOption && { selectedOption })
+    };
+    
+    addToCart(productToAdd, user, location, deviceInfo);
+    
+    if (isInCart) {
+      toast.success(`Added ${quantity} more to cart`);
+    } else {
       toast.success('Item added to cart');
     }
     
@@ -65,11 +69,10 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   return (
     <button
       onClick={handleAddToCart}
-      disabled={isInCart}
-      className={`${variants[variant]} ${className} ${isInCart ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`${variants[variant]} ${className}`}
     >
       {showIcon && <ShoppingBag size={18} />}
-      <span>{isInCart ? 'Already in Cart' : 'Add to Cart'}</span>
+      <span>{isInCart ? 'Add More' : 'Add to Cart'}</span>
     </button>
   );
 };
