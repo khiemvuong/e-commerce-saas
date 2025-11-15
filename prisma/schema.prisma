@@ -250,7 +250,7 @@ model userAnalytics {
   // Activity tracking
   lastVisited     DateTime  @default(now())
   lastTrained     DateTime?
-  actions         Json[]    @default([])
+  actions         Json?
   recommendations Json?
 
   // Timestamps
@@ -282,4 +282,31 @@ model uniqueShopVisitors {
   visitedAt DateTime @default(now())
 
   @@unique([shopId, userId])
+}
+
+enum notificationType {
+  Order
+  Promotion
+  System
+  Review
+  Follower
+}
+
+// Notifications model - Track user notifications
+model notifications {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  type          notificationType @default(System)
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  creatorId     String?          @db.ObjectId // User who triggered the notification
+  receiverId    String           @db.ObjectId // User who receives the notification
+  redirect_link String? // Link to redirect when clicking notification
+  data          Json? // Additional data like orderId, shopId, etc.
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([receiverId])
+  @@index([isRead])
+  @@index([createdAt])
 }
