@@ -3,11 +3,14 @@ import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useUser from 'apps/user-ui/src/hooks/useUser';
 import { useStore } from 'apps/user-ui/src/store';
-import { Loader2, Trash2 } from 'lucide-react';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+import { useQuery } from 'node_modules/@tanstack/react-query/build/modern/useQuery';
+import React, { useEffect, useState } from 'react'
+import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
 
 const CartPage = () => {
     const router = useRouter();
@@ -25,6 +28,7 @@ const CartPage = () => {
     const [discountAmount, setDiscountAmount] = useState(0);
     const [couponCode, setCouponCode] = useState("");
     const [selectedAddressId, setSelectedAddressId] = useState("");
+    const [showAddressModal, setShowAddressModal] = useState(false);
 
 
     const decreaseQuantity = (productId: string) => {
@@ -50,9 +54,36 @@ const CartPage = () => {
     }
     const subtotal = cart
         .filter((item:any) => item && item.sale_price != null)
-        .reduce((total:number, item:any) => total + item.sale_price * (item.quantity || 1), 0);
+        .reduce((total:number, item:any) => total + item.sale_price * (item.quantity || 1), 0
+    );
+    //Get Addresses
+    const {data:addresses = []} = useQuery<any[], Error>({
+        queryKey: ['shipping-addresses'],
+        queryFn: async () => {
+            const res = await axiosInstance('/api/shipping-addresses');
+            return res.data.addresses;
+        }
+    });
+
+    useEffect(() => {
+        if(addresses.length > 0 && !selectedAddressId){
+            const defaultAddress = addresses.find((addr:any) => addr.is_default) || addresses[0];
+            setSelectedAddressId(defaultAddress.id);
+        }
+    }, [addresses, selectedAddressId]);
+
     return (
-    <div className='w-full bg-white'>
+    <div className='w-full bg-white relative'>
+        {/* Full screen loading overlay */}
+        {loading && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-3">
+                    <Loader2 size={48} className="animate-spin text-blue-600"/>
+                    <p className="text-gray-700 font-medium">Processing...</p>
+                </div>
+            </div>
+        )}
+
         <div className="md:w-[80%] w-[95%] mx-auto min-h-screen">
             <div className="pb-[50px]">
                 <div className="flex items-center justify-between">
@@ -209,13 +240,27 @@ const CartPage = () => {
                             <h4 className='mb-[7px] font-medium text-[15px]'>
                                 Select Shipping Address
                             </h4>
-                            <select
-                            onChange={(e)=> setSelectedAddressId(e.target.value)}
-                            value={selectedAddressId}
-                            className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-gray-500">
-                            
-                                <option value="123">Home - Binh Duong - Viet Nam</option>
-                            </select>
+                            {addresses.length > 0 ? (
+                                <select
+                                    onChange={(e)=> setSelectedAddressId(e.target.value)}
+                                    value={selectedAddressId}
+                                    className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                >
+                                {addresses?.map((addr:any) => (
+                                    <option key={addr.id} value={addr.id}>
+                                        {addr.label} - {addr.city} - {addr.country}
+                                    </option>
+                                ))}
+                                </select>
+                            ) : (
+                                <button
+                                    onClick={() => setShowAddressModal(true)}
+                                    className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-gray-300 rounded-md p-3 text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+                                >
+                                    <Plus size={20} />
+                                    <span className="font-medium">Add Shipping Address</span>
+                                </button>
+                            )}
                         </div>
                         <hr className='mx-4 text-slate-200 my-4'/>
                         <div className="mb-4">
@@ -238,16 +283,18 @@ const CartPage = () => {
                         </div>
                         <button
                         disabled={loading}
-                        className='w-full flex items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white rounded-md hover:bg-gray-600 transition-all duration-300'
+                        className='w-full flex items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white rounded-md hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed'
                         >
-                            {loading && <Loader2 className='animate-spin w-5 h-5'/>}
-                            {loading ? 'Processing...' : 'Proceed to Checkout'}
+                            Proceed to Checkout
                         </button>
                     </div>
                     </div>
                 </div>
             )}
         </div>
+
+        {/* Add Address Modal */}
+        <AddAddressModal isOpen={showAddressModal} onClose={() => setShowAddressModal(false)} />
     </div>
   )
 }

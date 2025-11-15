@@ -7,6 +7,29 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model shops {
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  bio           String?
+  category      String
+  avatar        images[]
+  coverBanner   String?
+  address       String
+  opening_hours String?
+  website       String?
+  socialLinks   Json[]
+  rating        Float         @default(0)
+  reviews       shopReviews[]
+  followers     String[]      @default([])
+  followersList followers[]
+  sellerId      String        @unique @db.ObjectId
+  sellers       sellers       @relation(fields: [sellerId], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  products      products[]
+  orders        orders[]
+}
+
 model images {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   fileId     String
@@ -26,9 +49,13 @@ model users {
   password    String?
   following   String[]
   avatar      images[]
+  addresses   address[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   shopReviews shopReviews[]
+  imagesId    String[]      @db.ObjectId
+  followings  followers[]
+  orders      orders[]
 }
 
 model shopReviews {
@@ -43,49 +70,68 @@ model shopReviews {
   shop      shops?   @relation(fields: [shopId], references: [id])
 }
 
-// Orders model - Track customer orders
-model orders {
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  orderId         String   @unique
-  userId          String   @db.ObjectId
-  shopId          String   @db.ObjectId
-  shop            shops    @relation(fields: [shopId], references: [id])
-  products        Json[] // Array of {productId, quantity, price, title, etc}
-  total           Float
-  status          String   @default("pending") // pending, processing, shipped, delivered, cancelled
-  paymentMethod   String?
-  paymentStatus   String   @default("unpaid") // unpaid, paid, refunded
-  shippingAddress Json
-  trackingNumber  String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model followers {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopId     String   @db.ObjectId
+  shops      shops?   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  followedAt DateTime @default(now())
 
-  @@index([userId])
-  @@index([shopId])
-  @@index([status])
-  @@index([createdAt])
+  @@unique([userId, shopId])
 }
 
-model shops {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
-  name          String
-  bio           String?
-  category      String
-  avatar        images[]
-  coverBanner   String?
-  address       String
-  opening_hours String?
-  website       String?
-  socialLinks   Json[]
-  rating        Float         @default(0)
-  reviews       shopReviews[]
-  followers     String[]      @default([])
-  sellerId      String        @unique @db.ObjectId
-  sellers       sellers       @relation(fields: [sellerId], references: [id])
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  products      products[]
-  orders        orders[]
+enum addressType {
+  Home
+  Work
+  Other
+}
+
+// User addresses model - Track user shipping addresses
+model address {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String      @db.ObjectId
+  user      users       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     addressType
+  name      String // recipient name
+  street    String
+  city      String
+  zip       String
+  country   String
+  isDefault Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([isDefault])
+}
+
+// Orders model - Track customer orders
+model orders {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String       @db.ObjectId
+  user              users        @relation(fields: [userId], references: [id])
+  shopId            String       @db.ObjectId
+  shop              shops        @relation(fields: [shopId], references: [id])
+  total             Float
+  shippingAddressId String?
+  couponCode        String?
+  discountAmount    Float        @default(0)
+  status            String?
+  deliveryStatus    String       @default("Ordered")
+  items             orderItems[] @relation("OrderItemsRelation")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model orderItems {
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String @db.ObjectId
+  order     orders @relation("OrderItemsRelation", fields: [orderId], references: [id], onDelete: Cascade)
+  productId String @db.ObjectId
+  quantity  Int
+  price     Float
+  title     String
 }
 
 model sellers {
@@ -202,16 +248,38 @@ model userAnalytics {
   device String?
 
   // Activity tracking
-  lastVisited DateTime  @default(now())
-  lastTrained DateTime?
-  actions     Json[]    @default([])
+  lastVisited     DateTime  @default(now())
+  lastTrained     DateTime?
+  actions         Json[]    @default([])
+  recommendations Json?
 
   // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 
-  @@index([country])
-  @@index([city])
-  @@index([lastVisited])
-  @@index([lastTrained])
+model shopAnalytics {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  shopId String @unique @db.ObjectId
+
+  totalVisitors Int @default(0)
+
+  countryStats  Json[]   @default([]) // Array of {country, visitors}
+  cityStats     Json[]   @default([]) // Array of {city, visitors}
+  deviceStats   Json[]   @default([]) // Array of {device, visitors}
+  lastVisitedAt DateTime @default(now())
+
+  // Timestamps
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model uniqueShopVisitors {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  shopId    String   @db.ObjectId
+  userId    String   @db.ObjectId
+  visitedAt DateTime @default(now())
+
+  @@unique([shopId, userId])
 }

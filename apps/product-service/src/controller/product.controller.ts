@@ -328,9 +328,10 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
         const type = String(req.query.type || "");
 
         const baseFilter: any = {
-            OR: [
+            AND: [
                 { isDeleted: false },
-                { isDeleted: null }
+                { starting_date: null },
+                { ending_date: null },
             ]
         };
         const orderBy: any =
@@ -368,6 +369,57 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
         
     } catch (error) {
         console.error("Get all products error:", error);
+        return next(error);
+    }
+};
+
+//Get All Events
+export const getAllEvents = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const page = parseInt((req.query.page as string) || "1", 10);
+        const limit = parseInt((req.query.limit as string) || "20", 10);
+        const skip = Math.max(0, (page - 1) * limit);
+        const baseFilter: any = {
+            AND: [
+                { starting_date: { not: null } },
+                { ending_date: { not: null } },
+                { OR: [
+                    { isDeleted: false },
+                    { isDeleted: null }
+                ]
+                }
+            ],
+        };
+        const [events, total,top10BySales] = await Promise.all([
+            prisma.products.findMany({
+                where: baseFilter,
+                skip,
+                take: limit,
+                include: {
+                    images: true,
+                    Shop: true,
+                },
+                orderBy: { 
+                    totalSales: "desc",
+                },
+            }),
+                prisma.products.count({where: baseFilter,}),
+                prisma.products.findMany({
+                    where:baseFilter,
+                    take:10,
+                    orderBy: { totalSales: "desc" 
+                    },
+            }),
+        ]);
+        return res.status(200).json({
+            events,
+            top10BySales,
+            total,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+        });
+    } catch (error) {
+        console.error("Get all events error:", error);
         return next(error);
     }
 };
@@ -428,10 +480,10 @@ export const getFilteredProducts = async (
                     gte: parsedPriceRange[0],
                     lte: parsedPriceRange[1],
                 },
-                OR: [
+                AND: [
                     { isDeleted: false },
-                    { isDeleted: null },
-                    // { starting_date: null },
+                    { starting_date: null },
+                    { ending_date: null },
                 ]
             };
             if (categories && (categories as string[]).length>0 ) {
@@ -511,8 +563,10 @@ export const getFilteredEvents = async (
                     gte: parsedPriceRange[0],
                     lte: parsedPriceRange[1],
                 },
-                NOT:{
-                    starting_date:null
+                AND:{
+                    starting_date:{ not: null },
+                    ending_date:{ not: null },
+                    isDeleted: false,
                 },
             };
             if (categories && (categories as string[]).length>0 ) {
@@ -604,13 +658,15 @@ export const getFilteredShops = async (
                 where: {
                     ...filters,
                     ...(Object.keys(sellerFilters).length > 0 && {
-                        sellers: sellerFilters
+                        sellers: {
+                            country: sellerFilters.country
+                        }
                     })
                 },
                 skip,
                 take: parsedLimit,
                 include: { 
-                    sellers:true,
+                    sellers: true,
                     products: true,
                 }
             }),
@@ -618,7 +674,9 @@ export const getFilteredShops = async (
                 where: {
                     ...filters,
                     ...(Object.keys(sellerFilters).length > 0 && {
-                        sellers: sellerFilters
+                        sellers: {
+                            country: sellerFilters.country
+                        }
                     })
                 }
             })
