@@ -29,9 +29,10 @@ const Page = () => {
         { name: 'Blue', hex: '#0000FF' },
         { name: 'Green', hex: '#00FF00' },
         { name: 'Yellow', hex: '#FFFF00' },
-        { name: 'Black', hex: '#000' },
+        { name: 'White', hex: '#FFFFFF' },
         { name: 'Magenta', hex: '#FF00FF' },
         { name: 'Cyan', hex: '#00FFFF' },
+        { name: 'Black', hex: '#000000' },
     ];
 
     const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];

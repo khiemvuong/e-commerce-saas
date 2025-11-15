@@ -414,3 +414,107 @@ export const getSeller = async (req: any, res: Response, next: NextFunction) => 
         next(error);
     }
 };
+
+//logout seller
+export const logOutSeller = async (req: any, res: Response, next: NextFunction) => {
+    res.clearCookie("seller-access-token");
+    res.clearCookie("seller-refresh-token");
+    res.status(200).json({message: "Logged out successfully"});
+}
+//logout admin
+export const logOutAdmin = async (req: any, res: Response, next: NextFunction) => {
+    res.clearCookie("admin-access-token");
+    res.clearCookie("admin-refresh-token");
+    res.status(200).json({message: "Logged out successfully"});
+}
+
+//Logout user
+export const logOutUser = async (req: any, res: Response, next: NextFunction) => {
+    res.clearCookie("access_token");
+    res.clearCookie("refresh_token");
+    res.status(200).json({message: "Logged out successfully"});
+}
+
+//add new adress for user
+export const addUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { label, name, street, city, zip, country, isDefault } = req.body;
+        if (!label || !name || !street || !city || !zip || !country) {
+            return next(new ValidationError("All fields are required"));
+        }
+
+        if (isDefault) {
+            // Set all other addresses to non-default
+            await prisma.address.updateMany({
+                where: { userId, isDefault: true },
+                data: { isDefault: false },
+            });
+        }
+        const newAddress = await prisma.address.create({
+            data: {
+                userId,
+                label,
+                name,
+                street,
+                city,
+                zip,
+                country,
+                isDefault: !!isDefault,
+            },
+        });
+        res.status(201).json({ success: true, address: newAddress });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//Delete user address
+export const deleteUserAddress = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const {addressId} = req.params;
+
+        if(!addressId){
+            return next(new ValidationError("Address ID is required"));
+        }
+
+        const existingAddress = await prisma.address.findFirst({
+            where: {
+                id: addressId,
+                userId
+            }
+        });
+        if(!existingAddress){
+            return next(new ValidationError("Address not found"));
+        }
+
+        await prisma.address.delete({
+            where: {
+                id: addressId
+            }
+        });
+
+        res.status(200).json({success: true, message: "Address deleted successfully"});
+    } catch (error) {
+        next(error);
+    }
+};
+
+//Get user address
+export const getUserAddresses = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const addresses = await prisma.address.findMany({
+            where: {
+                userId,
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+        res.status(200).json({ success: true, addresses });
+    } catch (error) {
+        next(error);
+    }
+};

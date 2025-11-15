@@ -21,7 +21,7 @@ const page = () => {
     staleTime:2*60*1000,
   });
 
-  const {data:latestProducts}=useQuery({
+  const {data:latestProducts,isLoading:latestProductsLoading}=useQuery({
     queryKey:['latest-products'],
     queryFn: async()=>{
       const res= await axiosInstance.get('/product/api/get-all-products?page=1&limit=10&type=latest')
@@ -38,6 +38,18 @@ const page = () => {
     },
     staleTime:1000*60*2,
   });
+
+
+  {/*Offers*/}
+  const {data: offers, isLoading: offersLoading} = useQuery({
+    queryKey:["offers"],
+    queryFn:async()=>{
+      const res = await axiosInstance.get("/product/api/get-all-events?page=1&limit=10");
+      return res.data.events;
+    },
+    staleTime:1000*60*2,
+  });
+
 
   return (
     <div className="min-h-screen pb-10">
@@ -94,7 +106,7 @@ const page = () => {
               ))}
             </div>
           )}
-          {!isLoading && !isError &&(
+          {!latestProductsLoading && !isError &&(
             <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
               {latestProducts?.map((product:any)=>(
                   <ProductCard key={product.id} product={product}/>
@@ -117,6 +129,50 @@ const page = () => {
                 <ShopCard key={shop.id} shop={shop}/>
               ))}
             </div>
+          )}
+          {shopLoading &&(
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+              {/* Shop Cards */}
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[300px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
+                >
+                </div>
+              ))}
+            </div>
+          )}
+          {!shopLoading && shops?.length === 0 &&(
+            <div className="text-center text-gray-500">No shops available.</div>
+          )}
+        </div>
+
+        {/*Top offers Section*/}
+        <div className="div">
+          <div className="my-8 block">
+            <SectionTitle title="Top Offers"/>
+          </div>
+          {!offersLoading && !isError &&(
+            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+              {offers?.map((product:any)=>(
+                <ProductCard key={product.id} product={product} isEvent={true}/>
+              ))}
+            </div>
+          )}
+          {offersLoading &&(
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+              {/* Product Cards */}
+              {Array.from({ length: 10 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[250px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
+                >
+                </div>
+              ))}
+            </div>
+          )}
+          {offers?.length === 0 &&(
+            <div className="text-center text-gray-500">No offers available.</div>
           )}
         </div>
       </div>
