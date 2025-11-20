@@ -36,7 +36,7 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
     }
 }
 
-//Create oayment session
+//Create payment session
 export const createPaymentSession = async (req:any,res:Response,next:NextFunction) => {
     try {
         const {cart,selectedAdressId,coupon} = req.body;

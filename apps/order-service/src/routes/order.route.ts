@@ -9,7 +9,7 @@ const router:Router = express.Router();
 router.post("/create-payment-intent", isAuthenticated, createPaymentIntent);
 router.post("/create-payment-session", isAuthenticated, createPaymentSession);
 router.get(
-    "/verifying-payment-session",
+    "/verify-payment-session",
     isAuthenticated,
     verifyPaymentSession
 );

@@ -41,7 +41,7 @@ type Store={
     clearCart: () => void;
     
 }
-export const useStore = create<Store>()(
+const useStore = create<Store>()(
     persist(
         (set,get) => ({
             cart: [],
@@ -155,3 +155,4 @@ export const useStore = create<Store>()(
         }
     )
 );
+export {useStore};

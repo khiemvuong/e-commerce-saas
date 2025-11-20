@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from 'node_modules/@tanstack/react-query/build/modern/useQuery';
 import React, { useEffect, useState } from 'react'
 import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
+import toast from 'react-hot-toast';
 
 const CartPage = () => {
     const router = useRouter();
@@ -30,6 +31,22 @@ const CartPage = () => {
     const [selectedAddressId, setSelectedAddressId] = useState("");
     const [showAddressModal, setShowAddressModal] = useState(false);
 
+    const creatPaymentSession = async () => {
+        setLoading(true);
+        try {
+            const res = await axiosInstance.post('/order/api/create-payment-session',{
+                cart,
+                selectedAddressId,
+                coupon:{},
+            });
+            const sessionId = res.data.sessionId;
+            router.push(`/checkout?sessionId=${sessionId}`);
+        } catch (error) {
+            toast.error("Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const decreaseQuantity = (productId: string) => {
         useStore.setState((state:any)=>({
@@ -282,6 +299,7 @@ const CartPage = () => {
                             <span className='font-semibold'>${(subtotal-discountAmount).toFixed(2)}</span>
                         </div>
                         <button
+                        onClick={creatPaymentSession}
                         disabled={loading}
                         className='w-full flex items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white rounded-md hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed'
                         >
