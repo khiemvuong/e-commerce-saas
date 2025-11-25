@@ -34,11 +34,10 @@ const Page = () => {
                     `/order/api/verify-payment-session?sessionId=${sessionId}`,
                 );                
                 console.log("Session data:", verifyRes.data.session);
-
-                
-
                 const {totalAmount,sellers,cart,coupon} = verifyRes.data.session;
-
+                console.log("Sellers in session:", sellers);
+                console.log("Total amount:", totalAmount);
+                console.log(sellers.length);
                 if (
                     !sellers || 
                     sellers.length === 0 ||
@@ -108,7 +107,8 @@ const Page = () => {
             </div>
         );
     }
-    
+    console.log("👉 RENDER STATE - ClientSecret:", clientSecret); 
+    console.log("👉 RENDER STATE - Stripe Key:", process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY);
   return (
     clientSecret && (
         <Elements

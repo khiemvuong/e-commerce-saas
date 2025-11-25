@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeholder';
 import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
@@ -280,14 +281,7 @@ const handleImageChange = async (file: File | null, index: number) => {
   return (
     <form className="w-full mx-auto p-8 shadow-md rounded-lg text-white" onSubmit={handleSubmit(onSubmit)}>
       {/* Heading and Breadcrums */}
-      <h2 className="text-2xl py-2 font-semibold font-poppins text-white"> Create Product</h2>
-      <div className='flex items-center mb-4'>
-        <Link href='/dashboard' className='hover:underline text-[#80Deea] cursor-pointer'>
-            Dashboard
-        </Link>
-        <ChevronRight size={20} className='text-gray-200'/>
-        <span className='text-white'>Create Products</span>
-      </div>
+      <BreadCrumbs title="Create Product"/>
       {/* Content Layout */}
       <div className="py-4 w-full flex gap-6">
         {/* Left Side - Image upload section */}

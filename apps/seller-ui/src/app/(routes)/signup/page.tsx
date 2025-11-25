@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import React, {useState} from 'react'
-import { useForm} from 'react-hook-form';
-import { Eye, EyeOff } from 'lucide-react';
+import { set, useForm} from 'react-hook-form';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { countries } from 'apps/seller-ui/src/utils/countries';
@@ -22,6 +22,7 @@ const Signup = () => {
     const inputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
     const {register, handleSubmit, formState: {errors}} = useForm();
     const [sellerId, setSellerId] = useState("");
+    const [isStripeLoading, setIsStripeLoading] = useState(false);
     const startResendTimer = () => {
         const interval = setInterval(() => {
             setTimer((prev) => {
@@ -75,7 +76,6 @@ const Signup = () => {
     });
 
     const onSubmit = async (data:any) => {
-        console.log('Submitting signup data:', data);
         setServerError(null);
         signupMutation.mutate(data);
     };
@@ -106,6 +106,7 @@ const Signup = () => {
 
     const connectStripe = async () => {
         try {
+            setIsStripeLoading(true);
             const response = await axios.post(
                 `${process.env.NEXT_PUBLIC_SERVER_URL}/api/create-stripe-link`,
                 { sellerId }
@@ -116,8 +117,10 @@ const Signup = () => {
             else{
                 console.error("No URL returned from server");
             }
+            setIsStripeLoading(false);
         } catch (error) {
             console.error("Stripe connection error:", error);
+            setIsStripeLoading(false);
         }
     };
 
@@ -239,7 +242,9 @@ return (
                     <label className="block text-gray-700 mb-1 mt-5">
                             Country
                     </label>
-                    <select className="w-full p-2 border border-gray-300 outline-0 rounded-[4px] mb-1" {...register("country", { required: "Country is required" })}>
+                    <select className="w-full p-2 border border-gray-300 outline-0 rounded-[4px] mb-1" {...register("country", { required: "Country is required" })}
+                    defaultValue="US"
+                    >
                         <option value="">Select your country</option>
                         {countries.map((country) => (
                             <option key={country.code} value={country.code}>{country.name}</option>
@@ -344,8 +349,11 @@ return (
                     <button
                     onClick={connectStripe}
                     className="w-full m-auto justify-center flex items-center gap-3 p-2 bg-black text-white font-Roboto text-lg hover:bg-gray-700 transition rounded-xl">
-                        Connect with
-                        <StripeLogo className="min-h-[40px] min-w-[80px]" />
+                        {isStripeLoading ? <Loader2 className="animate-spin" /> : (
+                                <>
+                                    Connect with <StripeLogo className="min-h-[40px] min-w-[80px]" />
+                                </>
+                        )}
                     </button>
                 </div>
             )}

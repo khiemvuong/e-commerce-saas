@@ -15,6 +15,7 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
     const platformFee = Math.round(customerAmount * 0.1); // 10% platform fee
 
     try {
+        
         const paymentIntent = await stripe.paymentIntents.create({
             amount: customerAmount,
             currency: 'usd',
@@ -23,6 +24,7 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
             transfer_data: {
                 destination: sellerStripeAccountId,
             },
+            on_behalf_of: sellerStripeAccountId,
             metadata: {
                 sessionId: sessionId,
                 userId: req.user.id,
@@ -39,7 +41,7 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
 //Create payment session
 export const createPaymentSession = async (req:any,res:Response,next:NextFunction) => {
     try {
-        const {cart,selectedAdressId,coupon} = req.body;
+        const {cart,selectedAddressId,coupon} = req.body;
         const userId = req.user.id;
 
         if(!cart || cart.length===0 || !Array.isArray(cart)){
@@ -120,7 +122,7 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             cart,
             sellers: sellerData,
             totalAmount,
-            shippingAdrressId: selectedAdressId,
+            shippingAddressId: selectedAddressId,
             coupon: coupon || null,
         }
         await redis.setex(
@@ -128,7 +130,6 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             600, // 10 minutes expiration
             JSON.stringify(sessionData)
         );
-
         res.status(201).json({ sessionId });
     } catch (error) {
         next(error);
@@ -142,17 +143,17 @@ export const verifyPaymentSession = async (req:Request,res:Response,next:NextFun
         if(!sessionId){
             return res.status(400).json({valid: false, message: "Session ID is required"});
         }
-
         //Fetch session from redis
         const sessionKey = `payment-session:${sessionId}`;
         const sessionData = await redis.get(sessionKey);
 
-        if(!sessionData || typeof sessionData !== 'string'){
+        if(!sessionData){
             return res.status(404).json({valid: false, message: "Payment session not found or expired"});
         }
 
         //Parse and return session
-        const session = JSON.parse(sessionData);
+        // const session = JSON.parse(sessionData);
+        const session = sessionData;
 
         return res.status(200).json({success: true, session});
     } catch (error) {
@@ -189,13 +190,19 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
             const sessionKey = `payment-session:${sessionId}`;
             const sessionData = await redis.get(sessionKey);
 
-            if(!sessionData || typeof sessionData !== 'string'){
+            if(!sessionData){
                 console.warn("Payment session not found or expired for sessionId:", sessionId);
                 return res
                 .status(404)
                 .send("Payment session not found or expired");
             }
-            const {cart,totalAmount,shippingAddressId,coupon} = JSON.parse(sessionData);
+            let session;
+            if (typeof sessionData === 'string') {
+                session = JSON.parse(sessionData);
+            } else {
+                session = sessionData;
+            }
+            const {cart,totalAmount,shippingAddressId,coupon} = session;
             const user = await prisma.users.findUnique({
                 where: {id: userId},
             });
@@ -346,6 +353,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                         },
                     });
                 }
+
                 //Notification for admin
                 await prisma.notifications.create({
                     data: {
@@ -363,5 +371,113 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
     } catch (error) {
         console.error("Error processing order creation:", error);
         return next(error);
+    }
+}
+
+
+//Get seller orders
+export const getSellerOrders = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const shop = await prisma.shops.findUnique({
+            where: {
+                sellerId: req.seller.id,
+            },
+        });
+
+        //Fetch all orders for this shop
+        const orders = await prisma.orders.findMany({
+            where: {
+                shopId: shop?.id,
+            },
+            include: {
+                user:{
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        avatar: true,
+                    }
+                }
+            },
+            orderBy:{
+                createdAt: 'desc',
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            orders,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+//Get order details
+export const getOrderDetails = async (req:any,res:Response,next:NextFunction) => {
+    try {
+        const orderId = req.params.id;
+
+        const order = await prisma.orders.findUnique({
+            where: {id: orderId},
+            include: {
+                items: true,
+                // user:{
+                //     select: {
+                //         id: true,
+                //         name: true,
+                //         email: true,
+                //     }
+                // }
+            }
+        });
+        if(!order){
+            return next(new ValidationError("Order not found"));
+        }
+
+        const shippingAdress = order.shippingAddressId
+        ? await prisma.address.findUnique({
+            where: {id: order?.shippingAddressId},
+        })
+        : null;
+
+        const coupon = order.couponCode
+        ? await prisma.discount_codes.findUnique({
+            where: {discountCode: order.couponCode},
+        })
+        : null;
+
+        //Fetch all products details in one go
+
+        const productIds = order.items.map((item) => item.productId);
+        const products = await prisma.products.findMany({
+            where: {
+                id: {in: productIds},
+            },
+            select: {
+                id: true,
+                title: true,
+                images: true,
+            }
+        });
+
+        const productMap = new Map(products.map((product) => [product.id, product]));
+
+        const items = order.items.map((item:any) => ({
+            ...item,
+            selectedOptions: item.selectedOptions ,
+            product: productMap.get(item.productId) || null,
+        }));
+        res.status(200).json({
+            success: true,
+            order:{
+                ...order,
+                items,
+                shippingAdress,
+                couponCode: coupon || null,
+            }
+        });
+    } catch (error) {
+        next(error);
     }
 }

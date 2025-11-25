@@ -771,8 +771,8 @@ export const topShops = async (
             select:{
                 id:true,
                 name:true,
-                avatar:true,
-                coverBanner:true,
+                // avatar:true,
+                // coverBanner:true,
                 address:true,
                 rating:true,
                 followers:true,

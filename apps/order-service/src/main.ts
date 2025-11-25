@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import router from './routes/order.route';
+import router from './routes/order.routes';
 import { createOrder } from './controllers/order.controller';
 
 

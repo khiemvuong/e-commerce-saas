@@ -33,9 +33,8 @@ const CheckoutForm = ({
             confirmParams: {
                 return_url: `${window.location.origin}/payment-success?sessionId=${sessionId}`,
             },
-            redirect: 'if_required',
+            // redirect: 'if_required',
         });
-        setLoading(false);
         if (result.error) {
             setStatus("failed");
             setErrorMsg(result.error.message || "An unexpected error occurred.");
