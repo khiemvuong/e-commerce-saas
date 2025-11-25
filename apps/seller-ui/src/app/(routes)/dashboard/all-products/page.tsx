@@ -21,6 +21,7 @@ import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import Image from 'next/image';
 import DeleteConfirmationModal from 'apps/seller-ui/src/shared/components/modals/delete.confirmation.modal';
+import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 
 const fetchProducts = async () => {
         const res=await axiosInstance.get('/product/api/get-shop-products');
@@ -181,22 +182,7 @@ const ProductList = () => {
         <div className='w-full min-h-screen p-8'>
             {/*Header*/}
             <div className='flex justify-between items-center mb-1'>
-                <h2 className="text-2xl py-2 font-semibold font-poppins text-white"> All Product</h2>
-                <Link
-                    href='/dashboard/create-products'
-                    className='flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition'
-                >
-                    <Plus size={18}/>
-                    <span>Add Product</span>
-                </Link>
-            </div>
-            {/* Breadcrumbs */}
-            <div className='flex items-center mb-4'>
-                <Link href='/dashboard' className='hover:underline text-[#80Deea] cursor-pointer'>
-                    Dashboard
-                </Link>
-                <ChevronRight size={20} className='text-gray-200'/>
-                <span className='text-white'>All Products</span>
+                <BreadCrumbs title="All Products"/>
             </div>
             {/*Search Bar*/}
             <div className='mb-4 flex items-center bg-gray-900 p-2 rounded-md flex-1'>

@@ -1,4 +1,3 @@
-// ...existing code...
 import { Loader2, Pencil, WandSparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 const ImagePlaceHolder = (

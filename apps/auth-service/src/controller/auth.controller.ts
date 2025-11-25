@@ -215,7 +215,6 @@ export const registerSeller = async (req: Request, res: Response, next: NextFunc
         validateRegistrationData(req.body, "seller");
         const{name,email} = req.body;
 
-
         const existingSeller = await prisma.sellers.findUnique({
             where: {
                 email
@@ -262,9 +261,35 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
                 country,
             }
         });
-        res
-        .status(201)
-        .json({seller, message: "Seller registered successfully!"});
+        const accessToken = jwt.sign(
+            { id: seller.id, role: "seller" },
+            process.env.ACCESS_TOKEN_SECRET as string,
+            { expiresIn: '15min' }
+        );
+
+        const refreshToken = jwt.sign(
+            { id: seller.id, role: "seller" },
+            process.env.REFRESH_TOKEN_SECRET as string,
+            { expiresIn: '7d' }
+        );
+
+        // 3. Set Cookies (Quan trọng để duy trì phiên đăng nhập)
+        // Lưu ý: Đảm bảo hàm setCookie của bạn hỗ trợ SameSite: 'Lax' hoặc 'None' 
+        // để cookie tồn tại được khi Stripe redirect về.
+        setCookie(res, "seller-access-token", accessToken);
+        setCookie(res, "seller-refresh-token", refreshToken);
+        res.status(201).json({
+            success: true,
+            message: "Seller registered and logged in successfully!",
+            seller: { 
+                id: seller.id, 
+                name: seller.name, 
+                email: seller.email, 
+                phone_number: seller.phone_number, 
+                country: seller.country, 
+                stripeId: seller.stripeId 
+            },
+        });
     } catch (error) {
         next(error);
     }
@@ -322,7 +347,7 @@ export const createStripeConnectLink = async (req: Request, res: Response, next:
         const account = await stripe.accounts.create({
             type: "express",
             email: seller?.email,
-            country: "GB",
+            country: seller.country || "US",
             capabilities: {
                 card_payments: { requested: true },
                 transfers: { requested: true },
