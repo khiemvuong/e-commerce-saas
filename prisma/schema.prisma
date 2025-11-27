@@ -114,7 +114,7 @@ model orders {
   shopId            String       @db.ObjectId
   shop              shops        @relation(fields: [shopId], references: [id])
   total             Float
-  shippingAddressId String?
+  shippingAddressId String?      @db.ObjectId
   couponCode        String?
   discountAmount    Float        @default(0)
   status            String?
@@ -131,7 +131,8 @@ model orderItems {
   productId String @db.ObjectId
   quantity  Int
   price     Float
-  title     String
+  title     String?
+  selectedOptions Json?
 }
 
 model sellers {

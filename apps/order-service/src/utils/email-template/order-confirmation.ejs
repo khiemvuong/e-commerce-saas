@@ -126,38 +126,23 @@
     <div class="email-body">
         <div class="success-icon">✓</div>
         
-        <p>Dear <%= customerName %>,</p>
+        <p>Dear <%= name %>,</p>
         
         <p>
             Thank you for your order! We're happy to confirm that we've received your order 
             and it's being processed.
         </p>
 
-        <div class="order-info">
-            <div class="order-info-row">
-                <span>Order ID:</span>
-                <span><strong>#<%= orderId %></strong></span>
-            </div>
-            <div class="order-info-row">
-                <span>Order Date:</span>
-                <span><%= orderDate %></span>
-            </div>
-            <div class="order-info-row">
-                <span>Payment Status:</span>
-                <span><%= paymentStatus %></span>
-            </div>
-        </div>
-
         <h2>Order Items</h2>
-        <% items.forEach(function(item) { %>
+        <% cart.forEach(function(item) { %>
         <div class="order-item">
-            <div class="item-name"><%= item.title %></div>
+            <div class="item-name"><%= item.title || 'Product' %></div>
             <div class="item-details">
-                Quantity: <%= item.quantity %> × $<%= item.price.toFixed(2) %> = $<%= (item.quantity * item.price).toFixed(2) %>
-                <% if (item.selectedOptions && (item.selectedOptions.color || item.selectedOptions.size)) { %>
+                Quantity: <%= item.quantity %> × $<%= item.sale_price.toFixed(2) %> = $<%= (item.quantity * item.sale_price).toFixed(2) %>
+                <% if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) { %>
                 <br>
                 <% if (item.selectedOptions.color) { %>Color: <%= item.selectedOptions.color %><% } %>
-                <% if (item.selectedOptions.size) { %> | Size: <%= item.selectedOptions.size %><% } %>
+                <% if (item.selectedOptions.size) { %><% if (item.selectedOptions.color) { %> | <% } %>Size: <%= item.selectedOptions.size %><% } %>
                 <% } %>
             </div>
         </div>
@@ -165,27 +150,9 @@
 
         <div class="order-info" style="margin-top: 20px;">
             <div class="order-info-row">
-                <span>Subtotal:</span>
-                <span>$<%= subtotal.toFixed(2) %></span>
-            </div>
-            <% if (discount > 0) { %>
-            <div class="order-info-row">
-                <span>Discount:</span>
-                <span style="color: #28a745;">-$<%= discount.toFixed(2) %></span>
-            </div>
-            <% } %>
-            <div class="order-info-row">
                 <span>Total:</span>
-                <span>$<%= total.toFixed(2) %></span>
+                <span>$<%= totalAmount.toFixed(2) %></span>
             </div>
-        </div>
-
-        <h2>Shipping Address</h2>
-        <div class="shipping-address">
-            <strong><%= shippingAddress.name %></strong><br>
-            <%= shippingAddress.street %><br>
-            <%= shippingAddress.city %>, <%= shippingAddress.zip %><br>
-            <%= shippingAddress.country %>
         </div>
 
         <p style="margin-top: 25px;">
@@ -193,7 +160,7 @@
         </p>
 
         <div style="text-align: center;">
-            <a href="<%= orderTrackingUrl %>" class="button">Track Your Order</a>
+            <a href="<%= trackingUrl %>" class="button">Track Your Order</a>
         </div>
 
         <p style="margin-top: 25px;">
@@ -203,7 +170,7 @@
 
         <p>
             If you have any questions, please don't hesitate to contact us at
-            <a href="mailto:support@ilan-shop.com">support@ilan-shop.com</a>.
+            <a href="mailto:support@ilan.com">support@ilan.com</a>.
         </p>
     </div>
 

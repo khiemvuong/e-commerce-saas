@@ -213,6 +213,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                 if(!acc[item.shopId]){
                     acc[item.shopId] = [];
                 }
+                acc[item.shopId].push(item);
                 return acc;
             }, {});
 
@@ -232,6 +233,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                         orderTotal -= discount;
                     }
                 }
+
                 //Create order in DB
                 await prisma.orders.create({
                     data: {
@@ -252,7 +254,6 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                         },
                     },
                 });
-
                 //Update product & analystics
                 for(const item of orderItems){
                     const {id: productId, quantity} = item;
@@ -342,29 +343,40 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                 for(const shop of sellerShops){
                     const firstProduct = shopGrouped[shop.id][0];
                     const productTitle = firstProduct?.title || "new item";
-
-                    await prisma.notifications.create({
-                        data: {
-                            title:"New Order Received",
-                            message: `You have a new order for ${productTitle} in your shop - ${shop.name}.`,
-                            creatorId: userId,
-                            receiverId: shop.sellerId,
-                            redirect_link: `https://ilan.com/order/${sessionId}`,
-                        },
-                    });
+                    try {
+                        await prisma.notifications.create({
+                            data: {
+                                type:"Order",
+                                title:"New Order Received",
+                                message:`You have a new order for ${productTitle} in your shop - ${shop.name}.`,
+                                creatorId: userId,
+                                receiverId: shop.sellerId,
+                                redirect_link:`https://ilan.com/order/${sessionId}`,
+                            },
+                        });
+                    } catch (err) {
+                        console.error("Seller notification error:", err);
+                    }
                 }
 
-                //Notification for admin
-                await prisma.notifications.create({
-                    data: {
-                        title: "Platform Order Alert",
-                        message: `A new order has been placed on the platform. Order ID: ${sessionId}.`,
-                        creatorId: userId,
-                        receiverId: 'admin',
-                        redirect_link: `https://ilan.com/orders/${sessionId}`,
-                    },
-                });
-                await redis.del(sessionKey);
+                const adminId = process.env.ADMIN_ID;
+
+                if (adminId) {
+                    try {
+                        await prisma.notifications.create({
+                            data: {
+                                type:"Order",
+                                title:"Platform Order Alert",
+                                message:`A new order has been placed. Order ID: ${sessionId}.`,
+                                creatorId: userId,
+                                receiverId: adminId,
+                                redirect_link:`https://ilan.com/orders/${sessionId}`,
+                            },
+                        });
+                    } catch (err) {
+                        console.error("Admin notification error:", err);
+                    }
+                }
             }
         }
         res.status(200).json({received: true});
@@ -435,7 +447,7 @@ export const getOrderDetails = async (req:any,res:Response,next:NextFunction) =>
             return next(new ValidationError("Order not found"));
         }
 
-        const shippingAdress = order.shippingAddressId
+        const shippingAddress = order.shippingAddressId
         ? await prisma.address.findUnique({
             where: {id: order?.shippingAddressId},
         })
@@ -473,7 +485,7 @@ export const getOrderDetails = async (req:any,res:Response,next:NextFunction) =>
             order:{
                 ...order,
                 items,
-                shippingAdress,
+                shippingAddress,
                 couponCode: coupon || null,
             }
         });

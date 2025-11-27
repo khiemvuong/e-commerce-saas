@@ -15,5 +15,5 @@ router.get(
 );
 
 router.get('/get-seller-orders', isAuthenticated,isSeller, getSellerOrders);
-router.get('/get-orders-details/:id', isAuthenticated, getOrderDetails);
+router.get('/get-order-details/:id', isAuthenticated, getOrderDetails);
 export default router;
