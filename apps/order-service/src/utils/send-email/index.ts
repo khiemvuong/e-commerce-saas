@@ -21,10 +21,10 @@ const renderEmailTemplate = async (templateName: string, data: Record<string,any
     const templatePath = path.join(
     process.cwd(),
     "apps",
-    "auth-service",
+    "order-service",
     "src",
     "utils",
-    "email-templates",
+    "email-template",
     `${templateName}.ejs`
     );
     return ejs.renderFile(templatePath, data);

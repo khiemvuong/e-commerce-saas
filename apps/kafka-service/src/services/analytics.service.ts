@@ -128,7 +128,7 @@ export const updateProductAnalytics = async (event: any) => {
         await prisma.productAnalytics.upsert({
             where: { productId: event.productId },
             update: {
-                lastViewAt: new Date(),
+                lastViewedAt: new Date(),
                 ...updateFields
             },
             create: {

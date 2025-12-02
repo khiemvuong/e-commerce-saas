@@ -1,216 +1,412 @@
+<!DOCTYPE html>
 <html>
 <head>
     <title>Order Confirmation - Ilan Shop</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style type="text/css">
-    body {
-        font-family: Arial, Helvetica, sans-serif;
-        background-color: #f4f4f4;
-        font-size: 16px;
-        line-height: 1.6;
+    * {
         margin: 0;
         padding: 0;
-        color: #333333;
+        box-sizing: border-box;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-size: 16px;
+        line-height: 1.6;
+        padding: 40px 20px;
+        color: #1a202c;
     }
     a {
-        color: #0070f3;
+        color: #667eea;
         text-decoration: none;
+        transition: color 0.3s ease;
     }
-    h1 {
-        font-size: 26px;
-        font-weight: 700;
-        margin: 0;
-        text-align: center;
+    a:hover {
+        color: #764ba2;
     }
-    h2 {
-        font-size: 22px;
-        color: #0c1927;
-        margin: 20px 0 10px;
-        font-weight: 600;
-    }
-    p {
-        margin: 0 0 15px;
-    }
-    .email-wrapper {
-        max-width: 600px;
-        margin: 30px auto;
+    .email-container {
+        max-width: 650px;
+        margin: 0 auto;
         background-color: #ffffff;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        border-radius: 16px;
         overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
     .email-header {
-        background-color: #0070f3;
-        padding: 24px;
-        color: #ffffff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 50px 40px;
         text-align: center;
+        position: relative;
+    }
+    .success-badge {
+        width: 80px;
+        height: 80px;
+        background: #ffffff;
+        border-radius: 50%;
+        margin: 0 auto 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    .checkmark {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        position: relative;
+    }
+    .checkmark:after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .email-header h1 {
+        color: #ffffff;
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .email-header p {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 16px;
+        margin-top: 10px;
     }
     .email-body {
-        padding: 30px;
+        padding: 40px;
     }
-    .email-footer {
-        background-color: #fafafa;
+    .greeting {
+        font-size: 18px;
+        color: #2d3748;
+        margin-bottom: 20px;
+    }
+    .greeting strong {
+        color: #667eea;
+        font-weight: 600;
+    }
+    .section-title {
+        font-size: 20px;
+        color: #1a202c;
+        font-weight: 700;
+        margin: 30px 0 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .order-items {
+        background: #f7fafc;
+        border-radius: 12px;
         padding: 20px;
-        text-align: center;
-        font-size: 12px;
-        color: #545252;
-    }
-    .order-info {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
         margin: 20px 0;
     }
-    .order-info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid #e0e0e0;
-    }
-    .order-info-row:last-child {
-        border-bottom: none;
-        font-weight: 700;
-        font-size: 18px;
-        padding-top: 12px;
-    }
     .order-item {
-        padding: 12px 0;
-        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        padding: 15px 0;
+        border-bottom: 1px solid #e2e8f0;
+        align-items: flex-start;
     }
     .order-item:last-child {
         border-bottom: none;
+        padding-bottom: 0;
     }
-    .item-name {
-        font-weight: 600;
-        color: #0c1927;
+    .order-item:first-child {
+        padding-top: 0;
+    }
+    .item-image-placeholder {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 8px;
+        margin-right: 15px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
     }
     .item-details {
-        color: #666;
-        font-size: 14px;
-        margin-top: 4px;
+        flex: 1;
     }
-    .shipping-address {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border-radius: 6px;
-        margin: 15px 0;
-    }
-    .button {
-        display: inline-block;
-        padding: 12px 30px;
-        margin: 20px 0;
+    .item-name {
         font-size: 16px;
-        font-weight: 700;
-        color: #ffffff;
-        background-color: #0070f3;
-        border-radius: 5px;
-        text-align: center;
+        font-weight: 600;
+        color: #1a202c;
+        margin-bottom: 5px;
     }
-    .success-icon {
-        font-size: 48px;
-        color: #28a745;
+    .item-meta {
+        font-size: 14px;
+        color: #718096;
+        margin-bottom: 8px;
+    }
+    .item-options {
+        display: inline-flex;
+        gap: 10px;
+        margin-top: 5px;
+    }
+    .option-badge {
+        background: #edf2f7;
+        color: #4a5568;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .item-price {
+        text-align: right;
+        padding-left: 15px;
+    }
+    .item-unit-price {
+        font-size: 14px;
+        color: #718096;
+        margin-bottom: 5px;
+    }
+    .item-total-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: #667eea;
+    }
+    .order-summary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        padding: 25px;
+        margin: 30px 0;
+        color: white;
+    }
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        font-size: 16px;
+    }
+    .summary-total {
+        border-top: 2px solid rgba(255, 255, 255, 0.3);
+        margin-top: 10px;
+        padding-top: 15px;
+        font-size: 24px;
+        font-weight: 700;
+    }
+    .cta-button {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 40px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
         text-align: center;
-        margin: 10px 0;
+        margin: 30px 0;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+    }
+    .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+    }
+    .info-box {
+        background: #f7fafc;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 25px 0;
+    }
+    .info-box p {
+        margin: 0;
+        color: #4a5568;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .email-footer {
+        background: #f7fafc;
+        padding: 30px 40px;
+        text-align: center;
+        border-top: 1px solid #e2e8f0;
+    }
+    .footer-text {
+        color: #718096;
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    .footer-links {
+        margin: 20px 0;
+    }
+    .footer-links a {
+        color: #667eea;
+        margin: 0 15px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+    .social-links {
+        margin-top: 20px;
+    }
+    .social-links a {
+        display: inline-block;
+        width: 36px;
+        height: 36px;
+        background: #e2e8f0;
+        border-radius: 50%;
+        margin: 0 5px;
+        line-height: 36px;
+        color: #667eea;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    .social-links a:hover {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        transform: translateY(-2px);
+    }
+    .copyright {
+        color: #a0aec0;
+        font-size: 12px;
+        margin-top: 20px;
+    }
+    @media only screen and (max-width: 600px) {
+        body {
+            padding: 20px 10px;
+        }
+        .email-body {
+            padding: 25px 20px;
+        }
+        .email-header {
+            padding: 40px 20px;
+        }
+        .email-header h1 {
+            font-size: 26px;
+        }
+        .order-item {
+            flex-direction: column;
+        }
+        .item-price {
+            text-align: left;
+            padding-left: 0;
+            margin-top: 10px;
+        }
     }
     </style>
 </head>
 <body>
-    <div class="email-wrapper">
-    <!-- Header -->
-    <div class="email-header">
-        <h1>✓ Order Confirmed!</h1>
-    </div>
-
-    <!-- Body -->
-    <div class="email-body">
-        <div class="success-icon">✓</div>
-        
-        <p>Dear <%= customerName %>,</p>
-        
-        <p>
-            Thank you for your order! We're happy to confirm that we've received your order 
-            and it's being processed.
-        </p>
-
-        <div class="order-info">
-            <div class="order-info-row">
-                <span>Order ID:</span>
-                <span><strong>#<%= orderId %></strong></span>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <div class="success-badge">
+                <div class="checkmark"></div>
             </div>
-            <div class="order-info-row">
-                <span>Order Date:</span>
-                <span><%= orderDate %></span>
+            <h1>Order Confirmed!</h1>
+            <p>Thank you for shopping with us</p>
+        </div>
+
+        <!-- Body -->
+        <div class="email-body">
+            <p class="greeting">
+                Hi <strong><%= name %></strong>,
+            </p>
+            
+            <p style="color: #4a5568; font-size: 15px; margin-bottom: 25px;">
+                Great news! Your order has been confirmed and is now being prepared for shipment. 
+                We'll notify you as soon as it's on its way.
+            </p>
+
+            <h2 class="section-title">📦 Order Details</h2>
+            
+            <div class="order-items">
+                <% cart.forEach(function(item, index) { %>
+                <div class="order-item">
+                    <div class="item-image-placeholder">
+                        <%= (item.title || 'P').charAt(0).toUpperCase() %>
+                    </div>
+                    <div class="item-details">
+                        <div class="item-name"><%= item.title || 'Product' %></div>
+                        <div class="item-meta">
+                            Quantity: <%= item.quantity %>
+                        </div>
+                        <% if (item.selectedOptions && Object.keys(item.selectedOptions).length > 0) { %>
+                        <div class="item-options">
+                            <% if (item.selectedOptions.color) { %>
+                            <span class="option-badge">🎨 <%= item.selectedOptions.color %></span>
+                            <% } %>
+                            <% if (item.selectedOptions.size) { %>
+                            <span class="option-badge">📏 <%= item.selectedOptions.size %></span>
+                            <% } %>
+                        </div>
+                        <% } %>
+                    </div>
+                    <div class="item-price">
+                        <div class="item-unit-price">
+                            $<%= item.sale_price.toFixed(2) %> each
+                        </div>
+                        <div class="item-total-price">
+                            $<%= (item.quantity * item.sale_price).toFixed(2) %>
+                        </div>
+                    </div>
+                </div>
+                <% }); %>
             </div>
-            <div class="order-info-row">
-                <span>Payment Status:</span>
-                <span><%= paymentStatus %></span>
+
+            <div class="order-summary">
+                <div class="summary-row summary-total">
+                    <span>Total Amount</span>
+                    <span>$<%= totalAmount.toFixed(2) %></span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <p>
+                    <strong>📬 What's next?</strong><br>
+                    We're currently processing your order. You'll receive a shipping confirmation email 
+                    with tracking information once your items are on their way to you.
+                </p>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="<%= trackingUrl %>" class="cta-button">
+                    🔍 Track Your Order
+                </a>
+            </div>
+
+            <div style="margin-top: 40px; padding-top: 30px; border-top: 1px solid #e2e8f0;">
+                <p style="color: #4a5568; font-size: 14px; margin-bottom: 10px;">
+                    Need help with your order? We're here for you!
+                </p>
+                <p style="color: #718096; font-size: 14px;">
+                    Contact us at <a href="mailto:support@ilan.com">support@ilan.com</a> 
+                    or visit our <a href="https://ilan.com/help">Help Center</a>
+                </p>
             </div>
         </div>
 
-        <h2>Order Items</h2>
-        <% items.forEach(function(item) { %>
-        <div class="order-item">
-            <div class="item-name"><%= item.title %></div>
-            <div class="item-details">
-                Quantity: <%= item.quantity %> × $<%= item.price.toFixed(2) %> = $<%= (item.quantity * item.price).toFixed(2) %>
-                <% if (item.selectedOptions && (item.selectedOptions.color || item.selectedOptions.size)) { %>
-                <br>
-                <% if (item.selectedOptions.color) { %>Color: <%= item.selectedOptions.color %><% } %>
-                <% if (item.selectedOptions.size) { %> | Size: <%= item.selectedOptions.size %><% } %>
-                <% } %>
+        <!-- Footer -->
+        <div class="email-footer">
+            <p class="footer-text">
+                <strong>Thank you for choosing Ilan!</strong><br>
+                We appreciate your business and hope you love your purchase.
+            </p>
+            
+            <div class="footer-links">
+                <a href="https://ilan.com/shop">Continue Shopping</a>
+                <a href="https://ilan.com/orders">My Orders</a>
+                <a href="https://ilan.com/help">Help Center</a>
             </div>
-        </div>
-        <% }); %>
 
-        <div class="order-info" style="margin-top: 20px;">
-            <div class="order-info-row">
-                <span>Subtotal:</span>
-                <span>$<%= subtotal.toFixed(2) %></span>
+            <div class="social-links">
+                <a href="https://facebook.com/ilan">f</a>
+                <a href="https://twitter.com/ilan">𝕏</a>
+                <a href="https://instagram.com/ilan">📷</a>
             </div>
-            <% if (discount > 0) { %>
-            <div class="order-info-row">
-                <span>Discount:</span>
-                <span style="color: #28a745;">-$<%= discount.toFixed(2) %></span>
-            </div>
-            <% } %>
-            <div class="order-info-row">
-                <span>Total:</span>
-                <span>$<%= total.toFixed(2) %></span>
-            </div>
+
+            <p class="copyright">
+                © 2025 Ilan Shop. All rights reserved.<br>
+                123 Commerce Street, City, Country
+            </p>
         </div>
-
-        <h2>Shipping Address</h2>
-        <div class="shipping-address">
-            <strong><%= shippingAddress.name %></strong><br>
-            <%= shippingAddress.street %><br>
-            <%= shippingAddress.city %>, <%= shippingAddress.zip %><br>
-            <%= shippingAddress.country %>
-        </div>
-
-        <p style="margin-top: 25px;">
-            We'll send you another email once your order has been shipped with tracking information.
-        </p>
-
-        <div style="text-align: center;">
-            <a href="<%= orderTrackingUrl %>" class="button">Track Your Order</a>
-        </div>
-
-        <p style="margin-top: 25px;">
-            Best regards,<br />
-            <strong>The Ilan Team</strong>
-        </p>
-
-        <p>
-            If you have any questions, please don't hesitate to contact us at
-            <a href="mailto:support@ilan-shop.com">support@ilan-shop.com</a>.
-        </p>
-    </div>
-
-    <!-- Footer -->
-    <div class="email-footer">
-        © 2025 Ilan Shop. All rights reserved.
-    </div>
     </div>
 </body>
 </html>
