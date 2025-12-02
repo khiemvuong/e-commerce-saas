@@ -460,6 +460,44 @@ export const logOutUser = async (req: any, res: Response, next: NextFunction) =>
     res.status(200).json({message: "Logged out successfully"});
 }
 
+export const updateUserPassword = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return next(new ValidationError("All fields are required"));
+        }
+
+        if(newPassword !== confirmPassword){
+            return next(new ValidationError("New password and confirm password do not match"));
+        }
+
+        if(currentPassword === newPassword){
+            return next(new ValidationError("New password must be different from current password"));
+        }
+
+        const user = await prisma.users.findUnique({ where: { id: userId } });
+        if (!user ||!user.password) {
+            return next(new AuthError("User not found or password not set"));
+        }
+
+        const isPassWordCorrect = await bcrypt.compare(currentPassword, user.password);
+        if (!isPassWordCorrect) {
+            return next(new ValidationError("Current password is incorrect"));
+        }
+
+        const hashedNewPassword =  await bcrypt.hash(newPassword, 12);
+
+        await prisma.users.update({
+            where: { id: userId },
+            data: { password: hashedNewPassword }
+        });
+        res.status(200).json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+        next(error);
+    }
+}
+
 //add new adress for user
 export const addUserAddress = async (req: any, res: Response, next: NextFunction) => {
     try {

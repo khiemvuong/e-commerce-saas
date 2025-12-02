@@ -1,11 +1,13 @@
 "use client";
 
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ProfileIcon from 'apps/user-ui/src/assets/svgs/profile-icon'
-import useUser from 'apps/user-ui/src/hooks/useUser';
+import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 import QuickActionCard from 'apps/user-ui/src/shared/components/cards/quick-action.card';
 import StatCard from 'apps/user-ui/src/shared/components/cards/stat.card';
+import ChangePassword from 'apps/user-ui/src/shared/components/change-password';
 import ShippingAdressSection from 'apps/user-ui/src/shared/components/shippingAdress';
+import OrderTable from 'apps/user-ui/src/shared/components/tables/orders.table';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Loader2, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User } from 'lucide-react';
 import Image from 'next/image';
@@ -28,7 +30,17 @@ const Page = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const{user,isLoading} = useUser();
+    const{user,isLoading} = useRequiredAuth();
+    const { data: orders = [] } = useQuery({
+        queryKey: ['user-orders'],
+        queryFn: async () => {
+            const res = await axiosInstance.get('/order/api/get-user-orders');
+            return res.data.orders;
+        }
+    });
+    const totalOrders = orders.length;
+    const processingOrders = orders.filter((order:any) => order?.deliveryStatus !== 'Delivered' && order?.deliveryStatus !== 'Cancelled').length;
+    const completedOrders = orders.filter((order:any) => order.deliveryStatus === 'Delivered').length;
     const queryTab=searchParams.get('active') || 'Profile';
     const [activeTab, setActiveTab] = useState(queryTab);
 
@@ -68,17 +80,17 @@ const Page = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard
                     title="Total Orders"
-                    count={10}
+                    count={totalOrders}
                     Icon={Clock}
                 />
                 <StatCard
                     title="Processing Orders"
-                    count={4}
+                    count={processingOrders}
                     Icon={Truck}
                 />
                 <StatCard
                     title="Completed Orders"
-                    count={6}
+                    count={completedOrders}
                     Icon={CheckCircle}
                 />
             </div>
@@ -167,6 +179,10 @@ const Page = () => {
                         </div>
                     ) : activeTab === 'shipping' ? (
                         <ShippingAdressSection/>
+                    ) : activeTab === 'My Orders' ?(
+                        <OrderTable />
+                    ): activeTab === 'change-password' ?(
+                        <ChangePassword />
                     ) : null}
                 </div>
                 {/*Right Quick Panel*/}
