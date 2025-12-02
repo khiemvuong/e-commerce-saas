@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { addUserAddress, createShop, createStripeConnectLink, deleteUserAddress, getSeller, getUser, getUserAddresses, loginSeller, logOutAdmin, logOutSeller, logOutUser, refreshToken, registerSeller, resetUserPassword, updateUserPassword, userForgotPassword, userLogin, userRegistetration, verifySeller, verifyUser, verifyUserForgotPassword } from "../controller/auth.controller";
+import { addUserAddress, createShop, createStripeConnectLink, deleteUserAddress, getSeller, getUser, getUserAddresses, loginSeller, logOutSeller, logOutUser, refreshToken, registerSeller, resetUserPassword, updateUserPassword, userForgotPassword, userLogin, userRegistetration, verifySeller, verifyUser, verifyUserForgotPassword } from "../controller/auth.controller";
 import isAuthenticated from "@packages/middleware/isAuthenticated";
 import { isSeller } from "@packages/middleware/authorizeRoles";
 

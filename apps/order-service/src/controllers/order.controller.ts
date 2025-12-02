@@ -515,6 +515,25 @@ export const updateDeliveryStatus = async (req:Request,res:Response,next:NextFun
             where: {id: orderId},
         });
 
+        if (!existingOrder) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found"
+            });
+        }
+
+        // Prevent reverting to previous status
+        const statusOrder = ["Ordered", "Packed", "Shipped", "Out for Delivery", "Delivered"];
+        const currentIndex = statusOrder.indexOf(existingOrder.deliveryStatus || "Ordered");
+        const newIndex = statusOrder.indexOf(deliveryStatus);
+
+        if (newIndex < currentIndex) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot revert to previous delivery status"
+            });
+        }
+
         const updatedOrder = await prisma.orders.update({
             where: {id: orderId},
             data: {

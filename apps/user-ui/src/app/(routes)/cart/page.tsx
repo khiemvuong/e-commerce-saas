@@ -18,11 +18,8 @@ const CartPage = () => {
     const { user } = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-    const quantity = useStore((state: any) => state.quantity);
-    const addToCart = useStore((state: any) => state.addToCart);
     const [discountedProductId, setDiscountedProductId] = useState("")
     const removeFromCart = useStore((state: any) => state.removeFromCart);
-    const clearStore = useStore((state: any) => state.clearStore);
     const cart = useStore((state: any) => state.cart);
     const [loading, setLoading] = useState(false);
     const [discountPercent, setDiscountPercent] = useState(0);
