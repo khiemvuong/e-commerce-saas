@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
+import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader'
 const MIN=0;
 const MAX=1199;
 const Page = () => {
@@ -119,23 +120,11 @@ const Page = () => {
         );
     }
 
-    // Apply functions for each filter section
-    const applyCategories = () => {
+    // Apply all filters at once
+    const applyAllFilters = () => {
         setSelectedCategories(tempCategories);
-        setPage(1);
-    }
-
-    const applyColors = () => {
         setSelectedColors(tempColors);
-        setPage(1);
-    }
-
-    const applySizes = () => {
         setSelectedSizes(tempSizes);
-        setPage(1);
-    }
-
-    const applyPriceRange = () => {
         setPriceRange(tempPriceRange);
         setPage(1);
     }
@@ -167,12 +156,6 @@ const Page = () => {
                         ))
                     )}
                 </ul>
-                <button
-                    className="w-full px-3 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                    onClick={applyCategories}
-                >
-                    Apply
-                </button>
             </div>
             {/*Color Filter*/}
             <div className="bg-white border border-gray-200 rounded-sm p-6">
@@ -196,12 +179,6 @@ const Page = () => {
                         </li>
                     ))}
                 </ul>
-                <button
-                    className="w-full px-3 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                    onClick={applyColors}
-                >
-                    Apply
-                </button>
             </div>
 
             {/*Size Filter*/}
@@ -222,12 +199,6 @@ const Page = () => {
                         </li>
                     ))}
                 </ul>
-                <button
-                    className="w-full px-3 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                    onClick={applySizes}
-                >
-                    Apply
-                </button>
             </div>
             {/*Price Range Filter*/}
             <div className="bg-white border border-gray-200 rounded-sm p-6">
@@ -278,13 +249,17 @@ const Page = () => {
                     <div className="text-sm text-gray-600">
                         ${tempPriceRange[0]} - ${tempPriceRange[1]}
                     </div>
-                    <button
-                        className="px-3 py-1 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                        onClick={applyPriceRange}
-                    >
-                        Apply
-                    </button>
                 </div>
+            </div>
+
+            {/* Apply All Filters Button */}
+            <div className="sticky bottom-4">
+                <button
+                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition shadow-lg"
+                    onClick={applyAllFilters}
+                >
+                    Apply All Filters
+                </button>
             </div>
         </aside>
         {/*Product Listing Section*/}
@@ -293,15 +268,7 @@ const Page = () => {
                     <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Collection Of Products</h1>
             </div>
             {isProductLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2
-                lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {Array.from({length:12}).map((_,index) => (
-                        <div
-                            key={index}
-                            className='h-[250px] bg-gray-300 animate-pulse rounded-xl'
-                        />
-                    ))}
-                </div>
+                <PageLoader text="Loading offers" />
             ) : products.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {products.map((product) => (

@@ -250,6 +250,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                                 quantity: item.quantity,
                                 price: item.sale_price,
                                 selectedOptions: item.selectedOptions || {},
+                                title: item.title,
                             })),
                         },
                     },
@@ -477,7 +478,7 @@ export const getOrderDetails = async (req:any,res:Response,next:NextFunction) =>
 
         const items = order.items.map((item:any) => ({
             ...item,
-            selectedOptions: item.selectedOptions ,
+            selectedOptions: item.selectedOptions || {},
             product: productMap.get(item.productId) || null,
         }));
         res.status(200).json({

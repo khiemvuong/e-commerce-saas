@@ -254,8 +254,8 @@ const Page = () => {
                                         </div>
                                         <div className='flex-1 flex flex-col justify-between'>
                                             <div>
-                                                <h4 className='text-gray-100 font-medium line-clamp-1' title={item.product?.title}>
-                                                    {item.product?.title || 'Unnamed Product'}
+                                                <h4 className='text-gray-100 font-medium line-clamp-1' title={item.title || item.product?.title}>
+                                                    {item.title || item.product?.title || 'Unnamed Product'}
                                                 </h4>
                                                 
                                                 {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
@@ -263,9 +263,25 @@ const Page = () => {
                                                         {Object.entries(item.selectedOptions).map(
                                                             ([key, value]: [string, any]) =>
                                                                 value && (
-                                                                    <span key={key} className='text-xs bg-gray-900 text-gray-400 px-2 py-1 rounded border border-gray-700'>
-                                                                        <span className='font-medium capitalize text-gray-500'>{key}: </span>
-                                                                        {value}
+                                                                    <span key={key} className='text-xs bg-gray-900 text-gray-400 px-2 py-1 rounded border border-gray-700 flex items-center gap-1.5'>
+                                                                        <span className='font-medium capitalize text-gray-500'>{key}:</span>
+                                                                        {key.toLowerCase() === 'color' ? (
+                                                                            <span className="flex items-center gap-1">
+                                                                                <span
+                                                                                    style={{
+                                                                                        backgroundColor: value,
+                                                                                        width: '14px',
+                                                                                        height: '14px',
+                                                                                        borderRadius: '50%',
+                                                                                        display: 'inline-block',
+                                                                                        border: '1px solid #4b5563'
+                                                                                    }}
+                                                                                />
+                                                                                <span className="text-gray-300">{value}</span>
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-gray-300">{value}</span>
+                                                                        )}
                                                                     </span>
                                                                 )
                                                         )}

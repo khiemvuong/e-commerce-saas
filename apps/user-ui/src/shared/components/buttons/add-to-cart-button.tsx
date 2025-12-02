@@ -13,11 +13,9 @@ interface AddToCartButtonProps {
   className?: string;
   showIcon?: boolean;
   quantity?: number;
-  selectedOption?: {
-    color?: string;
-    size?: string;
-  };
+  selectedOptions?: Record<string, any>;
   onClick?: (e: React.MouseEvent) => void;
+  onOpenModal?: () => void;
 }
 
 const AddToCartButton: React.FC<AddToCartButtonProps> = ({
@@ -26,8 +24,9 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
   className = '',
   showIcon = true,
   quantity = 1,
-  selectedOption,
-  onClick
+  selectedOptions,
+  onClick,
+  onOpenModal
 }) => {
   const { user } = useUser();
   const location = useLocationTracking();
@@ -40,10 +39,18 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
+    // Check if product has any selectable options
+    
+    // If product has options but no options selected, open modal
+    if ( (!selectedOptions || Object.keys(selectedOptions).length === 0)) {
+      onOpenModal?.();
+      return;
+    }
+    
     const productToAdd = {
       ...product,
       quantity,
-      ...(selectedOption && { selectedOption })
+      ...(selectedOptions && { selectedOptions })
     };
     
     addToCart(productToAdd, user, location, deviceInfo);
