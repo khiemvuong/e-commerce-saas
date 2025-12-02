@@ -25,7 +25,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
     const addToWishlist = useStore((state:any) => state.addToWishlist);
     const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
     const isWishlisted = wishlist.some((item:any) => item.id === productDetails.id);
-    const {user,isLoading} = useUser();
+    const {user} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const [recommendedProducts, setRecommendedProducts] = useState([]);
