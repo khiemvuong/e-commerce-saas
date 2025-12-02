@@ -24,7 +24,6 @@ const Signup = () => {
     const inputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
     const router = useRouter();
     const {register, handleSubmit, formState: {errors}} = useForm<FormData>();
-    const [isStripeLoading, setIsStripeLoading] = useState(false);
     const startResendTimer = () => {
         const interval = setInterval(() => {
             setTimer((prev) => {

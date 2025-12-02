@@ -11,10 +11,8 @@ import {
     Pencil,
     Trash,
     Eye,
-    Plus,
     BarChart,
     Star,
-    ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
@@ -35,8 +33,6 @@ const restoreProduct = async (productId:string) => {
 }
 const ProductList = () => {
     const [globalFilter, setGlobalFilter]=useState('');
-    const [analyticsData, setAnalyticsData]=useState(null);
-    const [showAnalytics, setShowAnalytics]=useState(false);
     const [showDeleteModal, setShowDeleteModal]=useState(false);
     const [selectedProduct, setSelectedProduct]=useState<any>();
     const queryClient=useQueryClient();

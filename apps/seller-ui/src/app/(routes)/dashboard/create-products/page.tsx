@@ -5,8 +5,7 @@ import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeholder';
 import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
-import {  ChevronRight, Wand, X } from 'lucide-react';
-import Link from 'next/link';
+import {  Wand, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import ColorSelector from 'packages/components/color-selector';
 import CustomProperties from 'packages/components/custom-properties';
@@ -35,7 +34,6 @@ const Page = () => {
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
     const router = useRouter();
-    const [loading, setLoading] = useState(false);
 
     const {data,isLoading,isError} = useQuery({
       queryKey: ['categories'],
@@ -71,13 +69,10 @@ const Page = () => {
 
     const onSubmit = async(data:any) => {
       try {
-        setLoading(true);
         await axiosInstance.post('/product/api/create-product', data);
         router.push('/dashboard/all-products');
       } catch (error:any) {
         toast.error('Failed to create product');
-      } finally {
-        setLoading(false);
       }
     }
 
