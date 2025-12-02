@@ -1,6 +1,7 @@
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 import React, { useState } from 'react'
+import OverlayLoader from '../loading/overlay-loader';
 
 const CheckoutForm = ({
     clientSecret,
@@ -46,6 +47,8 @@ const CheckoutForm = ({
 
   return (
     <div className="flex justify-center items-center min-h-[80vh] px-4 my-10">
+        {loading && <OverlayLoader text="Processing payment..." />}
+        
         <form className='bg-white w-full max-w-lg p-8 rounded-md shadow space-y-6'
             onSubmit={handleSubmit}
         >
@@ -79,7 +82,6 @@ const CheckoutForm = ({
                 disabled={loading || !stripe || !elements}
                 className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {loading && <Loader2 size={16} className="inline-block mr-2 animate-spin" />}
                 {loading ? 'Processing...' : 'Pay Now'}
             </button>
             {errorMsg &&

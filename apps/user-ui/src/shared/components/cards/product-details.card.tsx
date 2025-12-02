@@ -204,7 +204,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                 <AddToCartButton 
                                     product={data}
                                     quantity={quantity}
-                                    selectedOption={{
+                                    selectedOptions={{
                                         color: isSelected,
                                         size: isSizeSelected
                                     }}
@@ -218,7 +218,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                         : addToWishlist({
                                             ...data, 
                                             quantity,
-                                            selectedOption:{
+                                            selectedOptions:{
                                                 color:isSelected,
                                                 size:isSizeSelected
                                             }}, 

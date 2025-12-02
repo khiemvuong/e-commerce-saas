@@ -10,7 +10,8 @@ import {
     flexRender,
 } from "@tanstack/react-table";
 import React, { useMemo } from "react";
-import { Package, Loader2, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import OverlayLoader from '../loading/overlay-loader';
 
 
 const OrderTable = () => {
@@ -139,9 +140,8 @@ const OrderTable = () => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col justify-center items-center min-h-[400px] gap-3">
-                <Loader2 size={40} className="animate-spin text-blue-600" />
-                <p className="text-gray-600">Loading your orders...</p>
+            <div className="py-12">
+                <OverlayLoader text="Loading your orders..." />
             </div>
         );
     }

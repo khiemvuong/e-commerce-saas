@@ -4,7 +4,7 @@ import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useUser from 'apps/user-ui/src/hooks/useUser';
 import { useStore } from 'apps/user-ui/src/store';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,6 +12,7 @@ import { useQuery } from 'node_modules/@tanstack/react-query/build/modern/useQue
 import React, { useEffect, useState } from 'react'
 import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
 import toast from 'react-hot-toast';
+import OverlayLoader from 'apps/user-ui/src/shared/components/loading/overlay-loader';
 
 const CartPage = () => {
     const router = useRouter();
@@ -136,14 +137,9 @@ const CartPage = () => {
 
     return (
         <div className='w-full bg-white relative'>
-            {/* Full screen loading overlay */}
+            {/* Loading overlay */}
             {loading && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-3">
-                        <Loader2 size={48} className="animate-spin text-blue-600" />
-                        <p className="text-gray-700 font-medium">Processing...</p>
-                    </div>
-                </div>
+                <OverlayLoader text="Processing your order..." />
             )}
 
             <div className="md:w-[80%] w-[95%] mx-auto min-h-screen">
@@ -201,15 +197,15 @@ const CartPage = () => {
                                             />
                                             <div className="flex flex-col">
                                                 <span className='font-medium text-gray-800'>{item.title}</span>
-                                                {item?.selectedOption && (
+                                                {item?.selectedOptions && (
                                                     <div className="text-sm text-gray-600">
-                                                        {item?.selectedOption?.color && (
+                                                        {item?.selectedOptions?.color && (
                                                             <span className='mr-2 gap-2 flex items-center'>
                                                                 <span>Color: </span>
-                                                                <span>{item?.selectedOption?.color}</span>
+                                                                <span>{item?.selectedOptions?.color}</span>
                                                                 <span
                                                                     style={{
-                                                                        backgroundColor: item?.selectedOption?.color,
+                                                                        backgroundColor: item?.selectedOptions?.color,
                                                                         width: '12px',
                                                                         height: '12px',
                                                                         borderRadius: '100%',
@@ -218,8 +214,8 @@ const CartPage = () => {
                                                                 </span>
                                                             </span>
                                                         )}
-                                                        {item?.selectedOption?.size && (
-                                                            <span className='ml-2'>Size: {item.selectedOption.size}</span>
+                                                        {item?.selectedOptions?.size && (
+                                                            <span className='ml-2'>Size: {item.selectedOptions.size}</span>
                                                         )}
                                                     </div>
                                                 )}

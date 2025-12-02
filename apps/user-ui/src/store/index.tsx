@@ -9,6 +9,7 @@ type Product={
     image:string;
     quantity?: number;
     shopId: string;
+    selectedOptions?: Record<string, any>;
 }
 type Store={
     cart: Product[];
@@ -49,19 +50,28 @@ const useStore = create<Store>()(
 
             //Add to cart
             addToCart: (product,user,location,deviceInfo) => {
+                console.log('🛒 Adding to cart:', {
+                    productId: product.id,
+                    title: product.title,
+                    selectedOptions: product.selectedOptions,
+                    quantity: product.quantity
+                });
                 set((state) => {
-                    const existing=state.cart?.find((item) => item.id === product.id);
+                    const existing=state.cart?.find((item) => 
+                        item.id === product.id && 
+                        JSON.stringify(item.selectedOptions) === JSON.stringify(product.selectedOptions)
+                    );
                     if(existing){
                         return {
                             cart: state.cart.map((item) =>
-                                item.id === product.id 
+                                item.id === product.id && JSON.stringify(item.selectedOptions) === JSON.stringify(product.selectedOptions)
                                     ? {...item, quantity: (item.quantity || 0) + (product.quantity || 1)} 
                                     : item
                             )
                         };
                     }
                     return {
-                        cart: [...state.cart, {...product, quantity: product.quantity || 1}]
+                        cart: [...state.cart, {...product, quantity: product.quantity || 1, selectedOptions: product.selectedOptions || {}}]
                     };
                 });
                 // Send kafka event

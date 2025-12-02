@@ -1,9 +1,10 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { Loader2, MapPin, Plus, Trash } from 'lucide-react';
+import { MapPin, Plus, Trash } from 'lucide-react';
 import React, { useState } from 'react'
 import AddAddressModal from '../modals/AddAddressModal';
+import OverlayLoader from '../loading/overlay-loader';
 
 const ShippingAdressSection = () => {
     const [showModal, setShowModal] = useState(false);
@@ -31,16 +32,11 @@ const ShippingAdressSection = () => {
     
   return (
     <div className=" relative">
-        {/* Full screen loading overlay */}
+        {/* Loading overlay */}
         {(isLoading || isDeletingAddress) && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-3">
-                    <Loader2 size={48} className="animate-spin text-blue-600"/>
-                    <p className="text-gray-700 font-medium">
-                        {isDeletingAddress ? 'Deleting address...' : 'Loading addresses...'}
-                    </p>
-                </div>
-            </div>
+            <OverlayLoader 
+                text={isDeletingAddress ? 'Deleting address...' : 'Loading addresses...'} 
+            />
         )}
 
         {/*Headers*/}

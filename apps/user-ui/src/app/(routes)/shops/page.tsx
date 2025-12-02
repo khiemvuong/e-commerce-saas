@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react'
 import ShopCard from 'apps/user-ui/src/shared/components/cards/shop.card'
 import { categories } from 'apps/user-ui/src/utils/categories'
 import { countries } from 'apps/user-ui/src/utils/countries'
+import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader'
 const Page = () => {
     const router = useRouter();
     const [isShopLoading, setIsShopLoading] = useState(false);
@@ -78,13 +79,9 @@ const Page = () => {
     }
 
 
-    // Apply functions for each filter section
-    const applyCategories = () => {
+    // Apply all filters at once
+    const applyAllFilters = () => {
         setSelectedCategories(tempCategories);
-        setPage(1);
-    }
-
-    const applyCountries = () => {
         setSelectedCountries(tempCountries);
         setPage(1);
     }
@@ -112,12 +109,6 @@ const Page = () => {
                             </li>
                         ))}
                 </ul>
-                <button
-                    className="w-full px-3 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                    onClick={applyCategories}
-                >
-                    Apply
-                </button>
             </div>
             {/* Country Filter*/}
             <div className="bg-white border border-gray-200 rounded-sm p-6">
@@ -136,13 +127,17 @@ const Page = () => {
                         </label>
                         </li>
                     ))}
-                    <button
-                        className="w-full px-3 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition"
-                        onClick={applyCountries}
-                    >
-                        Apply
-                    </button>
                 </ul>
+            </div>
+
+            {/* Apply All Filters Button */}
+            <div className="sticky bottom-4">
+                <button
+                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition shadow-lg"
+                    onClick={applyAllFilters}
+                >
+                    Apply All Filters
+                </button>
             </div>
         </aside>
 
@@ -152,15 +147,7 @@ const Page = () => {
                     <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Shops</h1>
             </div>
             {isShopLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2
-                lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {Array.from({length:12}).map((_,index) => (
-                        <div
-                            key={index}
-                            className='h-[250px] bg-gray-300 animate-pulse rounded-xl'
-                        />
-                    ))}
-                </div>
+                <PageLoader text="Loading shops" />
             ) : shops.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {shops.map((shop) => (
