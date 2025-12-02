@@ -1,5 +1,4 @@
 'use client';
-import useUser from 'apps/user-ui/src/hooks/useUser';
 import React from 'react'
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
@@ -9,9 +8,10 @@ import Image from 'next/image';
 import {   Clock, Trash2, ShoppingBag, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AddToCartButton from 'apps/user-ui/src/shared/components/buttons/add-to-cart-button';
+import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 
 const WishlistPage = () => {
-    const {user} = useUser();
+    const {user} = useRequiredAuth();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const addToCart = useStore((state:any) => state.addToCart);

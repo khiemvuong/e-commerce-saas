@@ -1,7 +1,6 @@
 'use client';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
-import useUser from 'apps/user-ui/src/hooks/useUser';
 import { useStore } from 'apps/user-ui/src/store';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { Plus, Trash2 } from 'lucide-react';
@@ -13,10 +12,11 @@ import React, { useEffect, useState } from 'react'
 import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
 import toast from 'react-hot-toast';
 import OverlayLoader from 'apps/user-ui/src/shared/components/loading/overlay-loader';
+import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 
 const CartPage = () => {
     const router = useRouter();
-    const { user } = useUser();
+    const { user } = useRequiredAuth();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const [discountedProductId, setDiscountedProductId] = useState("")

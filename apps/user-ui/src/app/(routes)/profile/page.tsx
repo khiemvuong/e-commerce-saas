@@ -48,7 +48,7 @@ const Page = () => {
         if(activeTab!==queryTab){
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.set('active', activeTab);
-            router.replace(`/profile?${newParams.toString()}`);
+            router.replace(`/profile?${newParams.toString()}`,{scroll:false} );
         }
     }, [activeTab]);
 
@@ -186,7 +186,7 @@ const Page = () => {
                     ) : null}
                 </div>
                 {/*Right Quick Panel*/}
-                <div className="w-full md:w-2/5 space-y-4 cursor-pointer">
+                <div className="w-full md:w-1/5 space-y-4 cursor-pointer">
                     <QuickActionCard
                         Icon={Gift}
                         title="Referral Program"
