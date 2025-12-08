@@ -1,0 +1,63 @@
+{
+  "name": "admin-ui",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/admin-ui",
+  "projectType": "application",
+  "targets": {
+    "dev": {
+      "executor": "@nx/next:server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "admin-ui:build",
+        "dev": true,
+        "port": 3002
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "admin-ui:build:development",
+          "dev": true
+        },
+        "production": {
+          "buildTarget": "admin-ui:build:production",
+          "dev": false
+        }
+      }
+    },
+    "build": {
+      "executor": "@nx/next:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/apps/admin-ui"
+      },
+      "configurations": {
+        "development": {
+          "outputPath": "apps/admin-ui"
+        },
+        "production": {
+          "outputPath": "dist/apps/admin-ui"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "admin-ui:build",
+        "dev": true,
+        "port": 3002
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "admin-ui:build:development",
+          "dev": true
+        },
+        "production": {
+          "buildTarget": "admin-ui:build:production",
+          "dev": false
+        }
+      }
+    }
+  },
+  "tags": []
+}

@@ -42,7 +42,7 @@ const SidebarWrapper = () => {
             <Sidebar.Header>
                 <Box>
                     <Link
-                        href={"/"} className = "flex justify-center text-center gap-2"
+                        href={"/"} className = "flex justify-center gap-2"
                     >
                         <Logo />
                         <Box>

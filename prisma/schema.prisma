@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "mongodb"
-   url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model shops {
@@ -47,6 +47,7 @@ model users {
   name        String
   email       String        @unique
   password    String?
+  role        String        @default("user") // "user" or "admin"
   following   String[]
   avatar      images[]
   addresses   address[]
@@ -125,13 +126,13 @@ model orders {
 }
 
 model orderItems {
-  id        String @id @default(auto()) @map("_id") @db.ObjectId
-  orderId   String @db.ObjectId
-  order     orders @relation("OrderItemsRelation", fields: [orderId], references: [id], onDelete: Cascade)
-  productId String @db.ObjectId
-  quantity  Int
-  price     Float
-  title     String?
+  id              String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId         String  @db.ObjectId
+  order           orders  @relation("OrderItemsRelation", fields: [orderId], references: [id], onDelete: Cascade)
+  productId       String  @db.ObjectId
+  quantity        Int
+  price           Float
+  title           String?
   selectedOptions Json?
 }
 
