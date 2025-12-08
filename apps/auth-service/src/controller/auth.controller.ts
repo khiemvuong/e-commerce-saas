@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { setCookie } from '../utils/cookies/setCookie';
 import { Stripe } from "stripe";
+import { sendLog } from '@packages/utils/kafka';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -115,6 +116,7 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
         const refreshToken =
         req.cookies["refresh_token"] ||
         req.cookies["seller-refresh-token"] ||
+        req.cookies["admin-refresh-token"] ||
         req.headers.authorization?.split(" ")[1];
         if (!refreshToken) {
             throw new ValidationError("Unauthorized! No refresh token provided");
@@ -133,6 +135,8 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
                 where: { id: decoded.id },
                 include: { shop: true },
             });
+        } else if (decoded.role === "admin") {
+            account = await prisma.users.findUnique({ where: { id: decoded.id } });
         }
         if (!account) {
             return new AuthError("Forbidden! User not found");
@@ -147,6 +151,8 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
             setCookie(res, 'access_token', newAccessToken);
         } else if(decoded.role==="seller"){
             setCookie(res, 'seller-access-token', newAccessToken);
+        } else if(decoded.role==="admin"){
+            setCookie(res, 'admin-access-token', newAccessToken);
         }
 
         req.role = decoded.role;
@@ -446,6 +452,17 @@ export const logOutSeller = async (req: any, res: Response, next: NextFunction) 
     res.clearCookie("seller-refresh-token");
     res.status(200).json({message: "Logged out successfully"});
 }
+
+//Get logged in admin
+export const getAdmin = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const admin=req.admin;
+        res.status(201).json({success: true, admin})
+    } catch (error) {
+        next(error);
+    }
+}
+
 //logout admin
 export const logOutAdmin = async (req: any, res: Response, next: NextFunction) => {
     res.clearCookie("admin-access-token");
@@ -493,6 +510,71 @@ export const updateUserPassword = async (req: any, res: Response, next: NextFunc
             data: { password: hashedNewPassword }
         });
         res.status(200).json({ success: true, message: "Password updated successfully" });
+    } catch (error) {
+        next(error);
+    }
+}
+
+//Login admin
+export const loginAdmin = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { email, password } = req.body;
+
+        if (!email || !password) {
+            return next(new ValidationError("Email and password are required"));
+        }
+
+        const user = await prisma.users.findUnique({ where: { email } });
+        if (!user) {
+            return next(new AuthError("Admin doesn't exist!"));
+        }
+        // Verify password
+        const isMatch = await bcrypt.compare(password, user.password!);
+        if (!isMatch) {
+            return next(new AuthError("Invalid password"));
+        }
+
+        const isAdmin = user.role === "admin";
+        if (!isAdmin) {
+            sendLog({
+                type: "error",
+                message: `Unauthorized admin login attempt for email: ${email}`,
+                source: "auth-service",
+            })
+            return next(new AuthError("Unauthorized! Not an admin"));
+        }
+
+        sendLog({
+            type: "success",
+            message: `Admin logged in successfully with email: ${email}`,
+            source: "auth-service",
+        })
+        res.clearCookie("seller-access-token");
+        res.clearCookie("seller-refresh-token");
+
+        // Generate access and refresh token
+        const accessToken = jwt.sign(
+            { id: user.id, role: "admin" },
+            process.env.ACCESS_TOKEN_SECRET as string,
+            { expiresIn: "15min" }
+        );
+        const refreshToken = jwt.sign(
+            { id: user.id, role: "admin" },
+            process.env.REFRESH_TOKEN_SECRET as string,
+            { expiresIn: "7d" }
+        );
+
+        // Store the refresh and access token in httpOnly secure cookies
+        setCookie(res, "refresh_token", refreshToken);
+        setCookie(res, "access_token", accessToken);
+        res.status(200).json({
+            message: "Admin logged in successfully",
+            user: { id: user.id, name: user.name, email: user.email, role: user.role },
+        });
     } catch (error) {
         next(error);
     }
@@ -581,3 +663,4 @@ export const getUserAddresses = async (req: any, res: Response, next: NextFuncti
         next(error);
     }
 };
+
