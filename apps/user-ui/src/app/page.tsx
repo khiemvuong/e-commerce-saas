@@ -123,27 +123,34 @@ const page = () => {
           <div className="my-8 block">
             <SectionTitle title="Top Shops"/>
           </div>
+
           {!shopLoading &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {shops?.map((shop:any)=>(
                 <ShopCard key={shop.id} shop={shop}/>
               ))}
             </div>
           )}
+          
           {shopLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
-              {/* Shop Cards */}
-              {Array.from({ length: 5 }).map((_, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-[300px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
+                  className="p-6 flex flex-col items-center space-y-3 border border-gray-200 rounded-2xl bg-white shadow-sm"
                 >
+                  <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 w-2/3 bg-gray-200 rounded animate-pulse" />
                 </div>
               ))}
             </div>
           )}
+          
           {!shopLoading && shops?.length === 0 &&(
-            <div className="text-center text-gray-500">No shops available.</div>
+            <div className="text-center text-gray-500 py-12">No shops available.</div>
           )}
         </div>
 
