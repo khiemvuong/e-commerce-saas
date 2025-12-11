@@ -54,16 +54,16 @@ const page = () => {
   return (
     <div className="min-h-screen pb-10">
       <Hero/>
-      <div className='md:w-[80%] w-[90%] my-10 m-auto'>
+      <div className='md:w-[80%] w-[95%] my-6 md:my-10 m-auto'>
         {/*Suggested Product Seciton*/}
         <div>
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <SectionTitle
               title="Suggested Products"
             />
           </div>
           {isLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div
@@ -75,7 +75,7 @@ const page = () => {
             </div>
           )}
           {!isLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {products?.map((product:any)=>(
                   <ProductCard key={product.id} product={product}/>
               ))}
@@ -89,13 +89,13 @@ const page = () => {
 
         {/*Latest Product Section*/}
         <div>
-          <div className="my-8 block">
+          <div className="my-4 md:my-8 block">
             <SectionTitle
               title="Latest Products"
             />
           </div>
           {isLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div
@@ -107,7 +107,7 @@ const page = () => {
             </div>
           )}
           {!latestProductsLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {latestProducts?.map((product:any)=>(
                   <ProductCard key={product.id} product={product}/>
               ))}
@@ -156,18 +156,18 @@ const page = () => {
 
         {/*Top offers Section*/}
         <div className="div">
-          <div className="my-8 block">
+          <div className="my-4 md:my-8 block">
             <SectionTitle title="Top Offers"/>
           </div>
           {!offersLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {offers?.map((product:any)=>(
                 <ProductCard key={product.id} product={product} isEvent={true}/>
               ))}
             </div>
           )}
           {offersLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div

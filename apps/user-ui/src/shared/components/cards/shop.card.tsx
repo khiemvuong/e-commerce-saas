@@ -37,7 +37,7 @@ const ShopCard:React.FC<ShopCardProps> = ({ shop }) => {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.5, delay: 0.5 }}
       whileHover={{ y: -8 }}
       className="relative group"
     >

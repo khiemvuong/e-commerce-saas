@@ -10,7 +10,7 @@ const Hero = () => {
   return (
     <section
       aria-label="Hero"
-      className="relative overflow-hidden bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0f0f0f] rounded-3xl mx-4 my-6"
+      className="relative overflow-hidden bg-gradient-to-br from-[#0a0a0a] via-[#1a1a1a] to-[#0f0f0f]"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative z-10 py-16 md:py-24 lg:py-32">
