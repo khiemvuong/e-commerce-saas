@@ -10,7 +10,12 @@ const { composePlugins, withNx } = require('@nx/next');
 const nextConfig = {
   // Use this to set Nx-specific options
   // See: https://nx.dev/recipes/next/next-config-setup
-  nx: {},
+  nx: {
+    svgr: false,
+  },
+  images: {
+    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com','png.pngtree.com'],
+  },
 };
 
 const plugins = [

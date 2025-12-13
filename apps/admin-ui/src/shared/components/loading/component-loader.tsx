@@ -12,7 +12,7 @@ const ComponentLoader: React.FC<ComponentLoaderProps> = ({ text = "Loading" }) =
         {[0, 1, 2].map((index) => (
           <div
             key={index}
-            className="w-4 h-4 bg-black rounded-full"
+            className="w-4 h-4 bg-white rounded-full"
             style={{
               animation: 'bounce 1.4s ease-in-out infinite',
               animationDelay: `${index * 0.2}s`,
