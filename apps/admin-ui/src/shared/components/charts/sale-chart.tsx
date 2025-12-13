@@ -1,15 +1,9 @@
 'use client';
 import React from 'react';
-import {
-    LineChart,
-    Line,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Legend,
-} from 'recharts';
+import dynamic from 'next/dynamic';
+import { ApexOptions } from 'apexcharts';
+
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const salesData = [
     { month: 'Jan', revenue: 12500, orders: 145 },
@@ -27,58 +21,98 @@ const salesData = [
 ];
 
 const SalesChart = () => {
+    const series = [
+        {
+            name: 'Revenue',
+            data: salesData.map((item) => item.revenue),
+        },
+        {
+            name: 'Orders',
+            data: salesData.map((item) => item.orders),
+        },
+    ];
+
+    const options: ApexOptions = {
+        chart: {
+            type: 'line',
+            toolbar: {
+                show: false,
+            },
+            background: 'transparent',
+        },
+        colors: ['#3b82f6', '#10b981'],
+        stroke: {
+            curve: 'smooth',
+            width: 3,
+        },
+        grid: {
+            borderColor: '#374151',
+            strokeDashArray: 3,
+            xaxis: {
+                lines: {
+                    show: false,
+                },
+            },
+        },
+        xaxis: {
+            categories: salesData.map((item) => item.month),
+            axisBorder: {
+                show: false,
+            },
+            axisTicks: {
+                show: false,
+            },
+            labels: {
+                style: {
+                    colors: '#9ca3af',
+                    fontSize: '12px',
+                },
+            },
+        },
+        yaxis: [
+            {
+                seriesName: 'Revenue',
+                labels: {
+                    style: {
+                        colors: '#9ca3af',
+                        fontSize: '12px',
+                    },
+                    formatter: (value) => `$${value / 1000}k`,
+                },
+            },
+            {
+                seriesName: 'Orders',
+                opposite: true,
+                labels: {
+                    style: {
+                        colors: '#9ca3af',
+                        fontSize: '12px',
+                    },
+                },
+            },
+        ],
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            labels: {
+                colors: '#d1d5db',
+            },
+        },
+        tooltip: {
+            theme: 'dark',
+            y: {
+                formatter: (value, { seriesIndex }) => {
+                    if (seriesIndex === 0) return `$${value.toLocaleString()}`;
+                    return value.toString();
+                },
+            },
+        },
+    };
+
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis
-                    dataKey="month"
-                    stroke="#9ca3af"
-                    style={{ fontSize: '12px' }}
-                />
-                <YAxis
-                    stroke="#9ca3af"
-                    style={{ fontSize: '12px' }}
-                    tickFormatter={(value) => `$${value / 1000}k`}
-                />
-                <Tooltip
-                    contentStyle={{
-                        backgroundColor: '#1a1a1a',
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#fff',
-                    }}
-                    labelStyle={{ color: '#fff' }}
-                    itemStyle={{ color: '#fff' }}
-                    formatter={(value: any) => [`$${value.toLocaleString()}`, '']}
-                />
-                <Legend
-                    wrapperStyle={{ paddingTop: '20px' }}
-                    iconType="line"
-                    formatter={(value) => (
-                        <span className="text-gray-300">
-                            {value === 'revenue' ? 'Revenue' : 'Orders'}
-                        </span>
-                    )}
-                />
-                <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#3b82f6"
-                    strokeWidth={3}
-                    dot={{ fill: '#3b82f6', r: 4 }}
-                    activeDot={{ r: 6 }}
-                />
-                <Line
-                    type="monotone"
-                    dataKey="orders"
-                    stroke="#10b981"
-                    strokeWidth={3}
-                    dot={{ fill: '#10b981', r: 4 }}
-                    activeDot={{ r: 6 }}
-                />
-            </LineChart>
-        </ResponsiveContainer>
+        <div className="w-full h-[300px]">
+            <Chart options={options} series={series} type="line" height="100%" width="100%" />
+        </div>
     );
 };
 

@@ -1,5 +1,5 @@
 'use client';
-import { AlignLeft, ChevronDown, ChevronRight, Heart, ShoppingCart, Menu, X } from 'lucide-react';
+import { AlignLeft, ChevronDown, ChevronRight, Heart, ShoppingCart, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

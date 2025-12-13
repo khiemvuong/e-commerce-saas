@@ -1,6 +1,6 @@
 'use client';
 import Link from "next/link";
-import { Search, Heart, ShoppingCart, X, Menu, ChevronRight } from "lucide-react";
+import { Search, Heart, ShoppingCart, X, Menu } from "lucide-react";
 import { useState } from "react";
 import ProfileIcon from "../../../assets/svgs/profile-icon";
 import useUser from "apps/user-ui/src/hooks/useUser";
