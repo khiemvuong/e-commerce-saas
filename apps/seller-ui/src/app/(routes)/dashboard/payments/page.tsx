@@ -10,8 +10,9 @@ import {
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Eye, Search, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { Eye, Search, ChevronLeft, ChevronRight} from 'lucide-react';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
+import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
 
 const fetchOrders = async () => {
     const res = await axiosInstance.get('/order/api/get-seller-orders');
@@ -192,10 +193,7 @@ const SellerPayments = () => {
             {/* Table */}
             <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden">
                 {isLoading ? (
-                    <div className="flex flex-col justify-center items-center min-h-[400px] gap-3">
-                        <Loader2 size={40} className="animate-spin text-blue-500" />
-                        <p className="text-gray-400">Loading payment data...</p>
-                    </div>
+                    <ComponentLoader text="Loading payments data..." />
                 ) : (
                     <>
                         <div className="overflow-x-auto">

@@ -6,10 +6,11 @@ import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 import QuickActionCard from 'apps/user-ui/src/shared/components/cards/quick-action.card';
 import StatCard from 'apps/user-ui/src/shared/components/cards/stat.card';
 import ChangePassword from 'apps/user-ui/src/shared/components/change-password';
+import ComponentLoader from 'apps/user-ui/src/shared/components/loading/component-loader';
 import ShippingAdressSection from 'apps/user-ui/src/shared/components/shippingAdress';
 import OrderTable from 'apps/user-ui/src/shared/components/tables/orders.table';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Loader2, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User } from 'lucide-react';
+import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, {useEffect, useState } from 'react'
@@ -69,7 +70,7 @@ const Page = () => {
                         <span className="text-sm text-gray-500">Welcome back to your profile!</span>
                     </div>
                     {isLoading ? (
-                        <Loader2 className='inline animate-spin w-5 h-5'/>
+                        <ComponentLoader text="Loading profile..." />
                     ) : (
                         <span className="text-lg font-semibold text-gray-700"> {user?.name ? ` ${user.name}` : ","}</span>
                     )}

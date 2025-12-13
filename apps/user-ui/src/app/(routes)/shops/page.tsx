@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react'
 import ShopCard from 'apps/user-ui/src/shared/components/cards/shop.card'
 import { categories } from 'apps/user-ui/src/utils/categories'
 import { countries } from 'apps/user-ui/src/utils/countries'
-import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader'
+import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 const Page = () => {
     const router = useRouter();
     const [isShopLoading, setIsShopLoading] = useState(false);

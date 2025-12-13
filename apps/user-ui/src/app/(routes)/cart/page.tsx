@@ -11,7 +11,7 @@ import { useQuery } from 'node_modules/@tanstack/react-query/build/modern/useQue
 import React, { useEffect, useState } from 'react'
 import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
 import toast from 'react-hot-toast';
-import OverlayLoader from 'apps/user-ui/src/shared/components/loading/overlay-loader';
+import OverlayLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
 import useUser from 'apps/user-ui/src/hooks/useUser';
 
 const CartPage = () => {

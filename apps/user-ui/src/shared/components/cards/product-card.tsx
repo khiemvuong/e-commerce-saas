@@ -10,7 +10,7 @@ import useUser from 'apps/user-ui/src/hooks/useUser';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
-import OverlayLoader from '../loading/overlay-loader';
+import OverlayLoader from '../loading/page-loader';
 import { motion } from 'framer-motion';
 
 const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?: boolean }) => {

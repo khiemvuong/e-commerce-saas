@@ -1,5 +1,5 @@
-'use client'
-import React, { useMemo, useState } from 'react'
+"use client";
+import React, { useMemo, useState } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -7,32 +7,32 @@ import {
     getPaginationRowModel,
     flexRender,
 } from '@tanstack/react-table';
-import { Search, Eye, ChevronLeft, ChevronRight, Package, TrendingUp, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import Link from 'next/link';
-import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
-import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
+import { Eye, Search, ChevronLeft, ChevronRight} from 'lucide-react';
+import axiosInstance from 'apps/admin-ui/src/utils/axiosInstance';
+import BreadCrumbs from 'apps/admin-ui/src/shared/components/breadcrums';
+import ComponentLoader from 'apps/admin-ui/src/shared/components/loading/component-loader';
 
 const fetchOrders = async () => {
-    const res = await axiosInstance.get('/order/api/get-seller-orders');
+    const res = await axiosInstance.get('/order/api/get-admin-orders');
     return res.data.orders;
 }
 
-const OrdersTable = () => {
+const AdminPayments = () => {
     const [globalFilter, setGlobalFilter] = useState('');
 
     const { data: orders = [], isLoading } = useQuery({
-        queryKey: ['seller-orders'],
+        queryKey: ['admin-orders'],
         queryFn: fetchOrders,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 5 * 60 * 1000,
     });
 
     const columns = useMemo(
         () => [
             {
-                accessorKey: 'id',
                 header: 'Order ID',
+                accessorKey: 'id',
                 cell: ({ row }: any) => (
                     <span className='text-gray-200 font-mono text-sm'>
                         #{row.original.id.slice(-8).toUpperCase()}
@@ -40,34 +40,55 @@ const OrdersTable = () => {
                 ),
             },
             {
-                accessorKey: 'user.name',
-                header: 'Customer',
+                header: 'Shop',
+                accessorKey: 'shop.name',
                 cell: ({ row }: any) => (
-                    <div>
-                        <div className='text-white font-medium'>{row.original.user?.name ?? 'Guest'}</div>
-                        <div className='text-gray-400 text-xs'>{row.original.user?.email ?? 'N/A'}</div>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'total',
-                header: 'Total Amount',
-                cell: ({ row }: any) => (
-                    <span className='text-white font-semibold'>
-                        ${row.original.total.toFixed(2)}
+                    <span className='text-blue-400 font-medium'>
+                        {row.original.shop?.name ?? 'N/A'}
                     </span>
                 ),
             },
             {
-                accessorKey: 'status',
+                header: 'Customer',
+                accessorKey: 'user.name',
+                cell: ({ row }: any) => (
+                    <div>
+                        <div className='text-white font-medium'>{row.original.user.name}</div>
+                        <div className='text-gray-400 text-xs'>{row.original.user.email}</div>
+                    </div>
+                ),
+            },
+            {
+                header: 'Seller Earning',
+                cell: ({ row }: any) => {
+                    const sellerShare = row.original.total * 0.9; // 90% for seller
+                    return (
+                        <span className='text-green-400 font-semibold'>
+                            ${sellerShare.toFixed(2)}
+                        </span>
+                    );
+                }
+            },
+            {
+                header: 'Admin Fee',
+                cell: ({ row }: any) => {
+                    const adminFee = row.original.total * 0.1; // 10% platform fee
+                    return (
+                        <span className='text-orange-400 font-medium'>
+                            ${adminFee.toFixed(2)}
+                        </span>
+                    );
+                }
+            },
+            {
                 header: 'Payment Status',
+                accessorKey: 'status',
                 cell: ({ row }: any) => {
                     const status = row.original.status || 'Pending';
                     const statusColors: any = {
                         'Paid': 'bg-green-500/20 text-green-400 border-green-500/50',
                         'Pending': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
                         'Failed': 'bg-red-500/20 text-red-400 border-red-500/50',
-                        'Refunded': 'bg-purple-500/20 text-purple-400 border-purple-500/50',
                     };
                     return (
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[status] || statusColors['Pending']}`}>
@@ -77,27 +98,8 @@ const OrdersTable = () => {
                 },
             },
             {
-                accessorKey: 'deliveryStatus',
-                header: 'Delivery Status',
-                cell: ({ row }: any) => {
-                    const status = row.original.deliveryStatus || 'Processing';
-                    const statusColors: any = {
-                        'Ordered': 'bg-green-500/20 text-green-400 border-green-500/50',
-                        'Packed' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50',
-                        'Shipped': 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-                        'Delivered': 'bg-orange-500/20 text-orange-400 border-orange-500/50',
-                        'Out for Delivery': 'bg-red-500/20 text-red-400 border-red-500/50',
-                    };
-                    return (
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${statusColors[status] || statusColors['Processing']}`}>
-                            {status}
-                        </span>
-                    );
-                },
-            },
-            {
+                header: 'Date',
                 accessorKey: 'createdAt',
-                header: 'Order Date',
                 cell: ({ row }: any) => (
                     <div className='text-gray-300 text-sm'>
                         <div>{new Date(row.original.createdAt).toLocaleDateString('en-US', { 
@@ -125,7 +127,7 @@ const OrdersTable = () => {
                         View
                     </Link>
                 ),
-            },
+            }
         ],
         []
     );
@@ -148,40 +150,31 @@ const OrdersTable = () => {
         },
     });
 
-    // Calculate stats
-    const totalOrders = orders.length;
+    // Calculate total earnings
+    const totalEarnings = orders.reduce((sum: number, order: any) => sum + (order.total * 0.9), 0);
+    const totalPlatformFees = orders.reduce((sum: number, order: any) => sum + (order.total * 0.1), 0);
     const totalRevenue = orders.reduce((sum: number, order: any) => sum + order.total, 0);
-    const pendingOrders = orders.filter((order: any) => order.status === 'Pending').length;
 
     return (
-        <div className='w-full min-h-screen bg-gray-950 p-6'>
-            <BreadCrumbs title='Orders Management' />
-
+        <div className="w-full min-h-screen bg-gray-950 p-6">
+            <BreadCrumbs title="Payments & Earnings" />
+            
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-blue-100 text-sm font-medium">Total Orders</div>
-                        <Package size={24} className="text-blue-200" />
-                    </div>
-                    <div className="text-white text-3xl font-bold">{totalOrders}</div>
-                    <div className="text-blue-200 text-xs mt-2">All time orders</div>
-                </div>
                 <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-green-100 text-sm font-medium">Total Revenue</div>
-                        <TrendingUp size={24} className="text-green-200" />
-                    </div>
+                    <div className="text-green-100 text-sm font-medium mb-1">Total Earnings</div>
+                    <div className="text-white text-3xl font-bold">${totalEarnings.toFixed(2)}</div>
+                    <div className="text-green-200 text-xs mt-2">90% of total revenue</div>
+                </div>
+                <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl p-6 shadow-lg">
+                    <div className="text-blue-100 text-sm font-medium mb-1">Total Revenue</div>
                     <div className="text-white text-3xl font-bold">${totalRevenue.toFixed(2)}</div>
-                    <div className="text-green-200 text-xs mt-2">From all orders</div>
+                    <div className="text-blue-200 text-xs mt-2">{orders.length} transactions</div>
                 </div>
                 <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 shadow-lg">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="text-orange-100 text-sm font-medium">Pending Orders</div>
-                        <Clock size={24} className="text-orange-200" />
-                    </div>
-                    <div className="text-white text-3xl font-bold">{pendingOrders}</div>
-                    <div className="text-orange-200 text-xs mt-2">Need processing</div>
+                    <div className="text-orange-100 text-sm font-medium mb-1">Platform Fees</div>
+                    <div className="text-white text-3xl font-bold">${totalPlatformFees.toFixed(2)}</div>
+                    <div className="text-orange-200 text-xs mt-2">10% commission</div>
                 </div>
             </div>
 
@@ -200,7 +193,7 @@ const OrdersTable = () => {
             {/* Table */}
             <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden">
                 {isLoading ? (
-                    <ComponentLoader text="Loading orders..." />
+                    <ComponentLoader text="Loading payments..." />
                 ) : (
                     <>
                         <div className="overflow-x-auto">
@@ -229,8 +222,8 @@ const OrdersTable = () => {
                                         <tr>
                                             <td colSpan={columns.length} className="text-center text-gray-500 py-12">
                                                 <div className="flex flex-col items-center gap-2">
-                                                    <Package size={48} className="text-gray-700" />
-                                                    <p className="text-lg font-medium">No orders found</p>
+                                                    <Search size={48} className="text-gray-700" />
+                                                    <p className="text-lg font-medium">No payment records found</p>
                                                     <p className="text-sm text-gray-600">Try adjusting your search</p>
                                                 </div>
                                             </td>
@@ -296,6 +289,6 @@ const OrdersTable = () => {
             </div>
         </div>
     );
-}
+};
 
-export default OrdersTable;
+export default AdminPayments;

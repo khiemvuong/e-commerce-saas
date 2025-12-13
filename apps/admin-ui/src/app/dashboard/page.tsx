@@ -17,6 +17,8 @@ import {
 } from "recharts";
 import SalesChart from "../../shared/components/charts/sale-chart";
 import GeographicalMap from "../../shared/components/charts/geographicalMap";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "apps/admin-ui/src/utils/axiosInstance";
 
 // Device data
 const deviceData = [
@@ -25,83 +27,49 @@ const deviceData = [
     { name: "Tablet", value: 20, color: "#f59e0b" },
 ];
 
-// Recent orders data
-interface Order {
-    id: string;
-    customer: string;
-    amount: string;
-    status: string;
-}
-
-const recentOrders: Order[] = [
-    { id: "#12345", customer: "John Doe", amount: "$89.99", status: "Completed" },
-    {
-        id: "#12346",
-        customer: "Jane Smith",
-        amount: "$249.99",
-        status: "Processing",
-    },
-    {
-        id: "#12347",
-        customer: "Mike Johnson",
-        amount: "$45.50",
-        status: "Completed",
-    },
-    {
-        id: "#12348",
-        customer: "Sarah Williams",
-        amount: "$15.99",
-        status: "Shipped",
-    },
-    {
-        id: "#12349",
-        customer: "David Brown",
-        amount: "$24.99",
-        status: "Completed",
-    },
-    {
-        id: "#12350",
-        customer: "Emily Davis",
-        amount: "$199.99",
-        status: "Processing",
-    },
-    {
-        id: "#12351",
-        customer: "Chris Wilson",
-        amount: "$75.00",
-        status: "Shipped",
-    },
-    {
-        id: "#12352",
-        customer: "Anna Garcia",
-        amount: "$120.00",
-        status: "Completed",
-    },
-];
+const fetchRecentOrders = async () => {
+    const res = await axiosInstance.get('/order/api/get-admin-orders');
+    return res.data.orders;
+};
 
 const Dashboard = () => {
-    const columns: ColumnDef<Order>[] = [
+    const { data: orders = [] } = useQuery({
+        queryKey: ['recent-orders'],
+        queryFn: fetchRecentOrders,
+    });
+
+    const recentOrders = React.useMemo(() => orders.slice(0, 8), [orders]);
+
+    const columns: ColumnDef<any>[] = [
         {
             accessorKey: "id",
             header: "Order ID",
+            cell: ({ row }) => (
+                <span className="font-mono text-gray-300">
+                    #{row.original.id.slice(-8).toUpperCase()}
+                </span>
+            ),
         },
         {
-            accessorKey: "customer",
+            accessorKey: "user.name",
             header: "Customer",
+            cell: ({ row }) => <span className="text-gray-300">{row.original.user?.name || 'Guest'}</span>,
         },
         {
-            accessorKey: "amount",
+            accessorKey: "total",
             header: "Amount",
+            cell: ({ row }) => <span className="text-gray-300">${row.original.total.toFixed(2)}</span>,
         },
         {
             accessorKey: "status",
             header: "Status",
             cell: ({ row }) => {
-                const status = row.original.status;
+                const status = row.original.status || 'Pending';
                 const statusColors: Record<string, string> = {
-                    Completed: "bg-green-500/20 text-green-400",
-                    Processing: "bg-yellow-500/20 text-yellow-400",
-                    Shipped: "bg-blue-500/20 text-blue-400",
+                    Paid: "bg-green-500/20 text-green-400",
+                    Pending: "bg-yellow-500/20 text-yellow-400",
+                    Failed: "bg-red-500/20 text-red-400",
+                    Refunded: "bg-purple-500/20 text-purple-400",
                 };
                 return (
                     <span
