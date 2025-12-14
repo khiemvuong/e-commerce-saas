@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "dev": "npx nx run-many --target=serve --all --exclude=user-ui,seller-ui,admin-ui",
+    "dev": "npx nx run-many --target=serve --all --exclude=seller-ui,admin-ui",
     "auth-docs": "node apps/auth-service/src/swagger.js",
     "product-docs": "node apps/product-service/src/swagger.js",
-    "user-ui": "npx nx serve user-ui",
+    "user-ui": "npx nx run-many --target=dev --projects=user-ui",
     "seller-ui": "npx nx serve seller-ui",
     "admin-ui": "npx nx serve admin-ui"
   },

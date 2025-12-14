@@ -6,7 +6,7 @@ interface ComponentLoaderProps {
 
 const ComponentLoader: React.FC<ComponentLoaderProps> = ({ text = "Loading" }) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] w-full">
+    <div className="flex flex-col items-center justify-center min-h-[200px] w-full">
       {/* Bouncing dots with unique stagger effect */}
       <div className="flex items-end gap-3 h-20">
         {[0, 1, 2].map((index) => (

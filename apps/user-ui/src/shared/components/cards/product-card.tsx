@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom';
 import Rating from '../ratings';
 import { Eye, Heart, Star } from 'lucide-react';
 import ProductDetailsCard from './product-details.card';
@@ -20,6 +21,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
     const [open, setOpen] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isNavigating, setIsNavigating] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const { user } = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
@@ -91,6 +93,10 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
         };
     }, []);
 
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -101,11 +107,6 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
             className="relative group"
         >
             <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 relative hover:border-gray-300 hover:shadow-2xl transition-all duration-300">
-                {(isLoadingDetails || isNavigating) && (
-                    <OverlayLoader
-                        text={isNavigating ? "Loading product..." : "Loading product details..."}
-                    />
-                )}
 
                 {/* Badges Container - Top Corners */}
                 {isEvent && (
@@ -231,6 +232,14 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <ProductDetailsCard data={product} setOpen={setOpen} />
                 )}
             </div>
+            {(isLoadingDetails || isNavigating) && mounted && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <OverlayLoader
+                        text={isNavigating ? "Loading product..." : "Loading product details..."}
+                    />
+                </div>,
+                document.body
+            )}
         </motion.div>
     )
 }

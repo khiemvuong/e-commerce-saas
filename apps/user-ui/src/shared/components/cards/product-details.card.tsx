@@ -2,7 +2,8 @@ import {  Heart, MapPin, MessageCircle, X } from 'lucide-react';
 import Image from 'next/image'
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, {  useState } from 'react'
+import React, {  useEffect, useState } from 'react'
+import { createPortal } from 'react-dom';
 import Rating from '../ratings';
 import { useStore } from 'apps/user-ui/src/store';
 import useUser from 'apps/user-ui/src/hooks/useUser';
@@ -25,7 +26,17 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const {user} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-    return (
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted) return null;
+
+    return createPortal(
     <div 
     className="fixed flex items-center justify-center top-0 left-0 h-screen w-full inset-0 bg-black bg-opacity-50 z-50"
     onClick={() => setOpen(false)}
@@ -240,7 +251,8 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                 
             </div>
         </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 

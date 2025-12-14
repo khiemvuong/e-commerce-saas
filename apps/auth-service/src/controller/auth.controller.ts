@@ -54,6 +54,7 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
             data: {
                 name,
                 email,
+                role: "user",
                 password: hashedPassword
             }
         });
