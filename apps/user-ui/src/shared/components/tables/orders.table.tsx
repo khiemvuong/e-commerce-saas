@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import React, { useMemo } from "react";
 import { Package, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import OverlayLoader from '../loading/overlay-loader';
+import OverlayLoader from '../loading/page-loader';
 
 
 const OrderTable = () => {

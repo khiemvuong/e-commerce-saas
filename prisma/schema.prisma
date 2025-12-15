@@ -8,7 +8,7 @@ datasource db {
 }
 
 model shops {
-  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
   name          String
   bio           String?
   category      String
@@ -18,45 +18,50 @@ model shops {
   opening_hours String?
   website       String?
   socialLinks   Json[]
-  rating        Float         @default(0)
+  rating        Float          @default(0)
   reviews       shopReviews[]
-  followers     String[]      @default([])
+  followers     String[]       @default([])
   followersList followers[]
-  sellerId      String        @unique @db.ObjectId
-  sellers       sellers       @relation(fields: [sellerId], references: [id])
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  sellerId      String         @unique @db.ObjectId
+  sellers       sellers        @relation(fields: [sellerId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   products      products[]
   orders        orders[]
+  analytics     shopAnalytics?
 }
 
 model images {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   fileId     String
   file_url   String
+  type       String?   @default("product")
   userId     String?   @db.ObjectId
   shopId     String?   @db.ObjectId
   users      users?    @relation(fields: [userId], references: [id])
   shops      shops?    @relation(fields: [shopId], references: [id])
   products   products? @relation(fields: [productsId], references: [id])
   productsId String?   @db.ObjectId
+  siteConfigId String? @db.ObjectId
+  site_config site_config? @relation(fields: [siteConfigId], references: [id])
 }
 
 model users {
-  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
   name        String
-  email       String        @unique
+  email       String         @unique
   password    String?
-  role        String        @default("user") // "user" or "admin"
+  role        String         @default("user") // "user" or "admin"
   following   String[]
   avatar      images[]
   addresses   address[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   shopReviews shopReviews[]
-  imagesId    String[]      @db.ObjectId
+  imagesId    String[]       @db.ObjectId
   followings  followers[]
   orders      orders[]
+  analytics   userAnalytics?
 }
 
 model shopReviews {
@@ -147,7 +152,6 @@ model sellers {
   shop         shops?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  shopId       String?  @db.ObjectId
 }
 
 //Model site config
@@ -155,6 +159,7 @@ model site_config {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   categories    String[]
   subCategories Json
+  images        images[]
 }
 
 model discount_codes {
@@ -201,13 +206,13 @@ model products {
   cash_on_delivery      String?
   discount_codes        String[]          @db.ObjectId
   status                productStatus     @default(Active)
+  totalSales            Int               @default(0)
   deletedAt             DateTime?
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
   shopId                String            @db.ObjectId
   Shop                  shops             @relation(fields: [shopId], references: [id])
-  totalSales            Int               @default(0)
-  productAnalytics      productAnalytics?
+  analytics             productAnalytics?
 }
 
 // Product Analytics - Track product performance metrics
@@ -215,7 +220,7 @@ model productAnalytics {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
   productId String   @unique @db.ObjectId
   product   products @relation(fields: [productId], references: [id], onDelete: Cascade)
-  shopId    String?  @db.ObjectId
+  shopId    String   @db.ObjectId
 
   // Metrics
   views        Int @default(0)
@@ -223,24 +228,17 @@ model productAnalytics {
   wishlistAdds Int @default(0)
   purchases    Int @default(0)
 
-  // Conversion rates (calculated fields)
-  cartConversionRate     Float @default(0) // % chuyển từ view -> add to cart
-  purchaseConversionRate Float @default(0) // % chuyển từ cart -> purchase
-
   // Timestamps
   lastViewedAt DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  @@index([shopId])
-  @@index([views])
-  @@index([purchases])
 }
 
 // User Analytics - Track user behavior and preferences
 model userAnalytics {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   userId String @unique @db.ObjectId
+  user   users  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // Location metadata
   country String?
@@ -263,18 +261,17 @@ model userAnalytics {
 model shopAnalytics {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
   shopId String @unique @db.ObjectId
+  shop   shops  @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   totalVisitors Int @default(0)
 
-  countryStats  Json[]   @default([]) // Array of {country, visitors}
-  cityStats     Json[]   @default([]) // Array of {city, visitors}
-  deviceStats   Json[]   @default([]) // Array of {device, visitors}
+  countryStats  Json?
+  cityStats     Json?
+  deviceStats   Json?
   lastVisitedAt DateTime @default(now())
 
-  // Timestamps
-  lastUpdated DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model uniqueShopVisitors {
@@ -301,10 +298,10 @@ model notifications {
   title         String
   message       String
   isRead        Boolean          @default(false)
-  creatorId     String?          @db.ObjectId // User who triggered the notification
-  receiverId    String           @db.ObjectId // User who receives the notification
-  redirect_link String? // Link to redirect when clicking notification
-  data          Json? // Additional data like orderId, shopId, etc.
+  creatorId     String?          @db.ObjectId
+  receiverId    String           @db.ObjectId
+  redirect_link String?
+  data          Json?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 

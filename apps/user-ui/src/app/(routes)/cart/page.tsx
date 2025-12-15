@@ -11,12 +11,12 @@ import { useQuery } from 'node_modules/@tanstack/react-query/build/modern/useQue
 import React, { useEffect, useState } from 'react'
 import AddAddressModal from 'apps/user-ui/src/shared/components/modals/AddAddressModal';
 import toast from 'react-hot-toast';
-import OverlayLoader from 'apps/user-ui/src/shared/components/loading/overlay-loader';
-import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
+import OverlayLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
+import useUser from 'apps/user-ui/src/hooks/useUser';
 
 const CartPage = () => {
     const router = useRouter();
-    const { user } = useRequiredAuth();
+    const { user } = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const [discountedProductId, setDiscountedProductId] = useState("")
@@ -69,6 +69,11 @@ const CartPage = () => {
 
 
     const creatPaymentSession = async () => {
+        if (!user) {
+            toast.error("Please login to proceed to checkout.");
+            router.push('/login');
+            return;
+        }
         if (addresses?.length === 0) {
             toast.error("Please add a shipping address before proceeding to checkout.");
             return;

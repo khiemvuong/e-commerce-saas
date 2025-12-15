@@ -59,7 +59,7 @@ const SidebarWrapper = () => {
                         title='Dashboard'
                         icon={<LayoutDashboard fill={getIconColor('/dashboard')} />}
                         isActive={activeSidebar === '/dashboard'}
-                        href="/dashboardd"
+                        href="/dashboard"
                     />
                     <div className="mt-2 block">
                         <SidebarMenu  title='Main Menu'>

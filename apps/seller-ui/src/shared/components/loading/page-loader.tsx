@@ -1,10 +1,10 @@
 import React from 'react';
 
-interface OverlayLoaderProps {
+interface PageLoaderProps {
   text?: string;
 }
 
-const OverlayLoader: React.FC<OverlayLoaderProps> = ({ text = "Loading" }) => {
+const PageLoader: React.FC<PageLoaderProps> = ({ text = "Loading" }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 flex flex-col items-center gap-4 shadow-2xl">
@@ -40,4 +40,4 @@ const OverlayLoader: React.FC<OverlayLoaderProps> = ({ text = "Loading" }) => {
   );
 };
 
-export default OverlayLoader;
+export default PageLoader;

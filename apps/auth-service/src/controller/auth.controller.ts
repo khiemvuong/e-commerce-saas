@@ -7,6 +7,8 @@ import jwt, { JsonWebTokenError } from 'jsonwebtoken';
 import { setCookie } from '../utils/cookies/setCookie';
 import { Stripe } from "stripe";
 import { sendLog } from '@packages/utils/kafka';
+import { client } from "@packages/libs/imagekit";
+import { toFile } from "@imagekit/nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -54,6 +56,7 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
             data: {
                 name,
                 email,
+                role: "user",
                 password: hashedPassword
             }
         });
@@ -167,8 +170,19 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
 // get logged in user
 export const getUser = async (req: any, res: Response, next: NextFunction) => {
     try {
-        const user=req.user;
-        res.status(201).json({success: true, user})
+        const userId = req.user?.id;
+        const user = await prisma.users.findUnique({
+            where: { id: userId },
+            include: { avatar: true }
+        });
+        
+        if (!user) {
+             return next(new AuthError("User not found"));
+        }
+
+        // Map the avatar array to a single URL string for the frontend
+        const userResponse = { ...user, avatar: user.avatar.length > 0 ? user.avatar[0].file_url : null };
+        res.status(201).json({success: true, user: userResponse})
     } catch (error) {
         next(error);
     }
@@ -300,6 +314,78 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
         next(error);
     }
 };
+
+// Upload Avatar
+export const uploadAvatar = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { fileName } = req.body;
+        if (!fileName || typeof fileName !== 'string') {
+            return res.status(400).json({ error: 'fileName (base64) is required' });
+        }
+        const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(fileName);
+        if (!match) {
+            return res.status(400).json({ error: 'Invalid base64 image' });
+        }
+        const mime = match[1];
+        const base64 = match[2];
+        const buffer = Buffer.from(base64, 'base64');
+        const ext = mime.split('/')[1] || 'jpg';
+        const uniqueName = `avatar-${Date.now()}.${ext}`;
+        const fileForUpload = await toFile(buffer, uniqueName);
+
+        const resp = await client.files.upload({
+            file: fileForUpload,
+            fileName: uniqueName,
+            folder: '/avatars'
+        });
+
+        return res.status(200).json({
+            success: true,
+            file_url: (resp as any).url,
+            fileId: (resp as any).fileId,
+        });
+    } catch (error) {
+        return next(error);
+    }
+}
+
+// Update User Profile
+export const updateUserProfile = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user?.id;
+        const { name, avatar } = req.body;
+
+        if (avatar && avatar.file_url && avatar.fileId) {
+             // Delete old avatar images
+             await prisma.images.deleteMany({
+                where: { userId, type: 'avatar' }
+             });
+             
+             await prisma.users.update({
+                where: { id: userId },
+                data: {
+                    name,
+                    avatar: {
+                        create: {
+                            file_url: avatar.file_url,
+                            fileId: avatar.fileId,
+                            type: 'avatar'
+                        }
+                    }
+                }
+             });
+        } else {
+            await prisma.users.update({
+                where: { id: userId },
+                data: { name }
+            });
+        }
+
+        res.status(200).json({ success: true, message: "Profile updated successfully" });
+    } catch (error) {
+        next(error);
+    }
+}
 
 //Create a new shop
 export const createShop = async (req: Request, res: Response, next: NextFunction) => {
@@ -663,4 +749,3 @@ export const getUserAddresses = async (req: any, res: Response, next: NextFuncti
         next(error);
     }
 };
-

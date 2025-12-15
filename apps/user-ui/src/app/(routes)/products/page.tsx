@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
-import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader'
+import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 const MIN=0;
 const MAX=1199;
 const Page = () => {

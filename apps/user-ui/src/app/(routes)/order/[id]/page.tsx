@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance'
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, MapPin, Package, CreditCard, Calendar } from 'lucide-react';
+import { ArrowLeft, MapPin, Package, CreditCard, Calendar } from 'lucide-react';
+import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
 
 const statuses = ['Ordered', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
@@ -34,9 +35,7 @@ const Page = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-[50vh]">
-                <Loader2 className='animate-spin w-8 h-8 text-blue-500' />
-            </div>
+            <PageLoader text="Loading order details..." />
         );
     }
 

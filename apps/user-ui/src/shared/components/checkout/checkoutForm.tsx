@@ -1,7 +1,7 @@
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import { CheckCircle, XCircle } from 'lucide-react';
 import React, { useState } from 'react'
-import OverlayLoader from '../loading/overlay-loader';
+import OverlayLoader from '../loading/page-loader';
 
 const CheckoutForm = ({
     clientSecret,

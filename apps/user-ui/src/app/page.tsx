@@ -54,16 +54,16 @@ const page = () => {
   return (
     <div className="min-h-screen pb-10">
       <Hero/>
-      <div className='md:w-[80%] w-[90%] my-10 m-auto'>
+      <div className='md:w-[80%] w-[95%] my-6 md:my-10 m-auto'>
         {/*Suggested Product Seciton*/}
         <div>
-          <div className="mb-8">
+          <div className="mb-4 md:mb-8">
             <SectionTitle
               title="Suggested Products"
             />
           </div>
           {isLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div
@@ -75,7 +75,7 @@ const page = () => {
             </div>
           )}
           {!isLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {products?.map((product:any)=>(
                   <ProductCard key={product.id} product={product}/>
               ))}
@@ -89,13 +89,13 @@ const page = () => {
 
         {/*Latest Product Section*/}
         <div>
-          <div className="my-8 block">
+          <div className="my-4 md:my-8 block">
             <SectionTitle
               title="Latest Products"
             />
           </div>
           {isLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div
@@ -107,7 +107,7 @@ const page = () => {
             </div>
           )}
           {!latestProductsLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {latestProducts?.map((product:any)=>(
                   <ProductCard key={product.id} product={product}/>
               ))}
@@ -123,44 +123,51 @@ const page = () => {
           <div className="my-8 block">
             <SectionTitle title="Top Shops"/>
           </div>
+
           {!shopLoading &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
               {shops?.map((shop:any)=>(
                 <ShopCard key={shop.id} shop={shop}/>
               ))}
             </div>
           )}
+          
           {shopLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
-              {/* Shop Cards */}
-              {Array.from({ length: 5 }).map((_, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {Array.from({ length: 4 }).map((_, index) => (
                 <div
                   key={index}
-                  className="h-[300px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
+                  className="p-6 flex flex-col items-center space-y-3 border border-gray-200 rounded-2xl bg-white shadow-sm"
                 >
+                  <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
+                  <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
+                  <div className="h-10 w-2/3 bg-gray-200 rounded animate-pulse" />
                 </div>
               ))}
             </div>
           )}
+          
           {!shopLoading && shops?.length === 0 &&(
-            <div className="text-center text-gray-500">No shops available.</div>
+            <div className="text-center text-gray-500 py-12">No shops available.</div>
           )}
         </div>
 
         {/*Top offers Section*/}
         <div className="div">
-          <div className="my-8 block">
+          <div className="my-4 md:my-8 block">
             <SectionTitle title="Top Offers"/>
           </div>
           {!offersLoading && !isError &&(
-            <div className="m-auto grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {offers?.map((product:any)=>(
                 <ProductCard key={product.id} product={product} isEvent={true}/>
               ))}
             </div>
           )}
           {offersLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
               {/* Product Cards */}
               {Array.from({ length: 10 }).map((_, index) => (
                 <div

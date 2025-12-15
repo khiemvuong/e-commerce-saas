@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import React, {useState} from 'react'
 import { useForm} from 'react-hook-form';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff} from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { countries } from 'apps/seller-ui/src/utils/countries';
 import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
 import StripeLogo from '../../../assets/svgs/stripe-logo';
+import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 
 const Signup = () => {
     const [activeStep, setActiveStep] = useState(1);
@@ -349,7 +350,7 @@ return (
                     <button
                     onClick={connectStripe}
                     className="w-full m-auto justify-center flex items-center gap-3 p-2 bg-black text-white font-Roboto text-lg hover:bg-gray-700 transition rounded-xl">
-                        {isStripeLoading ? <Loader2 className="animate-spin" /> : (
+                        {isStripeLoading ? <PageLoader text="Connecting..." /> : (
                                 <>
                                     Connect with <StripeLogo className="min-h-[40px] min-w-[80px]" />
                                 </>

@@ -7,11 +7,12 @@ import {
     getPaginationRowModel,
     flexRender,
 } from '@tanstack/react-table';
-import { Search, Eye, Loader2, ChevronLeft, ChevronRight, Package, TrendingUp, Clock } from 'lucide-react';
+import { Search, Eye, ChevronLeft, ChevronRight, Package, TrendingUp, Clock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import Link from 'next/link';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
+import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
 
 const fetchOrders = async () => {
     const res = await axiosInstance.get('/order/api/get-seller-orders');
@@ -199,10 +200,7 @@ const OrdersTable = () => {
             {/* Table */}
             <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden">
                 {isLoading ? (
-                    <div className="flex flex-col justify-center items-center min-h-[400px] gap-3">
-                        <Loader2 size={40} className="animate-spin text-blue-500" />
-                        <p className="text-gray-400">Loading orders...</p>
-                    </div>
+                    <ComponentLoader text="Loading orders..." />
                 ) : (
                     <>
                         <div className="overflow-x-auto">

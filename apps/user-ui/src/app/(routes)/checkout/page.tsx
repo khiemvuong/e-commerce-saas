@@ -6,7 +6,7 @@ import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 import { X } from "lucide-react";
 import { Elements } from "@stripe/react-stripe-js";
 import CheckoutForm from "apps/user-ui/src/shared/components/checkout/checkoutForm";
-import OverlayLoader from "apps/user-ui/src/shared/components/loading/overlay-loader";
+import OverlayLoader from "apps/user-ui/src/shared/components/loading/page-loader";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY!);
 

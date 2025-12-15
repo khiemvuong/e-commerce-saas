@@ -3,7 +3,9 @@
 import React, { useEffect, useState } from 'react'
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance'
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2, MapPin, Package, CreditCard, Calendar } from 'lucide-react';
+import { ArrowLeft, MapPin, Package, CreditCard, Calendar } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 
 const statuses = ['Ordered', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered'];
 
@@ -38,8 +40,10 @@ const Page = () => {
                 ...prevOrder,
                 deliveryStatus: newStatus,
             }));
-        } catch (error) {
+            toast.success('Order status updated successfully');
+        } catch (error: any) {
             console.error("Error updating order status:", error);
+            toast.error(error.response?.data?.message || 'Failed to update order status');
         } finally {
             setUpdating(false);
         }
@@ -53,9 +57,7 @@ const Page = () => {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-[50vh]">
-                <Loader2 className='animate-spin w-8 h-8 text-blue-500' />
-            </div>
+            <PageLoader text="Loading order details..." />
         );
     }
 

@@ -111,12 +111,12 @@ export const updateProductAnalytics = async (event: any) => {
             };
         }
         if (event.action === 'add_to_wishlist'){
-            updateFields.wishlistsAdds = {
+            updateFields.wishlistAdds = {
                 increment: 1
             };
         }
         if (event.action === 'remove_from_wishlist'){
-            updateFields.wishlistsAdds = {
+            updateFields.wishlistAdds = {
                 decrement: 1
             };
         }
@@ -125,6 +125,19 @@ export const updateProductAnalytics = async (event: any) => {
                 increment: 1
             };
         }
+
+        // Ensure shopId exists for creation
+        let shopId = event.shopId;
+        if (!shopId) {
+            const product = await prisma.products.findUnique({
+                where: { id: event.productId },
+                select: { shopId: true }
+            });
+            shopId = product?.shopId;
+        }
+
+        if (!shopId) return; // Cannot create analytics without shopId
+
         await prisma.productAnalytics.upsert({
             where: { productId: event.productId },
             update: {
@@ -133,7 +146,7 @@ export const updateProductAnalytics = async (event: any) => {
             },
             create: {
                 productId: event.productId,
-                shopId: event.shopId || null,
+                shopId: shopId,
                 views: event.action === 'product_view' ? 1 : 0,
                 cartAdds: event.action === 'add_to_cart' ? 1 : 0,
                 wishlistAdds: event.action === 'add_to_wishlist' ? 1 : 0,

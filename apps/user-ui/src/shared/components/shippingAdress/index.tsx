@@ -4,7 +4,7 @@ import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { MapPin, Plus, Trash } from 'lucide-react';
 import React, { useState } from 'react'
 import AddAddressModal from '../modals/AddAddressModal';
-import OverlayLoader from '../loading/overlay-loader';
+import OverlayLoader from '../loading/page-loader';
 
 const ShippingAdressSection = () => {
     const [showModal, setShowModal] = useState(false);

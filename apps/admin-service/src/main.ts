@@ -3,13 +3,13 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import router from './routes/admin.route';
 const app = express();
-app.use(express.json());
 app.use(cookieParser());
 
 app.get('/', (req, res) => {
   res.send({ message: 'Welcome to admin-service!' });
 });
-
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 //routes
 app.use("/api",router);

@@ -1,5 +1,6 @@
-import { Loader2, Pencil, WandSparkles, X } from 'lucide-react';
+import { Pencil, WandSparkles, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import ComponentLoader from '../loading/component-loader';
 const ImagePlaceHolder = (
   {
     size,
@@ -58,9 +59,7 @@ const ImagePlaceHolder = (
       />
 
       {isUploading && (
-        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-20">
-          <Loader2 className="animate-spin text-white" size={28} />
-        </div>
+        <ComponentLoader text="Uploading Image..." />
       )}
 
       {imagePreview ? (

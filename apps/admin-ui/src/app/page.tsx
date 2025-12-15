@@ -5,7 +5,7 @@ import Input from 'packages/components/input';
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form';
 import axios, {AxiosError} from 'axios';
-import OverlayLoader from '../shared/components/loading/overlay-loader';
+import PageLoader from '../shared/components/loading/page-loader';
 type FormData = {
   email: string;
   password: string;
@@ -73,7 +73,7 @@ const Page = () => {
             className="w-full mt-5 text-xl flex justify-center font-semibold font-Poppins cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
           >
             {loginMutation.isPending ? (
-              OverlayLoader({ text: "Logging in..." })
+              <PageLoader text="Logging in..." />
             ) : (
               'Login'
             )}

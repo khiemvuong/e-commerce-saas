@@ -1,14 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, Store, LayoutDashboard, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Store, LayoutDashboard, ArrowRight} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
-import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import axios from 'axios';
+import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 const SellerSuccessPage = () => {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
 
     // Hàm bắn pháo giấy
@@ -63,7 +61,7 @@ const SellerSuccessPage = () => {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-                <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
+                <PageLoader text="Đang xác thực kết nối với Stripe..." />
                 <h2 className="text-xl font-medium text-gray-700">Đang xác thực kết nối với Stripe...</h2>
                 <p className="text-gray-500 mt-2">Vui lòng không tắt trình duyệt.</p>
             </div>
