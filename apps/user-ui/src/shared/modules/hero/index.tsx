@@ -1,8 +1,42 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+'use client';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle, ShoppingBag } from 'lucide-react';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { useQuery } from '@tanstack/react-query';
 
 const Hero = () => {
+  const [banners, setBanners] = useState<string[]>(["https://ik.imagekit.io/khiemvuong/hero_endframe__cvklg0xk3w6e_large%202.png?updatedAt=1761726370763"]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const { data } = useQuery({
+        queryKey: ['customizations'],
+        queryFn: async () => {
+            const res = await axiosInstance.get('/admin/api/get-all-customizations');
+            return res.data;
+        },
+    });
+
+    useEffect(() => {
+        if (data?.images) {
+            const bannerImages = data.images
+                .filter((img: any) => img.type === 'banner')
+                .map((img: any) => img.file_url);
+            
+            if (bannerImages.length > 0) {
+                setBanners(bannerImages);
+            }
+        }
+    }, [data]);
+
+    useEffect(() => {
+        if (banners.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % banners.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [banners]);
+
   const scrollToProducts = () => {
     document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -22,15 +56,6 @@ const Hero = () => {
               transition={{ duration: 0.8, ease: 'easeOut' }}
               className="text-center lg:text-left"
             >
-              {/* Brand Badge */}
-              <div className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 mb-6">
-                <img 
-                  src="https://ik.imagekit.io/khiemvuong/1200px-Apple_gray_logo%201.png?updatedAt=1761726405724" 
-                  alt="Apple logo" 
-                  className="w-5 h-5 object-contain" 
-                />
-                <span className="text-sm text-gray-300">iPhone 14 Series</span>
-              </div>
 
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
                 Discover Amazing Deals at{' '}
@@ -98,26 +123,42 @@ const Hero = () => {
                 strokeWidth={0.3} 
               />
 
-              {/* Product image */}
-              <div className="relative h-full flex items-center justify-center">
-                <img
-                  src="https://ik.imagekit.io/khiemvuong/hero_endframe__cvklg0xk3w6e_large%202.png?updatedAt=1761726370763"
-                  alt="iPhone 14"
-                  className="relative w-full h-full object-contain drop-shadow-2xl transform lg:scale-110 hover:scale-115 transition-transform duration-500"
-                  draggable={false}
-                />
-              </div>
-
+              {/* Banner image */}
+              <motion.div 
+                className="relative h-full flex items-center justify-center w-full"
+                animate={{ y: [-15, 15, -15] }}
+                transition={{ 
+                  repeat: Infinity, 
+                  duration: 5, 
+                  ease: "easeInOut" 
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentIndex}
+                    src={banners[currentIndex]}
+                    alt="Banner Image"
+                    initial={{ opacity: 0, x: 50, scale: 0.95 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -50, scale: 0.95 }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute w-full h-full object-contain drop-shadow-2xl"
+                    draggable={false}
+                  />
+                </AnimatePresence>
+              </motion.div>          
               {/* Floating accent circles */}
               <div className="absolute top-10 right-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
               <div className="absolute bottom-10 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl animate-pulse delay-75" />
-            </motion.div>
+              <div className="absolute top-10 left-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl animate-pulse" />
+              <div className="absolute bottom-10 right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-xl animate-pulse delay-75" />
+              </motion.div>
           </div>
         </div>
       </div>
 
       {/* Pagination dots */}
-      <nav 
+      {/* <nav 
         aria-label="hero pagination" 
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 justify-center items-center z-20"
       >
@@ -126,10 +167,7 @@ const Hero = () => {
         <span className="w-2 h-2 rounded-full bg-white/40 hover:bg-white/60 transition-colors cursor-pointer" />
         <span className="w-2 h-2 rounded-full bg-white/40 hover:bg-white/60 transition-colors cursor-pointer" />
         <span className="w-2 h-2 rounded-full bg-white/40 hover:bg-white/60 transition-colors cursor-pointer" />
-      </nav>
-
-      {/* Bottom gradient border */}
-      <div className="absolute left-0 right-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      </nav> */}
     </section>
   );
 };

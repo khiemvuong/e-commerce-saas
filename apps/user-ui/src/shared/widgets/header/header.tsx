@@ -10,6 +10,8 @@ import HeaderBottom from "./header-bottom";
 import React from "react";
 import { navItems } from "apps/user-ui/src/configs/constants";
 import { usePathname } from 'next/navigation';
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 
 const Header = () => {
   const pathname = usePathname();
@@ -19,7 +21,18 @@ const Header = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [showNavMenu, setShowNavMenu] = React.useState(false);
   const navMenuRef = React.useRef<HTMLDivElement | null>(null);
-  
+
+  const { data: customizationData } = useQuery({
+    queryKey: ['customizations'],
+    queryFn: async () => {
+      const res = await axiosInstance.get('/admin/api/get-all-customizations');
+      return res.data;
+    },
+  });
+
+  const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
+  const logoUrl = logos.length >= 2 ? logos[0].file_url : null;
+
   return (
     <div className="w-full sticky top-0 left-0 z-50 transition-all duration-300">
       <header className={`w-full bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm transition-all duration-300 ${isSearchOpen ? 'pb-4' : ''}`}>
@@ -60,7 +73,11 @@ const Header = () => {
               {/* Logo */}
               <Link href="/" className="flex items-center shrink-0">
                 <div className="w-[130px] md:w-auto overflow-hidden">
-                  <IlanLogo3 size={220} className="transform scale-75 origin-left md:scale-100 transition-transform"/>              
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Logo" className="h-[220px] w-[220px]  object-contain" />
+                  ) : (
+                    <IlanLogo3 size={220} className="transform scale-75 origin-left md:scale-100 transition-transform"/>              
+                  )}
                 </div>
               </Link>
             </div>

@@ -11,7 +11,9 @@ import {
     ChevronLeft,
     ChevronRight,
     Download,
-    Filter,
+    UserX,
+    Plus,
+    X,
 } from 'lucide-react';
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axiosInstance from 'apps/admin-ui/src/utils/axiosInstance';
@@ -22,27 +24,57 @@ const UserList = () => {
     const [page, setPage]=useState(1);
     const [globalFilter, setGlobalFilter] = useState('');
     const deferredFilter = useDeferredValue(globalFilter);
-    const [roleFilter, setRoleFilter] = useState('all');
     const limit = 10; //items per page
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [emailToPromote, setEmailToPromote] = useState('');
 
     useEffect(() => {
         setPage(1);
-    }, [deferredFilter, roleFilter]);
+    }, [deferredFilter]);
 
-    const {data, isLoading}: UseQueryResult<any> = useQuery({
-        queryKey:['users-list', page, deferredFilter, roleFilter],
+    const {data, isLoading, refetch}: UseQueryResult<any> = useQuery({
+        queryKey:['admins-list', page, deferredFilter],
         queryFn:async () => {
-            const res=await axiosInstance.get(`/admin/api/get-all-users?page=${page}&limit=${limit}&search=${deferredFilter}&role=${roleFilter}`);
+            const res=await axiosInstance.get(`/admin/api/get-all-users?page=${page}&limit=${limit}&search=${deferredFilter}&role=admin`);
             return res.data;
         },
         placeholderData: (prev) => prev,
         staleTime:5 * 60 * 1000, //5 minutes
     });
 
-    const allUsers = data?.data || [];
-    const totalUsers = data?.meta.totalUsers ?? 0;
+    const allAdmins = data?.data || [];
+    const totalAdmins = data?.meta.totalAdmins ?? 0;
     const totalPages = data?.meta.totalPages ?? 0;
 
+    const handleRemoveAdmin = async (email: string) => {
+        if (window.confirm(`Are you sure you want to remove admin rights from ${email}?`)) {
+            try {
+                await axiosInstance.put('/admin/api/remove-admin', { email });
+                refetch();
+            } catch (error) {
+                console.error("Failed to remove admin role:", error);
+                alert("Failed to remove admin role. Please try again.");
+            }
+        }
+    };
+
+    const handleAddAdmin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!emailToPromote) return;
+        try {
+            await axiosInstance.put('/admin/api/add-new-admin', {
+                email: emailToPromote,
+                role: 'admin'
+            });
+            setIsModalOpen(false);
+            setEmailToPromote('');
+            refetch();
+            alert("User promoted to admin successfully!");
+        } catch (error: any) {
+            console.error("Failed to add admin:", error);
+            alert(error.response?.data?.message || "Failed to add admin.");
+        }
+    };
 
     const columns=useMemo(
         () =>[
@@ -77,11 +109,30 @@ const UserList = () => {
                     </span>
                 ),
             },
+            {
+                header: 'Actions',
+                id: 'actions',
+                cell: ({ row }: any) => {
+                    if (row.original.role === 'admin') {
+                        return (
+                            <button
+                                onClick={() => handleRemoveAdmin(row.original.email)}
+                                className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded transition text-xs font-medium"
+                                title="Remove Admin Role"
+                            >
+                                <UserX size={14} />
+                                Demote
+                            </button>
+                        );
+                    }
+                    return null;
+                }
+            },
         ],[]
     );
     
     const table=useReactTable({
-        data: allUsers,
+        data: allAdmins,
         columns,
         getCoreRowModel:getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
@@ -90,13 +141,13 @@ const UserList = () => {
 
     const exportCSV = () => {
         const headers = ['ID', 'Name', 'Email', 'Role', 'Joined At'];
-        const csvData = allUsers.map((user: any) =>
+        const csvData = allAdmins.map((admin: any) =>
             [
-                `"${user.id}"`,
-                `"${String(user.name || '').replace(/"/g, '""')}"`,
-                `"${String(user.email || '').replace(/"/g, '""')}"`,
-                user.role,
-                new Date(user.createdAt).toLocaleDateString(),
+                `"${admin.id}"`,
+                `"${String(admin.name || '').replace(/"/g, '""')}"`,
+                `"${String(admin.email || '').replace(/"/g, '""')}"`,
+                admin.role,
+                new Date(admin.createdAt).toLocaleDateString(),
             ].join(',')
         );
         const blob = new Blob(['\uFEFF' + headers.join(',') + '\n' + csvData.join('\n')], {
@@ -118,14 +169,23 @@ const UserList = () => {
             {/*Header*/}
             <div className='flex justify-between items-center mb-4'>
                 <BreadCrumbs title="All Users"/>
-                <button
-                    onClick={exportCSV}
-                    disabled={isLoading || allUsers.length === 0}
-                    className='flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                >
-                    <Download size={20} />
-                    <p className='text-xs'>Export CSV</p>
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors'
+                    >
+                        <Plus size={20} />
+                        <p className='text-xs'>Add New Admin</p>
+                    </button>
+                    <button
+                        onClick={exportCSV}
+                        disabled={isLoading || allAdmins.length === 0}
+                        className='flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                        <Download size={20} />
+                        <p className='text-xs'>Export CSV</p>
+                    </button>
+                </div>
             </div>
 
             {/*Search and Filter*/}
@@ -140,24 +200,12 @@ const UserList = () => {
                         className='w-full bg-gray-900 border border-gray-800 text-white pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 transition'
                     />
                 </div>
-                <div className='flex items-center gap-2 w-full md:w-auto'>
-                    <Filter size={20} className='text-gray-400'/>
-                    <select
-                        value={roleFilter}
-                        onChange={(e) => setRoleFilter(e.target.value)}
-                        className='bg-gray-900 border border-gray-800 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 transition cursor-pointer appearance-none'
-                    >
-                        <option value="all">All Roles</option>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
             </div>
 
             {/*Table*/}
             <div className='bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden'>
                 {isLoading ? (
-                    <ComponentLoader text="Loading users..." />
+                    <ComponentLoader text="Loading admins..." />
                 ) : (
                     <>
                         <div className="overflow-x-auto">
@@ -213,9 +261,9 @@ const UserList = () => {
                                 <div className="text-sm text-gray-400">
                                     Showing <span className="font-medium text-white">{(page - 1) * limit + 1}</span> to{' '}
                                     <span className="font-medium text-white">
-                                        {Math.min(page * limit, totalUsers)}
+                                        {Math.min(page * limit, totalAdmins)}
                                     </span> of{' '}
-                                    <span className="font-medium text-white">{totalUsers}</span> results
+                                    <span className="font-medium text-white">{totalAdmins}</span> results
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -242,6 +290,56 @@ const UserList = () => {
                     </>
                 )}
             </div>
+            {/* Add Admin Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-gray-900 border border-gray-800 p-6 rounded-xl w-full max-w-md shadow-2xl relative">
+                        <button 
+                            onClick={() => setIsModalOpen(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                        >
+                            <X size={20} />
+                        </button>
+                        
+                        <h2 className="text-xl font-bold mb-4 text-white">Promote User to Admin</h2>
+                        <p className="text-gray-400 text-sm mb-6">
+                            Enter the email address of the user you want to promote to admin status.
+                        </p>
+
+                        <form onSubmit={handleAddAdmin}>
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    User Email
+                                </label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={emailToPromote}
+                                    onChange={(e) => setEmailToPromote(e.target.value)}
+                                    placeholder="user@example.com"
+                                    className="w-full bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-blue-500 transition"
+                                />
+                            </div>
+                            
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+                                >
+                                    Promote to Admin
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

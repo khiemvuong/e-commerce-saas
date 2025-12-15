@@ -1,15 +1,30 @@
 'use client';
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import IlanLogo2 from "apps/user-ui/src/assets/svgs/ilan-logo-2";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
+
 const Footer = () => {
+  const { data: customizationData } = useQuery({
+    queryKey: ['customizations'],
+    queryFn: async () => {
+      const res = await axiosInstance.get('/admin/api/get-all-customizations');
+      return res.data;
+    },
+  });
+
+  const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
+  const logoUrl = logos.length >= 2 ? logos[1].file_url : null;
+
   return (
     <footer className="bg-[#3D3D3D] text-white">
       {/* Newsletter Section */}
       <div className="bg-[#3D3D3D] py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex justify-center mb-6">
-            <IlanLogo2 size={350} />
+            {logoUrl && (
+              <img src={logoUrl} alt="Footer Logo" className="h-[200px] w-auto object-contain" />
+            )}
           </div>
           <h2 className="text-3xl md:text-4xl font-normal mb-2">
             Subscribe To Your Newsletter To Stay

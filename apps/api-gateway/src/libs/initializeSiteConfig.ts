@@ -21,6 +21,13 @@ const initializeSiteConfig = async () => {
                         "Home & Garden": ["Furniture", "Kitchenware", "Gardening", "Bedding"],
                         "Health & Beauty": ["Skincare", "Makeup", "Haircare", "Wellness"],
                     },
+                    images: {
+                        create: [
+                            { file_url: "https://ik.imagekit.io/khiemvuong/logo_3.png?updatedAt=1762869289719", fileId: "init_logo_1", type: "logo" },
+                            { file_url: "https://ik.imagekit.io/khiemvuong/logo%20(2).png?updatedAt=1762868084272", fileId: "init_logo_2", type: "logo" },
+                            { file_url: "https://ik.imagekit.io/khiemvuong/hero_endframe__cvklg0xk3w6e_large%202.png?updatedAt=1761726370763", fileId: "init_banner_1", type: "banner" }
+                        ]
+                    }
                 },
             });
         }
@@ -28,6 +35,8 @@ const initializeSiteConfig = async () => {
         
     } catch (error) {
         console.log('Error initializing site configuration:', error);
+    } finally {
+        await prisma.$disconnect();
     }
     
 }

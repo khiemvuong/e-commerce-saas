@@ -1,6 +1,9 @@
 import { ValidationError } from "@packages/error-handler";
 import prisma from "@packages/libs/prisma";
 import { Request, Response, NextFunction } from "express";
+import { client } from "@packages/libs/imagekit";
+import { toFile } from "@imagekit/nodejs";
+
 //Get all Products
 export const getAllProducts = async (
     req: Request,
@@ -227,17 +230,117 @@ export const getAllCustomizations = async (
     next: NextFunction
 ) => {
     try {
-        const config = await prisma.site_config.findFirst();
+        const config = await prisma.site_config.findFirst({
+            include: { images: true }
+        });
         return res.status(200).json({
             categories: config?.categories || [],
             subCategories: config?.subCategories || {},
-            logo: config?.logo || null,
-            banner: config?.banner || null,
+            images: config?.images || [],
+        });
+    } catch (error) {
+        console.error("Error fetching customizations:", error);
+        return next(error);
+    }
+};
+
+// Update site config
+export const updateSiteConfig = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { categories, subCategories, images } = req.body;
+
+        const config = await prisma.site_config.findFirst();
+
+        if (!config) {
+            // Should ideally be initialized, but handle just in case
+            await prisma.site_config.create({
+                data: {
+                    categories: categories || [],
+                    subCategories: subCategories || {},
+                    images: {
+                        create: images?.map((img: any) => ({
+                            file_url: img.file_url,
+                            fileId: img.fileId,
+                            type: img.type
+                        })) || []
+                    }
+                },
+            });
+            return res.status(201).json({ success: true });
+        }
+
+        // Delete existing images to replace with new set
+        await prisma.images.deleteMany({
+            where: { siteConfigId: config.id }
+        });
+
+        const updatedConfig = await prisma.site_config.update({
+            where: { id: config.id },
+            data: {
+                categories,
+                subCategories,
+                images: {
+                    create: images?.map((img: any) => ({
+                        file_url: img.file_url,
+                        fileId: img.fileId,
+                        type: img.type
+                    })) || []
+                }
+            },
+            include: { images: true }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: updatedConfig,
         });
     } catch (error) {
         return next(error);
     }
 };
+
+// Upload site image
+export const uploadSiteImage = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { fileName } = req.body; // base64 data URL
+  
+      if (!fileName || typeof fileName !== 'string') {
+        return res.status(400).json({ error: 'fileName (base64 data URL) is required' });
+      }
+  
+      const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(fileName);
+      if (!match) {
+        return res.status(400).json({ error: 'Invalid base64 image data URL' });
+      }
+  
+      const mime = match[1];
+      const base64 = match[2];
+      const buffer = Buffer.from(base64, 'base64');
+  
+      const ext = mime.split('/')[1] || 'jpg';
+      const uniqueName = `site-${Date.now()}.${ext}`;
+      const fileForUpload = await toFile(buffer, uniqueName);
+  
+      const resp = await client.files.upload({
+        file: fileForUpload,
+        fileName: uniqueName,
+      });
+  
+      return res.status(200).json({
+        success: true,
+        file_url: (resp as any).url ?? (resp as any).filePath ?? null,
+        fileId: (resp as any).fileId,
+        thumbnailUrl: (resp as any).thumbnailUrl ?? null,
+      });
+    } catch (error: any) {
+      console.error('ImageKit upload error:', error);
+      return res.status(500).json({ error: 'Failed to upload image', details: error?.message });
+    }
+  };
 
 //Get all users
 export const getAllUsers = async (
