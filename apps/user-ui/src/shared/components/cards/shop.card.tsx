@@ -1,7 +1,7 @@
 "use client";
 import { categories } from 'apps/user-ui/src/utils/categories';
 import { countries } from 'apps/user-ui/src/utils/countries';
-import { ArrowUpRight, MapPin, StarIcon } from 'lucide-react';
+import { ArrowUpRight, MapPin, StarIcon, Store } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -12,9 +12,11 @@ interface ShopCardProps {
     id: string;
     name: string;
     description?: string;
-    avatar?: string;
-    coverBanner?: string;
     address?: string;
+    images: {
+      file_url: string;
+      type: string;
+    }[];
     followers?:[];
     rating?: number;
     category?: string;
@@ -32,6 +34,9 @@ const ShopCard:React.FC<ShopCardProps> = ({ shop }) => {
   // Tìm tên country từ country code của seller
   const countryName = countries.find(country => country.code === shop?.sellers?.country)?.name;
   
+  const avatar = shop?.images?.find((img) => img.type === 'avatar')?.file_url;
+  const cover = shop?.images?.find((img) => img.type === 'cover')?.file_url;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -41,23 +46,38 @@ const ShopCard:React.FC<ShopCardProps> = ({ shop }) => {
       whileHover={{ y: -8 }}
       className="relative group"
     >
-      <div className='w-full flex flex-col items-center p-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300'>
+      <div className='w-full flex flex-col items-center bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden'>
+        {/* Cover Banner */}
+        <div className="h-24 w-full relative bg-gray-100">
+          {cover ? (
+            <Image src={cover} alt="Cover" fill className="object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-20" />
+          )}
+        </div>
+
         {/* Avatar with Ring Effect - positioned at top center */}
-        <div className="relative mb-6">
+        <div className="relative -mt-12 mb-4">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-md opacity-70 group-hover:opacity-100 transition-opacity duration-300" />
           <div className="relative w-24 h-24 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
+            {!avatar ? (
+              <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                <Store size={64} className="text-purple-300" />
+              </div>
+            ) :
             <Image
-              src={shop?.avatar || 'https://img.favpng.com/8/20/24/computer-icons-online-shopping-png-favpng-QuiWDXbsc69EE92m3bZ2i0ybS.jpg'}
+              src={avatar}
               alt={shop.name}
               width={96}
               height={96}
               className="object-cover"
             />
+            }
           </div>
         </div>
 
         {/* Shop Info */}
-        <div className="w-full text-center">
+        <div className="w-full text-center p-6 pt-0">
           <h3 className="text-xl font-bold text-gray-900 mb-2">{shop?.name}</h3>
           <p className='text-sm text-gray-600 mb-4'>{shop?.followers?.length ?? 0} Followers</p>
           
