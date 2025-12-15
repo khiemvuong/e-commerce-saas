@@ -13,7 +13,26 @@ const nextConfig = {
   nx: {},
   //Image from image kit
   images: {
-    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com','png.pngtree.com'],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "ik.imagekit.io",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "img.favpng.com",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "via.placeholder.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
 };
 
