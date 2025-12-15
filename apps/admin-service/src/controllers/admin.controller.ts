@@ -434,8 +434,9 @@ export const getAllSellers = async (
                             id: true,
                             name: true,
                             address: true,
-                            avatar: {
+                            images: {
                                 take: 1,
+                                where: { type: "avatar" },
                                 select: { file_url: true },
                             },
                         },

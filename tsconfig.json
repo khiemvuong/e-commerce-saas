@@ -35,6 +35,9 @@
     },
     {
       "path": "./apps/admin-ui"
+    },
+    {
+      "path": "./apps/seller-service"
     }
   ]
 }

@@ -668,6 +668,11 @@ export const getFilteredShops = async (
                 include: { 
                     sellers: true,
                     products: true,
+                    images: {
+                        where: {
+                            type: { in: ["avatar", "cover"] }
+                        }
+                    }
                 }
             }),
             prisma.shops.count({
@@ -777,6 +782,15 @@ export const topShops = async (
                 rating:true,
                 followers:true,
                 category:true,
+                images: {
+                    where: {
+                        type: { in: ["avatar", "cover"] }
+                    },
+                    select: {
+                        file_url: true,
+                        type: true
+                    }
+                }
             },
         });
 

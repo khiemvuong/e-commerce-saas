@@ -12,8 +12,7 @@ model shops {
   name          String
   bio           String?
   category      String
-  avatar        images[]
-  coverBanner   String?
+  images        images[]
   address       String
   opening_hours String?
   website       String?
@@ -32,18 +31,18 @@ model shops {
 }
 
 model images {
-  id         String    @id @default(auto()) @map("_id") @db.ObjectId
-  fileId     String
-  file_url   String
-  type       String?   @default("product")
-  userId     String?   @db.ObjectId
-  shopId     String?   @db.ObjectId
-  users      users?    @relation(fields: [userId], references: [id])
-  shops      shops?    @relation(fields: [shopId], references: [id])
-  products   products? @relation(fields: [productsId], references: [id])
-  productsId String?   @db.ObjectId
-  siteConfigId String? @db.ObjectId
-  site_config site_config? @relation(fields: [siteConfigId], references: [id])
+  id           String       @id @default(auto()) @map("_id") @db.ObjectId
+  fileId       String
+  file_url     String
+  type         String?      @default("product")
+  userId       String?      @db.ObjectId
+  shopId       String?      @db.ObjectId
+  users        users?       @relation(fields: [userId], references: [id])
+  shops        shops?       @relation(fields: [shopId], references: [id])
+  products     products?    @relation(fields: [productsId], references: [id])
+  productsId   String?      @db.ObjectId
+  siteConfigId String?      @db.ObjectId
+  site_config  site_config? @relation(fields: [siteConfigId], references: [id])
 }
 
 model users {
