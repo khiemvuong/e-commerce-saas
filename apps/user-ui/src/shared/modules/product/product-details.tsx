@@ -19,6 +19,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
     const [isSelected, setIsSelect] = useState(productDetails?.colors?.[0] || '');
     const [isSizeSelected, setIsSizeSelect] = useState(productDetails?.sizes?.[0] || '');  
     const [quantity, setQuantity] = useState(1);
+    const [selectedProperties, setSelectedProperties] = useState<Record<string, string>>({});
     const [activeTab, setActiveTab] = useState<'description' | 'reviews'>('description');
     
     const wishlist = useStore((state:any) => state.wishlist);
@@ -73,6 +74,18 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
             console.log('⏳ Waiting for product details...');
         }
     }, [productDetails?.id]);
+
+    useEffect(() => {
+        if (productDetails?.custom_properties && Array.isArray(productDetails.custom_properties)) {
+            const defaults: Record<string, string> = {};
+            productDetails.custom_properties.forEach((prop: any) => {
+                if (prop.value && prop.value.length > 0) {
+                    defaults[prop.label] = prop.value[0];
+                }
+            });
+            setSelectedProperties(defaults);
+        }
+    }, [productDetails]);
 
   return (
     <div className="w-full bg-white">
@@ -184,8 +197,9 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                                         ...productDetails, 
                                         quantity,
                                         selectedOptions:{
-                                            color:isSelected,
-                                            size:isSizeSelected
+                                            ...(isSelected && { color: isSelected }),
+                                            ...(isSizeSelected && { size: isSizeSelected }),
+                                            ...selectedProperties
                                         }}, 
                                     user, 
                                     location, 
@@ -280,6 +294,32 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                     </div>
                 )}
 
+                {/* Custom Properties Selection */}
+                {productDetails?.custom_properties && Array.isArray(productDetails.custom_properties) && productDetails.custom_properties.length > 0 && (
+                    <div className="space-y-4">
+                        {productDetails.custom_properties.map((prop: any, index: number) => (
+                            <div key={index} className="space-y-2">
+                                <span className="text-sm font-medium text-gray-700">{prop.label}:</span>
+                                <div className="flex gap-2 flex-wrap">
+                                    {prop.value.map((val: string, vIndex: number) => (
+                                        <button
+                                            key={vIndex}
+                                            className={`px-4 py-2 rounded-md border-2 text-sm font-medium transition ${
+                                                selectedProperties[prop.label] === val
+                                                    ? 'bg-black text-white border-black'
+                                                    : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
+                                            }`}
+                                            onClick={() => setSelectedProperties(prev => ({ ...prev, [prop.label]: val }))}
+                                        >
+                                            {val}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
                 {/* Quantity and Actions */}
                 <div className="flex items-center gap-3">
                     {/* Quantity Selector */}
@@ -311,8 +351,9 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                             product={productDetails}
                             quantity={quantity}
                             selectedOptions={{
-                                color: isSelected,
-                                size: isSizeSelected
+                                ...(isSelected && { color: isSelected }),
+                                ...(isSizeSelected && { size: isSizeSelected }),
+                                ...selectedProperties
                             }}
                             variant="default"
                         />

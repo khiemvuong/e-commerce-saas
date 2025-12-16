@@ -40,9 +40,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.stopPropagation();
     
     // Check if product has any selectable options
+    const hasOptions = 
+      (product?.colors && product.colors.length > 0) || 
+      (product?.sizes && product.sizes.length > 0) || 
+      (product?.custom_properties && Array.isArray(product.custom_properties) && product.custom_properties.length > 0);
     
     // If product has options but no options selected, open modal
-    if ( (!selectedOptions || Object.keys(selectedOptions).length === 0)) {
+    if (hasOptions && (!selectedOptions || Object.keys(selectedOptions).length === 0)) {
       onOpenModal?.();
       return;
     }

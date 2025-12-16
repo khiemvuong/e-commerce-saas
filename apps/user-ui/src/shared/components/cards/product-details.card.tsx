@@ -16,6 +16,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const router = useRouter();
     const [isSelected, setIsSelect] = useState(data?.colors?.[0] || '');
     const [isSizeSelected, setIsSizeSelect] = useState(data?.sizes?.[0] || '');  
+    const [selectedProperties, setSelectedProperties] = useState<Record<string, string>>({});
     const [quantity, setQuantity] = useState(1);
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
@@ -33,6 +34,18 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
         setMounted(true);
         return () => setMounted(false);
     }, []);
+
+    useEffect(() => {
+        if (data?.custom_properties && Array.isArray(data.custom_properties)) {
+            const defaults: Record<string, string> = {};
+            data.custom_properties.forEach((prop: any) => {
+                if (prop.value && prop.value.length > 0) {
+                    defaults[prop.label] = prop.value[0];
+                }
+            });
+            setSelectedProperties(defaults);
+        }
+    }, [data]);
 
     if (!mounted) return null;
 
@@ -192,6 +205,31 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                 </div>
                             </div>
                         )}
+                        {/* Custom Properties */}
+                        {data?.custom_properties && Array.isArray(data.custom_properties) && data.custom_properties.length > 0 && (
+                            <div className='flex flex-col gap-4 mt-4 ml-2'>
+                                {data.custom_properties.map((prop: any, index: number) => (
+                                    <div key={index} className="flex flex-col gap-2">
+                                        <span className='font-medium text-gray-700'>{prop.label}:</span>
+                                        <div className='flex gap-2 flex-wrap'>
+                                            {prop.value.map((val: string, vIndex: number) => (
+                                                <button
+                                                    key={vIndex}
+                                                    className={`px-4 py-2 rounded-md border-2 text-sm font-medium transition ${
+                                                        selectedProperties[prop.label] === val
+                                                            ? 'bg-gray-800 text-white border-gray-800'
+                                                            : 'bg-gray-200 text-black border-transparent'
+                                                    }`}
+                                                    onClick={() => setSelectedProperties(prev => ({ ...prev, [prop.label]: val }))}
+                                                >
+                                                    {val}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {/*Quantity selector*/}
                         <div className="mt-5  flex items-center gap-4">
                             <div className="flex items-center rounded-md border border-gray-300">
@@ -216,8 +254,9 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                     product={data}
                                     quantity={quantity}
                                     selectedOptions={{
-                                        color: isSelected,
-                                        size: isSizeSelected
+                                        ...(isSelected && { color: isSelected }),
+                                        ...(isSizeSelected && { size: isSizeSelected }),
+                                        ...selectedProperties
                                     }}
                                     variant="default"
                                 />
@@ -230,8 +269,9 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                             ...data, 
                                             quantity,
                                             selectedOptions:{
-                                                color:isSelected,
-                                                size:isSizeSelected
+                                                ...(isSelected && { color: isSelected }),
+                                                ...(isSizeSelected && { size: isSizeSelected }),
+                                                ...selectedProperties
                                             }}, 
                                         user, 
                                         location, 

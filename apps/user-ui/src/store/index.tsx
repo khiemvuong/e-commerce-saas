@@ -56,22 +56,30 @@ const useStore = create<Store>()(
                     selectedOptions: product.selectedOptions,
                     quantity: product.quantity
                 });
+
+                // Sanitize product data to save localStorage space
+                // Remove large fields like descriptions that are not needed in cart
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { detailed_description, short_description, ...productToSave } = product as any;
+
                 set((state) => {
                     const existing=state.cart?.find((item) => 
-                        item.id === product.id && 
-                        JSON.stringify(item.selectedOptions) === JSON.stringify(product.selectedOptions)
+                        item.id === productToSave.id && 
+                        JSON.stringify(item.selectedOptions) === JSON.stringify(productToSave.selectedOptions)
                     );
                     if(existing){
                         return {
                             cart: state.cart.map((item) =>
-                                item.id === product.id && JSON.stringify(item.selectedOptions) === JSON.stringify(product.selectedOptions)
-                                    ? {...item, quantity: (item.quantity || 0) + (product.quantity || 1)} 
+                                item.id === productToSave.id && JSON.stringify(item.selectedOptions) === JSON.stringify(productToSave.selectedOptions)
+                                    ? {...item, quantity: (item.quantity || 0) + (productToSave.quantity || 1)} 
                                     : item
                             )
                         };
                     }
+                    // Generate a unique cartId for the new item
+                    const cartId = `${productToSave.id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     return {
-                        cart: [...state.cart, {...product, quantity: product.quantity || 1, selectedOptions: product.selectedOptions || {}}]
+                        cart: [...state.cart, {...productToSave, cartId, quantity: productToSave.quantity || 1, selectedOptions: productToSave.selectedOptions || {}}]
                     };
                 });
                 // Send kafka event
@@ -87,10 +95,14 @@ const useStore = create<Store>()(
                     });
                 }
             },
-            removeFromCart: (id,user,location,deviceInfo) => {
-                const removeProduct= get().cart.find((item) => item.id === id);
+            removeFromCart: (cartId,user,location,deviceInfo) => {
+                // Find item by cartId if available, otherwise fallback to id (for backward compatibility)
+                const removeProduct= get().cart.find((item: any) => item.cartId === cartId || item.id === cartId);
+                
                 set((state) => ({
-                    cart: state.cart?.filter((item) => item.id !== id)
+                    cart: state.cart?.filter((item: any) => 
+                        item.cartId ? item.cartId !== cartId : item.id !== cartId
+                    )
                 }));
                  // Send kafka event
                 if(user?.id && location && deviceInfo && removeProduct){
@@ -106,13 +118,16 @@ const useStore = create<Store>()(
                 }
             },
             addToWishlist: (product,user,location,deviceInfo) => {
-
+                // Sanitize product data to save localStorage space
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { detailed_description, short_description, ...productToSave } = product as any;
+                
                 set((state) => {
-                    if(state.wishlist.find((item) => item.id === product.id)){
+                    if(state.wishlist.find((item) => item.id === productToSave.id)){
                         return state;
                     }
                     return ({
-                    wishlist: [...state.wishlist, product]
+                    wishlist: [...state.wishlist, productToSave]
                     });
                 });
                 // Send kafka event

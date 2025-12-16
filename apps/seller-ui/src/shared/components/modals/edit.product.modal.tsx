@@ -57,7 +57,7 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
     const [openImageModal, setOpenImageModal] = useState(false);
     const [activeEffect, setActiveEffect] = useState<string | null>(null);
     const [images, setImages] = useState<(UploadedImage | null)[]>([]);
-    const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
+    const [uploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
     const [selectedImage, setSelectedImage] = useState('');
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
