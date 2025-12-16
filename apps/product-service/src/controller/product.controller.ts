@@ -164,7 +164,7 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
             sale_price,
             regular_price,
             sub_category,
-            customProperties={},
+            custom_properties,
             images=[],
         }=req.body;
         console.log('Received data:', req.body);
@@ -211,7 +211,7 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
                             fileId: img.fileId,
                         })),
             },
-                custom_properties: customProperties || {},
+                custom_properties: custom_properties || [],
                 custom_specifications: custom_specifications || {},
             },
             include:{ images:true }
@@ -808,6 +808,222 @@ export const topShops = async (
         return res.status(200).json({ shops: top10Shops });
     } catch (error) {
         console.error("Top shops error:", error);
+        return next(error);
+    }
+};
+
+// Edit product
+export const editProduct = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const {
+            title,
+            short_description,
+            detailed_description,
+            warranty,
+            custom_specifications,
+            slug,
+            tags,
+            cash_on_delivery,
+            brand,
+            video_url,
+            category,
+            sub_category,
+            stock,
+            sale_price,
+            regular_price,
+            colors = [],
+            sizes = [],
+            images = [],
+            custom_properties,
+            discountCodes = [],
+        } = req.body;
+        const { id } = req.params;
+
+        if (!req.seller || !req.seller.shop || !req.seller.shop.id) {
+            return next(new AuthError("You need to be a seller with a shop to edit products"));
+        }
+
+        const product = await prisma.products.findUnique({
+            where: { id },
+            select: { id: true, shopId: true, slug: true }
+        });
+
+        if (!product) {
+            return next(new notFoundError("Product not found"));
+        }
+
+        if (product.shopId !== req.seller.shop.id) {
+            return next(new ValidationError("You are not authorized to edit this product"));
+        }
+
+        if (slug && slug !== product.slug) {
+            const slugCheck = await prisma.products.findUnique({
+                where: { slug }
+            });
+            if (slugCheck) {
+                return next(new ValidationError("Slug already exists. Please choose another one"));
+            }
+        }
+
+        const updatedProduct = await prisma.products.update({
+            where: { id },
+            data: {
+                title,
+                short_description,
+                detailed_description,
+                warranty,
+                slug,
+                cash_on_delivery,
+                brand,
+                video_url,
+                category,
+                sub_category,
+                stock: stock ? parseInt(stock) : undefined,
+                sale_price: sale_price ? parseFloat(sale_price) : undefined,
+                regular_price: regular_price ? parseFloat(regular_price) : undefined,
+                tags: Array.isArray(tags) ? tags : tags?.split(","),
+                colors: colors || [],
+                sizes: sizes || [],
+                discount_codes: {
+                    set: discountCodes.map((codeId: string) => ({ id: codeId })),
+                },
+                images: {
+                    deleteMany: {},
+                    create: images
+                        .filter((img: any) => img && img.file_url && img.fileId)
+                        .map((img: any) => ({
+                            file_url: img.file_url,
+                            fileId: img.fileId,
+                        })),
+                },
+                custom_properties: custom_properties || [],
+                custom_specifications: custom_specifications || {},
+            },
+            include: { images: true }
+        });
+
+        return res.status(200).json({ success: true, product: updatedProduct });
+
+    } catch (error) {
+        console.error("Edit product error:", error);
+        return next(error);
+    }
+};
+
+// Get shop events
+export const getShopEvents = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        if (!req.seller || !req.seller.shop || !req.seller.shop.id) {
+            return next(new AuthError("Please login as seller to view shop events"));
+        }
+
+        const events = await prisma.products.findMany({
+            where: {
+                shopId: req.seller.shop.id,
+                starting_date: { not: null },
+                ending_date: { not: null },
+            },
+            include: { images: true }
+        });
+
+        return res.status(200).json({ success: true, events });
+    } catch (error) {
+        console.error("Get shop events error:", error);
+        return next(error);
+    }
+};
+
+// Edit event
+export const editEvent = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const { productId } = req.params;
+        const { starting_date, ending_date, sale_price } = req.body;
+
+        if (!starting_date || !ending_date || !sale_price) {
+            return next(new ValidationError("Please provide all required fields"));
+        }
+
+        if (!req.seller || !req.seller.shop || !req.seller.shop.id) {
+            return next(new AuthError("You need to be a seller with a shop to edit events"));
+        }
+
+        const product = await prisma.products.findUnique({
+            where: { id: productId },
+            select: { id: true, shopId: true, regular_price: true }
+        });
+
+        if (!product) {
+            return next(new notFoundError("Product not found"));
+        }
+
+        if (product.shopId !== req.seller.shop.id) {
+            return next(new ValidationError("You are not authorized to edit this event"));
+        }
+
+        if (parseFloat(sale_price) >= product.regular_price) {
+            return next(new ValidationError("Event sale price must be lower than the regular price"));
+        }
+
+        const updatedEvent = await prisma.products.update({
+            where: { id: productId },
+            data: {
+                starting_date: new Date(starting_date),
+                ending_date: new Date(ending_date),
+                sale_price: parseFloat(sale_price),
+            },
+        });
+
+        return res.status(200).json({ success: true, event: updatedEvent });
+    } catch (error) {
+        console.error("Edit event error:", error);
+        return next(error);
+    }
+};
+
+// Create events (Update product to event)
+export const createEvents = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const { productId, starting_date, ending_date, sale_price } = req.body;
+
+        if (!productId || !starting_date || !ending_date || !sale_price) {
+            return next(new ValidationError("Please provide all required fields"));
+        }
+
+        if (!req.seller || !req.seller.shop || !req.seller.shop.id) {
+            return next(new AuthError("You need to be a seller with a shop to create events"));
+        }
+
+        const product = await prisma.products.findUnique({
+            where: { id: productId },
+            select: { id: true, shopId: true, regular_price: true }
+        });
+
+        if (!product) {
+            return next(new notFoundError("Product not found"));
+        }
+
+        if (product.shopId !== req.seller.shop.id) {
+            return next(new ValidationError("You are not authorized to create event for this product"));
+        }
+
+        if (parseFloat(sale_price) >= product.regular_price) {
+            return next(new ValidationError("Event sale price must be lower than the regular price"));
+        }
+
+        const updatedProduct = await prisma.products.update({
+            where: { id: productId },
+            data: {
+                starting_date: new Date(starting_date),
+                ending_date: new Date(ending_date),
+                sale_price: parseFloat(sale_price),
+            },
+            include: { images: true }
+        });
+
+        return res.status(200).json({ success: true, event: updatedProduct });
+
+    } catch (error) {
+        console.error("Create event error:", error);
         return next(error);
     }
 };

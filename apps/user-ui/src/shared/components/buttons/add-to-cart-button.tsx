@@ -66,11 +66,11 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   // Variant styles
   const variants = {
-    hover: "absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-600  w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0",
+    hover: "absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500  w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0",
     
-    default: "flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-300",
+    default: "flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-md hover:bg-gray-700 transition-colors duration-300",
     
-    simple: "flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+    simple: "flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
   };
 
   return (

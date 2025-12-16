@@ -44,6 +44,46 @@ export const getShopDetails = async (
     }
 };
 
+// Get Shop By ID
+export const getShopById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return next(new ValidationError("Shop ID is required"));
+        }
+
+        const shop = await prisma.shops.findUnique({
+            where: { id },
+            include: {
+                images: {
+                    where: {
+                        type: { in: ["avatar", "cover"] }
+                    }
+                },
+                products: {
+                    where: { isDeleted: false },
+                    orderBy: { createdAt: "desc" },
+                    include: {
+                        images: { take: 1 }
+                    }
+                }
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            shop
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Update Shop Details
 export const updateShop = async (
     req: any,

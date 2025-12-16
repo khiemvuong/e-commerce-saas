@@ -16,10 +16,13 @@ import SizeSelector from 'packages/components/size-selector';
 import React, { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
+import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+
 interface UploadedImage {
   file_url: string;
   fileId: string;
   thumbnailUrl?: string;
+  file?: File;
 }
 
 const Page = () => {
@@ -28,11 +31,12 @@ const Page = () => {
     const [activeEffect, setActiveEffect] = useState<string | null>(null);
     const [isChanged, setIsChanged] = useState(true);
     const [images, setImages] = useState<(UploadedImage | null)[]>([null]);
-    const [uploadingIndexes, setUploadingIndexes] = useState<Set<number>>(new Set());
+    const [uploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
     const [selectedImage, setSelectedImage] = useState('');
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
     const {data,isLoading,isError} = useQuery({
@@ -68,11 +72,53 @@ const Page = () => {
 
 
     const onSubmit = async(data:any) => {
+      setIsSubmitting(true);
       try {
-        await axiosInstance.post('/product/api/create-product', data);
+        // Upload images that haven't been uploaded yet
+        const finalImages = await Promise.all(
+          images.map(async (img) => {
+            if (!img) return null;
+
+            // If already uploaded (has fileId), keep it
+            if (img.fileId) {
+              return {
+                file_url: img.file_url,
+                fileId: img.fileId,
+                thumbnailUrl: img.thumbnailUrl
+              };
+            }
+
+            // If it's a local file, upload it now
+            if (img.file) {
+              const base64String = await convertToBase64(img.file);
+              const uploadRes = await axiosInstance.post('/product/api/upload-product-image', {
+                fileName: base64String,
+              });
+              
+              if (uploadRes.data.success) {
+                return {
+                  file_url: uploadRes.data.file_url,
+                  fileId: uploadRes.data.fileId,
+                  thumbnailUrl: uploadRes.data.thumbnailUrl
+                };
+              }
+            }
+            return null;
+          })
+        );
+
+        const validImages = finalImages.filter(Boolean);
+        
+        await axiosInstance.post('/product/api/create-product', {
+          ...data,
+          images: validImages
+        });
+        toast.success('Product created successfully');
         router.push('/dashboard/all-products');
       } catch (error:any) {
-        toast.error('Failed to create product');
+        toast.error(error?.response?.data?.message || 'Failed to create product');
+      } finally {
+        setIsSubmitting(false);
       }
     }
 
@@ -112,50 +158,25 @@ const handleImageChange = async (file: File | null, index: number) => {
 
   const objectUrl = URL.createObjectURL(file);
   setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
-  setUploadingIndexes((prev) => new Set(prev).add(index));
 
-  try {
-    const base64String = await convertToBase64(file);
-    const { data } = await axiosInstance.post('/product/api/upload-product-image', {
-      fileName: base64String,
-    });
+  // Store file locally, do not upload yet
+  const newImage: UploadedImage = {
+    file_url: objectUrl,
+    fileId: '', // Empty until upload
+    file: file,
+  };
 
-    if (!data?.success) throw new Error('Upload failed');
+  const updated = [...images];
+  updated[index] = newImage;
 
-    const uploaded: UploadedImage = {
-      file_url: data.file_url,
-      fileId: data.fileId,
-      thumbnailUrl: data.thumbnailUrl ?? null,
-    };
-
-    const updated = [...images];
-    updated[index] = uploaded;
-
-    if (index === images.length - 1 && images.length < 8) {
-      updated.push(null);
-    }
-
-    setImages(updated);
-    syncImagesField(updated);
-    setIsChanged(true);
-    toast.success('Image uploaded successfully');
-  } catch (err: any) {
-    console.error(err);
-    toast.error(err?.response?.data?.error || 'Failed to upload image');
-  } finally {
-    setUploadingIndexes((prev) => {
-      const next = new Set(prev);
-      next.delete(index);
-      return next;
-    });
-    setPreviews((prev) => {
-      const next = { ...prev };
-      const url = next[index];
-      if (url) URL.revokeObjectURL(url);
-      delete next[index];
-      return next;
-    });
+  if (index === images.length - 1 && images.length < 8) {
+    updated.push(null);
   }
+
+  setImages(updated);
+  // We don't sync to form 'images' field yet because they lack fileId, 
+  // but onSubmit handles the merge.
+  setIsChanged(true);
 };
 
   const handleRemoveImage = async (index: number) => {
@@ -275,6 +296,7 @@ const handleImageChange = async (file: File | null, index: number) => {
 
   return (
     <form className="w-full mx-auto p-8 shadow-md rounded-lg text-white" onSubmit={handleSubmit(onSubmit)}>
+      {isSubmitting && <PageLoader />}
       {/* Heading and Breadcrums */}
       <BreadCrumbs title="Create Product"/>
       {/* Content Layout */}

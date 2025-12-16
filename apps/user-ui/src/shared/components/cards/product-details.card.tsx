@@ -103,7 +103,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                         </div>
                         {/*Chat with seller button*/}
                         <button
-                        className="absolute right-0 mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
+                        className="absolute right-0 mt-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
                         onClick={() => {
                             router.push(`/inbox?shopId=${data?.Shop?.id}`);
                         }}

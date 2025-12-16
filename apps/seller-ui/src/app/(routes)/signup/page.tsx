@@ -261,7 +261,7 @@ return (
                     <button type="submit"
                     disabled={signupMutation.isPending}
                     className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-600 transition mt-5">
-                        {signupMutation.isPending ? "Signing Up..." : "Sign Up"}
+                        {signupMutation.isPending ? <PageLoader text="Signing up..." /> : "Sign Up"}
                     </button>
                     {signupMutation.isError && 
                         signupMutation.error instanceof AxiosError && (

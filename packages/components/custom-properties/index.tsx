@@ -6,7 +6,7 @@ import Input from '../input';
 
 const CustomProperties = ({ control, errors }:any) => {
     const[properties,setProperties] = useState<{label:string,value:string[]}[]>([]);
-    const[newValue,setNewValue] = useState("");
+    const[newValues,setNewValues] = useState<Record<number, string>>({});
     const[newLabel,setNewLabel] = useState("");
     return (
         <div>
@@ -15,20 +15,32 @@ const CustomProperties = ({ control, errors }:any) => {
                     name={`custom_properties`}
                     control={control}
                     render={({ field }) => {
+                        // Initialize state from field value on mount
                         useEffect(() => {
-                            field.onChange(properties);
+                            if (field.value && Array.isArray(field.value) && properties.length === 0) {
+                                setProperties(field.value);
+                            }
+                        }, [field.value]);
+
+                        // Sync state changes to form
+                        useEffect(() => {
+                            if (properties.length > 0) {
+                                field.onChange(properties);
+                            }
                         }, [properties]);
+
                         const addProperty = () => {
                             if (!newLabel.trim()) return;
                                 setProperties([...properties, { label: newLabel, value: [] }]);
                                 setNewLabel("");
                             };
                         const addValue = (index: number) => {
-                            if (!newValue.trim()) return;
+                            const val = newValues[index];
+                            if (!val || !val.trim()) return;
                             const updatedProperties = [...properties];
-                            updatedProperties[index].value.push(newValue);
+                            updatedProperties[index].value.push(val);
                             setProperties(updatedProperties);
-                            setNewValue("");
+                            setNewValues({ ...newValues, [index]: "" });
                         };
                         const removeProperty = (index: number) => {
                             setProperties(properties.filter((_, i) => i !== index));
@@ -59,8 +71,8 @@ const CustomProperties = ({ control, errors }:any) => {
                                                 type="text"
                                                 className="border outlint-none border-gray-700 bg-gray-800 p-2 rounded-md text-white w-full"
                                                 placeholder="Enter value"
-                                                value={newValue}
-                                                onChange={(e) => setNewValue(e.target.value)}
+                                                value={newValues[index] || ""}
+                                                onChange={(e) => setNewValues({ ...newValues, [index]: e.target.value })}
                                             />
                                             <button
                                                 type="button"

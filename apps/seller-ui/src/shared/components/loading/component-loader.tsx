@@ -12,7 +12,7 @@ const ComponentLoader: React.FC<ComponentLoaderProps> = ({ text = "Loading" }) =
         {[0, 1, 2].map((index) => (
           <div
             key={index}
-            className="w-4 h-4 bg-black rounded-full"
+            className="w-4 h-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full"
             style={{
               animation: 'bounce 1.4s ease-in-out infinite',
               animationDelay: `${index * 0.2}s`,
@@ -23,7 +23,7 @@ const ComponentLoader: React.FC<ComponentLoaderProps> = ({ text = "Loading" }) =
 
       {/* Loading text */}
       <div className="mt-4">
-        <span className="text-gray-700 font-medium tracking-wide">{text}</span>
+        <span className="text-rose-500 font-medium tracking-wide">{text}</span>
       </div>
 
       <style jsx>{`
