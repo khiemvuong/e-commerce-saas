@@ -20,7 +20,7 @@ const Page = () => {
 
     const fetchOrder = async () => {
         try {
-            const res = await axiosInstance.get(`/order/api/get-order-details/${orderId}`);
+            const res = await axiosInstance.get(`/seller/api/get-order-details/${orderId}`);
             setOrder(res.data.order);
         } catch (error) {
             console.error("Error fetching order details:", error);
@@ -33,7 +33,7 @@ const Page = () => {
         const newStatus = e.target.value;
         setUpdating(true);
         try {
-            await axiosInstance.put(`/order/api/update-order-status/${orderId}`, {
+            await axiosInstance.put(`/seller/api/update-order-status/${orderId}`, {
                 deliveryStatus: newStatus,
             });
             setOrder((prevOrder: any) => ({

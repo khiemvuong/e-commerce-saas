@@ -5,8 +5,7 @@ import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import {useStore} from 'apps/user-ui/src/store';
 import Link from 'next/link';
 import Image from 'next/image';
-import {   Clock, Trash2, ShoppingBag, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import {   Clock, Trash2 } from 'lucide-react';
 import AddToCartButton from 'apps/user-ui/src/shared/components/buttons/add-to-cart-button';
 import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 
@@ -14,10 +13,8 @@ const WishlistPage = () => {
     const {user} = useRequiredAuth();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-    const addToCart = useStore((state:any) => state.addToCart);
     const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
     const wishlist = useStore((state:any) => state.wishlist);
-    const clearWishlist = useStore((state:any) => state.clearWishlist);
     const removeItem = (id:string) => {
         removeFromWishlist(id,user,location,deviceInfo);
     }

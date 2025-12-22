@@ -3,7 +3,7 @@ import React from 'react'
 import { Metadata } from 'next';
 import ProductDetails from 'apps/user-ui/src/shared/modules/product/product-details';
 async function fetchProductDetails(slug: string) {
-    const res = await axiosInstance.get(`/product/api//get-product/${slug}`);
+    const res = await axiosInstance.get(`/product/api/get-product/${slug}`);
     return res.data.product;
 }
 export async function generateMetadata({

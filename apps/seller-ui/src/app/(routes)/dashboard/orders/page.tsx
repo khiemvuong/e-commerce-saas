@@ -15,7 +15,7 @@ import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
 
 const fetchOrders = async () => {
-    const res = await axiosInstance.get('/order/api/get-seller-orders');
+    const res = await axiosInstance.get('/seller/api/get-seller-orders');
     return res.data.orders;
 }
 

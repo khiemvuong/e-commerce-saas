@@ -57,7 +57,7 @@ const SidebarWrapper = () => {
                 <Sidebar.Body className="body sidebar">
                     <SidebarItem
                         title='Dashboard'
-                        icon={<LayoutDashboard fill={getIconColor('/dashboard')} />}
+                        icon={<LayoutDashboard fill={getIconColor('/')} />}
                         isActive={activeSidebar === '/dashboard'}
                         href="/dashboard"
                     />
