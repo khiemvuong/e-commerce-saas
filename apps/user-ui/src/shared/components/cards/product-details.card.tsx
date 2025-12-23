@@ -10,6 +10,8 @@ import useUser from 'apps/user-ui/src/hooks/useUser';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { isProtected } from 'apps/user-ui/src/utils/protected';
 
 const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => void}) => {
     const [activeImage, setActiveImage] = useState(0);
@@ -27,7 +29,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const {user} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-
+    const [isLoading, setIsLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -48,7 +50,22 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     }, [data]);
 
     if (!mounted) return null;
-
+    const handleChat = async () => {
+        if(isLoading) return;
+        setIsLoading(true);
+        try {
+            const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
+                sellerId: data?.Shop?.sellerId,
+            },
+            isProtected
+        );
+        router.push(`/inbox?conversationId=${res.data.conversation.id}`);
+        } catch (error) {
+            console.error('Error starting chat with seller:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     return createPortal(
     <div 
     className="fixed flex items-center justify-center top-0 left-0 h-screen w-full inset-0 bg-black bg-opacity-50 z-50"
@@ -117,9 +134,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                         {/*Chat with seller button*/}
                         <button
                         className="absolute right-0 mt-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
-                        onClick={() => {
-                            router.push(`/inbox?shopId=${data?.Shop?.id}`);
-                        }}
+                        onClick={() => handleChat()}
                         >
                         <MessageCircle size={16} /> Chat with Seller
                         </button>
