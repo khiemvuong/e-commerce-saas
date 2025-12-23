@@ -28,6 +28,44 @@ services:
       KAFKA_LOG_RETENTION_HOURS: 168
     networks:
       - kafka-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ['/bin/sh', '-c']
+    command: |
+      "
+      # Wait for Kafka to be ready
+      echo 'Waiting for Kafka to be ready...'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      
+      # Create chat.new_messages topic
+      echo 'Creating chat.new_messages topic...'
+      kafka-topics --bootstrap-server kafka:9092 \
+        --create \
+        --if-not-exists \
+        --topic chat.new_messages \
+        --partitions 3 \
+        --replication-factor 1 \
+        --config retention.ms=604800000 \
+        --config segment.ms=86400000
+      
+      # List all topics to verify
+      echo 'Available topics:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      
+      echo 'Kafka topics initialization completed!'
+      "
+    networks:
+      - kafka-network
 
 networks:
   kafka-network:

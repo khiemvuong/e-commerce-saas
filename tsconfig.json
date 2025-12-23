@@ -38,6 +38,15 @@
     },
     {
       "path": "./apps/seller-service"
+    },
+    {
+      "path": "./apps/chatting-service"
+    },
+    {
+      "path": "./apps/logger-service"
+    },
+    {
+      "path": "./apps/recommendation-service"
     }
   ]
 }
