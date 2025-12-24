@@ -43,8 +43,9 @@ axiosInstance.interceptors.response.use(
         const originalRequest = error.config;
         const is401 = error.response?.status === 401;
         const isRetry = originalRequest._retry;
-        const isAuthRequired = originalRequest.requireAuth === true;
-        if (!is401 && !isRetry && !isAuthRequired) {
+        
+        // Only attempt refresh for 401 errors and non-retried requests
+        if (is401 && !isRetry) {
             if (isRefreshing) {
                 return new Promise((resolve) => {
                     subcribeTokenRefresh(() =>

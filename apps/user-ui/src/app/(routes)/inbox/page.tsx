@@ -1,6 +1,8 @@
-'use client';
+"use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useWebSocket } from "apps/user-ui/src/context/web-socket-context";
 import useRequiredAuth from "apps/user-ui/src/hooks/useRequiredAuth";
+import ChatInput from "apps/user-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/user-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 import { isProtected } from "apps/user-ui/src/utils/protected";
@@ -19,11 +21,44 @@ const Page = () => {
     const queryClient = useQueryClient();
     const [chats, setChats] = useState<any[]>([]);
     const [selectedChat, setSelectedChat] = useState<any>(null);
-    const [messages, setMessages] = useState<any[]>([]);
+    const [hasMore, setHasMore] = useState(false);
+    const [page, setPage] = useState(1);
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const conversationId = searchParams.get("conversationId");
+    const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
+    const { ws, unreadCounts } = useWebSocket();
+    const { data: messages = [] } = useQuery({
+        queryKey: ["messages", conversationId],
+        queryFn: async () => {
+            if (!conversationId || hasFetchedOnce) return [];
+            const res = await axiosInstance.get(
+                `/chatting/api/get-messages/${conversationId}`,
+                isProtected
+            );
+            setPage(1);
+            setHasFetchedOnce(true);
+            setHasFetchedOnce(true);
+            return res.data.messages.reverse();
+        },
+        enabled: !!conversationId,
+        staleTime: 2 * 60 * 1000, // 2 minutes
+    });
 
+    const loadMoreMessages = async () => {
+        const nextPage = page + 1;
+        const res = await axiosInstance.get(
+            `/chatting/api/get-messages/${conversationId}?page=${nextPage}`,
+            isProtected
+        );
+
+        queryClient.setQueryData(
+            ["messages", conversationId],
+            (oldData: any = []) => [...res.data.messages.reverse(), ...oldData]
+        );
+        setPage(nextPage);
+        setHasMore(res.data.hasMore);
+    };
     const { data: conversations, isLoading } = useQuery({
         queryKey: ["conversations"],
         queryFn: async () => {
@@ -38,6 +73,10 @@ const Page = () => {
     useEffect(() => {
         if (conversations) setChats(conversations);
     }, [conversations]);
+
+    useEffect(() => {
+        if (messages?.length > 0) scrollToBottom();
+    }, [messages]);
 
     useEffect(() => {
         if (conversationId && chats.length > 0) {
@@ -55,7 +94,7 @@ const Page = () => {
                         `/chatting/api/get-messages/${selectedChat.conversationId}`,
                         isProtected
                     );
-                    setMessages(res.data.messages.reverse()); // Reverse to show oldest first if needed, or handle via flex-col-reverse
+                    setMessage(res.data.messages.reverse()); // Reverse to show oldest first if needed, or handle via flex-col-reverse
                 } catch (error) {
                     console.error("Error fetching messages:", error);
                 }
@@ -75,39 +114,61 @@ const Page = () => {
         return chat?.lastMessage || "No messages yet";
     };
 
-    const handleSendMessage = async (e: React.FormEvent) => {
+    const handleChatSelect = (chat: any) => {
+        setHasFetchedOnce(false);
+        setChats((prev) =>
+            prev.map((c) =>
+                c.conversationId === chat.conversationId ? { ...c, unreadCount: 0 } : c
+            )
+        );
+        router.push(`?conversationId =${chat.conversationId}`);
+
+        ws?.send(JSON.stringify({
+            type: "MARK_AS_SEEN",
+            conversationId: chat.conversationId,
+        }));
+    };
+
+    const scrollToBottom = () => {
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, 0);
+        });
+    }
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!message.trim() || !selectedChat || isSending) return;
+        if (!message.trim() || !selectedChat) return;
+        const payload = {
+            fromUserOd: user?.id,
+            toUserId: selectedChat?.seller?.id,
+            conversationId: selectedChat?.conversationId,
+            messageBody: message,
+            senderType: "user",
+        };
 
-        setIsSending(true);
-        try {
-            const res = await axiosInstance.post(
-                "/chatting/api/send-message",
+        ws?.send(JSON.stringify(payload));
+        queryClient.setQueryData(
+            ["messages", selectedChat.conversationId],
+            (old: any = []) => [
+                ...old,
                 {
-                    conversationId: selectedChat.conversationId,
-                    content: message,
+                    content: payload.messageBody,
+                    senderType: "user",
+                    seen: false,
+                    createdAt: new Date().toISOString(),
                 },
-                isProtected
-            );
-            
-            // Optimistically update or wait for refetch. Here we append the new message.
-            setMessages((prev) => [...prev, res.data.message]);
-            setMessage("");
-            
-            // Update the last message in the chat list
-            setChats((prevChats) => 
-                prevChats.map(c => 
-                    c.conversationId === selectedChat.conversationId 
-                    ? { ...c, lastMessage: res.data.message.content, lastMessageAt: new Date() } 
-                    : c
-                )
-            );
-
-        } catch (error) {
-            console.error("Error sending message:", error);
-        } finally {
-            setIsSending(false);
-        }
+            ]
+        );
+        setChats((prevChats) =>
+            prevChats.map((chat) =>
+                chat.conversationId
+                    ? { ...chat, lastMessage: payload.messageBody }
+                    : chat
+            )
+        );
+        setMessage("");
+        scrollToBottom();
     };
 
     return (
@@ -133,13 +194,10 @@ const Page = () => {
                                     return (
                                         <button
                                             key={chat.conversationId}
-                                            onClick={() => {
-                                                setSelectedChat(chat);
-                                                router.push(`/inbox?conversationId=${chat.conversationId}`, { scroll: false });
-                                            }}
-                                            className={`w-full text-left px-4 py-3 transition hover:bg-blue-50 flex items-center gap-3 ${
-                                                isActive ? "bg-blue-100" : ""
-                                            }`}
+                                            onClick={() => handleChatSelect(chat)}
+                                            disabled={isSending}
+                                            className={`w-full text-left px-4 py-3 transition hover:bg-blue-50 flex items-center gap-3 ${isActive ? "bg-blue-100" : ""
+                                                }`}
                                         >
                                             <div className="relative">
                                                 <Image
@@ -192,26 +250,44 @@ const Page = () => {
                                         </span>
                                     </div>
                                 </div>
-
+                                {hasMore && (
+                                    <div className="div">
+                                        <button
+                                            onClick={loadMoreMessages}
+                                            className="w-full text-center text-sm text-blue-600 hover:underline p-2"
+                                        >
+                                            Load previous messages
+                                        </button>
+                                    </div>
+                                )}
                                 {/* Messages List */}
-                                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50" ref={messageContainerRef}>
-                                    {messages.map((msg, index) => {
+                                <div
+                                    className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+                                    ref={messageContainerRef}
+                                >
+                                    {messages.map((msg: any, index: number) => {
                                         const isMe = msg.senderId === user?.id;
                                         return (
                                             <div
                                                 key={msg.id || index}
-                                                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                                                className={`flex ${isMe ? "justify-end" : "justify-start"
+                                                    }`}
                                             >
                                                 <div
-                                                    className={`max-w-[70%] px-4 py-2 rounded-lg text-sm ${
-                                                        isMe
+                                                    className={`max-w-[70%] px-4 py-2 rounded-lg text-sm ${isMe
                                                             ? "bg-blue-600 text-white rounded-br-none"
                                                             : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     <p>{msg.content}</p>
-                                                    <span className={`text-[10px] block mt-1 ${isMe ? "text-blue-100" : "text-gray-400"}`}>
-                                                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    <span
+                                                        className={`text-[10px] block mt-1 ${isMe ? "text-blue-100" : "text-gray-400"
+                                                            }`}
+                                                    >
+                                                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                        })}
                                                     </span>
                                                 </div>
                                             </div>
@@ -221,24 +297,11 @@ const Page = () => {
                                 </div>
 
                                 {/* Input Area */}
-                                <div className="p-4 border-t border-gray-200 bg-white">
-                                    <form onSubmit={handleSendMessage} className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={message}
-                                            onChange={(e) => setMessage(e.target.value)}
-                                            placeholder="Type a message..."
-                                            className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!message.trim() || isSending}
-                                            className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                        >
-                                            <Send size={20} />
-                                        </button>
-                                    </form>
-                                </div>
+                                <ChatInput
+                                    onSendMessage={handleSend}
+                                    message={message}
+                                    setMessage={setMessage}
+                                />
                             </>
                         ) : (
                             <div className="flex-1 flex items-center justify-center text-gray-500 flex-col gap-2">
