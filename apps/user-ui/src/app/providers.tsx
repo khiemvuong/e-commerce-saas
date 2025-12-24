@@ -42,7 +42,9 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
                     },
                 }}
             />
-            <ProvidersWithWebSocket>{children}</ProvidersWithWebSocket>
+            <ProvidersWithWebSocket>
+                {children}
+            </ProvidersWithWebSocket>
         </QueryClientProvider>
     );
 };
