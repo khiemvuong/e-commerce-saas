@@ -8,7 +8,10 @@ export const  updateUserAnalytics = async (event: any) => {
             },
             select:{ actions: true}
         });
-        let updatedActions:any = existingData?.actions || [];
+        let updatedActions:any = existingData?.actions;
+        if(!Array.isArray(updatedActions)){
+            updatedActions = [];
+        }
         const actionExists = updatedActions.some(
             (entry: any) =>
                 entry.productId === event.productId && entry.action === event.action
@@ -91,7 +94,10 @@ export const  updateUserAnalytics = async (event: any) => {
 };
 export const updateProductAnalytics = async (event: any) => {
     try {
-        if(!event.productId) return;
+        if(!event.productId) {
+            console.log("Analytics: ProductId missing in event", event);
+            return;
+        }
 
         const updateFields:any={};
 
@@ -136,7 +142,10 @@ export const updateProductAnalytics = async (event: any) => {
             shopId = product?.shopId;
         }
 
-        if (!shopId) return; // Cannot create analytics without shopId
+        if (!shopId) {
+            console.log("Analytics: ShopId not found for product", event.productId);
+            return; 
+        }
 
         await prisma.productAnalytics.upsert({
             where: { productId: event.productId },

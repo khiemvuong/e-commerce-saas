@@ -40,9 +40,13 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
     e.stopPropagation();
     
     // Check if product has any selectable options
+    const hasOptions = 
+      (product?.colors && product.colors.length > 0) || 
+      (product?.sizes && product.sizes.length > 0) || 
+      (product?.custom_properties && Array.isArray(product.custom_properties) && product.custom_properties.length > 0);
     
     // If product has options but no options selected, open modal
-    if ( (!selectedOptions || Object.keys(selectedOptions).length === 0)) {
+    if (hasOptions && (!selectedOptions || Object.keys(selectedOptions).length === 0)) {
       onOpenModal?.();
       return;
     }
@@ -66,11 +70,11 @@ const AddToCartButton: React.FC<AddToCartButtonProps> = ({
 
   // Variant styles
   const variants = {
-    hover: "absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-600  w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0",
+    hover: "absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500  w-full text-white px-4 py-2 shadow-md hover:bg-gray-700 transition-all duration-300 translate-y-full group-hover:translate-y-0",
     
-    default: "flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-400 to-purple-600 text-white rounded-md hover:bg-gray-700 transition-colors duration-300",
+    default: "flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-md hover:bg-gray-700 transition-colors duration-300",
     
-    simple: "flex items-center justify-center gap-2 bg-gradient-to-r from-blue-400 to-purple-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
+    simple: "flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors"
   };
 
   return (

@@ -10,12 +10,15 @@ import useUser from 'apps/user-ui/src/hooks/useUser';
 import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { isProtected } from 'apps/user-ui/src/utils/protected';
 
 const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => void}) => {
     const [activeImage, setActiveImage] = useState(0);
     const router = useRouter();
     const [isSelected, setIsSelect] = useState(data?.colors?.[0] || '');
     const [isSizeSelected, setIsSizeSelect] = useState(data?.sizes?.[0] || '');  
+    const [selectedProperties, setSelectedProperties] = useState<Record<string, string>>({});
     const [quantity, setQuantity] = useState(1);
     const estimatedDelivery = new Date();
     estimatedDelivery.setDate(estimatedDelivery.getDate() + 5);
@@ -26,7 +29,7 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
     const {user} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-
+    const [isLoading, setIsLoading] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -34,8 +37,35 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
         return () => setMounted(false);
     }, []);
 
-    if (!mounted) return null;
+    useEffect(() => {
+        if (data?.custom_properties && Array.isArray(data.custom_properties)) {
+            const defaults: Record<string, string> = {};
+            data.custom_properties.forEach((prop: any) => {
+                if (prop.value && prop.value.length > 0) {
+                    defaults[prop.label] = prop.value[0];
+                }
+            });
+            setSelectedProperties(defaults);
+        }
+    }, [data]);
 
+    if (!mounted) return null;
+    const handleChat = async () => {
+        if(isLoading) return;
+        setIsLoading(true);
+        try {
+            const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
+                sellerId: data?.Shop?.sellerId,
+            },
+            isProtected
+        );
+        router.push(`/inbox?conversationId=${res.data.conversation.id}`);
+        } catch (error) {
+            console.error('Error starting chat with seller:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
     return createPortal(
     <div 
     className="fixed flex items-center justify-center top-0 left-0 h-screen w-full inset-0 bg-black bg-opacity-50 z-50"
@@ -103,10 +133,8 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                         </div>
                         {/*Chat with seller button*/}
                         <button
-                        className="absolute right-0 mt-2 bg-blue-600 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
-                        onClick={() => {
-                            router.push(`/inbox?shopId=${data?.Shop?.id}`);
-                        }}
+                        className="absolute right-0 mt-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white px-3 py-2 rounded-md text-sm hover:scale-125 duration-300 flex items-center gap-1"
+                        onClick={() => handleChat()}
                         >
                         <MessageCircle size={16} /> Chat with Seller
                         </button>
@@ -192,6 +220,31 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                 </div>
                             </div>
                         )}
+                        {/* Custom Properties */}
+                        {data?.custom_properties && Array.isArray(data.custom_properties) && data.custom_properties.length > 0 && (
+                            <div className='flex flex-col gap-4 mt-4 ml-2'>
+                                {data.custom_properties.map((prop: any, index: number) => (
+                                    <div key={index} className="flex flex-col gap-2">
+                                        <span className='font-medium text-gray-700'>{prop.label}:</span>
+                                        <div className='flex gap-2 flex-wrap'>
+                                            {prop.value.map((val: string, vIndex: number) => (
+                                                <button
+                                                    key={vIndex}
+                                                    className={`px-4 py-2 rounded-md border-2 text-sm font-medium transition ${
+                                                        selectedProperties[prop.label] === val
+                                                            ? 'bg-gray-800 text-white border-gray-800'
+                                                            : 'bg-gray-200 text-black border-transparent'
+                                                    }`}
+                                                    onClick={() => setSelectedProperties(prev => ({ ...prev, [prop.label]: val }))}
+                                                >
+                                                    {val}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {/*Quantity selector*/}
                         <div className="mt-5  flex items-center gap-4">
                             <div className="flex items-center rounded-md border border-gray-300">
@@ -216,8 +269,9 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                     product={data}
                                     quantity={quantity}
                                     selectedOptions={{
-                                        color: isSelected,
-                                        size: isSizeSelected
+                                        ...(isSelected && { color: isSelected }),
+                                        ...(isSizeSelected && { size: isSizeSelected }),
+                                        ...selectedProperties
                                     }}
                                     variant="default"
                                 />
@@ -230,8 +284,9 @@ const ProductDetailsCard = ({data,setOpen}:{data:any,setOpen:(open:boolean) => v
                                             ...data, 
                                             quantity,
                                             selectedOptions:{
-                                                color:isSelected,
-                                                size:isSizeSelected
+                                                ...(isSelected && { color: isSelected }),
+                                                ...(isSizeSelected && { size: isSizeSelected }),
+                                                ...selectedProperties
                                             }}, 
                                         user, 
                                         location, 

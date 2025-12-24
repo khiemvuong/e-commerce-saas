@@ -20,7 +20,7 @@ const Page = () => {
 
     const fetchOrder = async () => {
         try {
-            const res = await axiosInstance.get(`/order/api/get-order-details/${orderId}`);
+            const res = await axiosInstance.get(`/seller/api/get-order-details/${orderId}`);
             setOrder(res.data.order);
         } catch (error) {
             console.error("Error fetching order details:", error);
@@ -33,7 +33,7 @@ const Page = () => {
         const newStatus = e.target.value;
         setUpdating(true);
         try {
-            await axiosInstance.put(`/order/api/update-order-status/${orderId}`, {
+            await axiosInstance.put(`/seller/api/update-order-status/${orderId}`, {
                 deliveryStatus: newStatus,
             });
             setOrder((prevOrder: any) => ({
@@ -245,8 +245,8 @@ const Page = () => {
                                 <span className="bg-gray-800 text-gray-400 text-xs px-2 py-1 rounded-full ml-2">{order.items.length}</span>
                             </h2>
                             <div className='space-y-3'>
-                                {order.items.map((item: any) => (
-                                    <div key={item.productId} className='flex gap-4 bg-gray-800 p-4 rounded-xl border border-gray-700/50 hover:border-gray-600 transition-colors group'>
+                                {order.items.map((item: any, index: number) => (
+                                    <div key={item.id || index} className='flex gap-4 bg-gray-800 p-4 rounded-xl border border-gray-700/50 hover:border-gray-600 transition-colors group'>
                                         <div className="relative w-20 h-20 flex-shrink-0 bg-gray-900 rounded-lg overflow-hidden">
                                             <img
                                                 src={item.product?.images[0]?.file_url || '/placeholder.png'}

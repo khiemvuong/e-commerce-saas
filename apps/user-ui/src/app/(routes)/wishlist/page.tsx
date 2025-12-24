@@ -5,8 +5,7 @@ import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import {useStore} from 'apps/user-ui/src/store';
 import Link from 'next/link';
 import Image from 'next/image';
-import {   Clock, Trash2, ShoppingBag, X } from 'lucide-react';
-import toast from 'react-hot-toast';
+import {   Clock, Trash2 } from 'lucide-react';
 import AddToCartButton from 'apps/user-ui/src/shared/components/buttons/add-to-cart-button';
 import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 
@@ -14,10 +13,8 @@ const WishlistPage = () => {
     const {user} = useRequiredAuth();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
-    const addToCart = useStore((state:any) => state.addToCart);
     const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
     const wishlist = useStore((state:any) => state.wishlist);
-    const clearWishlist = useStore((state:any) => state.clearWishlist);
     const removeItem = (id:string) => {
         removeFromWishlist(id,user,location,deviceInfo);
     }
@@ -29,38 +26,6 @@ const WishlistPage = () => {
             <div className="pb-[50px]">
                 <div className="flex items-center justify-between mt-2 mb-4">
                     <h1 className='mt-2 md:pt-p[50px] font-medium text-[44px] leading-[1] mb-[16px] font-poppins'>Wishlist ({wishlist.length})</h1>
-                    <div className="flex items-center gap-3">
-                        {/* Move all to cart */}
-                        <button
-                            onClick={() => {
-                                wishlist.forEach((item: any) => {
-                                    addToCart({...item, quantity: 1}, user, location, deviceInfo);
-                                });
-                                toast.success('All items have been moved to your cart.');
-                            }}
-                            className="group relative px-6 py-2.5 bg-black text-white font-medium rounded-lg overflow-hidden transition-all duration-300 hover:bg-gray-900 hover:shadow-lg hover:scale-105 flex items-center gap-2"
-                        >
-                            <ShoppingBag size={18} className="transition-transform group-hover:scale-110" />
-                            <span>Move All To Bag</span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                        </button>
-                        
-                        {/* Clear wishlist*/}
-                        <button
-                            onClick={() => {
-                                if (confirm('Are you sure you want to clear all items from wishlist?')) {
-                                    clearWishlist();
-                                }
-                                toast.success('All items have been removed from your wishlist.');
-                            }}
-                            title='Clear All Product from Wishlists'
-                            className="group relative px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium rounded-lg overflow-hidden transition-all duration-300 hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:scale-105 flex items-center gap-2"
-                        >
-                            <X size={18} className="transition-transform group-hover:rotate-90" />
-                            <span>Clear All</span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                        </button>
-                    </div>
                 </div>
                 <Link
                     href={'/'}

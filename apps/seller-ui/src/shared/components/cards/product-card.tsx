@@ -110,7 +110,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     {/* Price & Sales Row */}
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            <span className="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
                                 ${product?.sale_price ? product?.sale_price.toFixed(2) : product?.regular_price.toFixed(2)}
                             </span>
                             {product?.sale_price && (
@@ -119,7 +119,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                                 </span>
                             )}
                         </div>
-                        <span className="text-xs text-purple-700 font-semibold bg-purple-100 px-2 py-1 rounded-full">
+                        <span className="text-xs text-gray-600 font-semibold bg-gray-100 px-2 py-1 rounded-full">
                             {formatSales(product?.totalSales || 0)} sold
                         </span>
                     </div>

@@ -3,14 +3,19 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
+import { usePathname } from "next/navigation";
 
 const Footer = () => {
+  const pathname = usePathname();
+  if(pathname==='/inbox') return null;
   const { data: customizationData } = useQuery({
     queryKey: ['customizations'],
     queryFn: async () => {
       const res = await axiosInstance.get('/admin/api/get-all-customizations');
       return res.data;
     },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes (formerly cacheTime)
   });
 
   const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];

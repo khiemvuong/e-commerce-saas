@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import ReactQuill from 'react-quill-new';
+import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
+
 const RichTextEditor = ({
     value, 
     onChange,
@@ -10,24 +13,26 @@ const RichTextEditor = ({
 }) => {
     const [editorValue, setEditorValue] = useState(value || "");
     const quillRef = useRef(false);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (!quillRef.current) {
             quillRef.current = true;
             
             setTimeout(() => {
-                document
-                    .querySelectorAll(".ql-toolbar")
-                    .forEach((toolbar,index) => {
-                        if(index>0){
-                            toolbar.remove();
-                        }
-                    });
+                if (containerRef.current) {
+                    containerRef.current.querySelectorAll(".ql-toolbar")
+                        .forEach((toolbar, index) => {
+                            if (index > 0) {
+                                toolbar.remove();
+                            }
+                        });
+                }
             }, 100);
         }
 }, []);
     return (
-        <div className="relative">
+        <div className="relative" ref={containerRef}>
             <ReactQuill
                 theme="snow"
                 value={editorValue}

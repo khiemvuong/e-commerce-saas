@@ -24,6 +24,7 @@ const SidebarWrapper = () => {
     const getIconColor = (route:string) => {
         return activeSidebar === route ? '#0085ff' : '#969696';
     }
+    
 
     return (
         <Box
@@ -56,7 +57,7 @@ const SidebarWrapper = () => {
                 <Sidebar.Body className="body sidebar">
                     <SidebarItem
                         title='Dashboard'
-                        icon={<LayoutDashboard fill={getIconColor('/dashboard')} />}
+                        icon={<LayoutDashboard fill={getIconColor('/')} />}
                         isActive={activeSidebar === '/dashboard'}
                         href="/dashboard"
                     />

@@ -20,6 +20,9 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import Image from 'next/image';
 import DeleteConfirmationModal from 'apps/seller-ui/src/shared/components/modals/delete.confirmation.modal';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
+import EditProductModal from 'apps/seller-ui/src/shared/components/modals/edit.product.modal';
+import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
+
 
 const fetchProducts = async () => {
         const res=await axiosInstance.get('/product/api/get-shop-products');
@@ -34,6 +37,7 @@ const restoreProduct = async (productId:string) => {
 const ProductList = () => {
     const [globalFilter, setGlobalFilter]=useState('');
     const [showDeleteModal, setShowDeleteModal]=useState(false);
+    const [showEditModal, setShowEditModal]=useState(false);
     const [selectedProduct, setSelectedProduct]=useState<any>();
     const queryClient=useQueryClient();
 
@@ -83,15 +87,28 @@ const ProductList = () => {
                     const truncatedTitle = row.original.title.length > 25
                     ? row.original.title.substring(0, 25) + '...'
                     : row.original.title;
+                    
+                    const isEvent = row.original.starting_date && row.original.ending_date;
 
                     return(
-                        <Link
-                            href={`${process.env.NEXT_PUBLIC_USER_UI_URL}/product/${row.original.slug}`}
-                            className="text-blue-400 hover:underline"
-                            title={row.original.title}
-                        >
-                            {truncatedTitle}
-                        </Link>
+                        <div className="flex flex-col gap-1">
+                            <Link
+                                href={`${process.env.NEXT_PUBLIC_USER_UI_URL}/product/${row.original.slug}`}
+                                className="text-blue-400 hover:underline"
+                                title={row.original.title}
+                            >
+                                {truncatedTitle}
+                            </Link>
+                            {isEvent ? (
+                                <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full w-fit">
+                                    Event
+                                </span>
+                            ) : (
+                                <span className="text-[10px] bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full w-fit">
+                                    Standard
+                                </span>
+                            )}
+                        </div>
                     );
                 }
                 
@@ -129,17 +146,17 @@ const ProductList = () => {
                 cell:({row}:any) => (
                     <div className='flex gap-3'>
                         <Link
-                            href={`/product/${row.original._id}`}
+                            href={`${process.env.NEXT_PUBLIC_USER_UI_URL}/product/${row.original.slug}`}
                             className='text-blue-400 hover:text-blue-300 transistion'
                         >
                             <Eye size={18}/>
                         </Link>
-                        <Link
-                            href={`/product/edit/${row.original._id}`}
+                        <button
+                            onClick={() => openEditModal(row.original)}
                             className='text-yellow-400 hover:text-yellow-300 transistion'
                         >
                             <Pencil size={18}/>
-                        </Link>
+                        </button>
                         <button
                             // onClick={() => openAnalyticsModal(row.original)}
                             className='text-green-400 hover:text-green-300 transistion'
@@ -174,6 +191,11 @@ const ProductList = () => {
         setSelectedProduct(product);
         setShowDeleteModal(true);
     }
+
+    const openEditModal=(product:any) => {
+        setSelectedProduct(product);
+        setShowEditModal(true);
+    }
     return (
         <div className='w-full min-h-screen p-8'>
             {/*Header*/}
@@ -194,7 +216,7 @@ const ProductList = () => {
             {/*Table*/}
             <div className='overflow-x-auto bg-gray-900 rounded-lg p-4'>
                 {isLoading ? (
-                    <p className='text-white text-center'>Loading products...</p>
+                    <ComponentLoader text='Loading products...' />
                 ) : (
                     <table className="w-full text-white">
                     <thead>
@@ -238,6 +260,12 @@ const ProductList = () => {
                         onClose={() => setShowDeleteModal(false)}
                         onConfirm={() => deleteMutation.mutate(selectedProduct?.id)}
                         onRestore={() => restoreMutation.mutate(selectedProduct?.id)}
+                    />
+                )}
+                {showEditModal && (
+                    <EditProductModal
+                        product={selectedProduct}
+                        onClose={() => setShowEditModal(false)}
                     />
                 )}
             </div>

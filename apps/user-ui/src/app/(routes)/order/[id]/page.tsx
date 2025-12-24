@@ -205,8 +205,8 @@ const Page = () => {
                                 <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full ml-2">{order.items.length}</span>
                             </h2>
                             <div className='space-y-3'>
-                                {order.items.map((item: any) => (
-                                    <div key={item.productId} className='flex gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group'>
+                                {order.items.map((item: any, index: number) => (
+                                    <div key={item.id || index} className='flex gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors group'>
                                         <div className="relative w-20 h-20 flex-shrink-0 bg-white rounded-md overflow-hidden border border-gray-200">
                                             <img
                                                 src={item.product?.images[0]?.file_url || '/placeholder.png'}

@@ -11,6 +11,7 @@ import {useForm} from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import axios, {  AxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
+import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
@@ -122,7 +123,7 @@ return (
                             </Link>
                     </div>
                     <button type="submit" disabled={loginMutation.isPending} className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-00 transition">
-                        {loginMutation.isPending ? "Logging in..." : "Login"}
+                        {loginMutation.isPending ? <PageLoader text="Logging in..." /> : "Login"}
                     </button>
                     {serverError && (
                         <p className="text-red-500 text-sm mt-2">
