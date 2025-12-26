@@ -8,13 +8,18 @@ interface BufferedMessage{
     conversationId: string;
     senderId: string;
     senderType: string;
-    constent: string;
+    content: string;
     createdAt: string;
 }
 
 const TOPIC = 'chat.new_messages';
 const GROUP_ID = 'chat-message-db-writer';
 const BATCH_INTERVAL_MS = 3000; // 3 seconds
+
+const RECEIVER_TYPE_MAPPING: Record<string, string> = {
+    user: 'seller',
+    seller: 'user',
+};
 
 let buffer: BufferedMessage[] = [];
 let flushTimer: NodeJS.Timeout | null = null;
@@ -62,7 +67,7 @@ async function flushBufferToDb(){
             conversationId: msg.conversationId,
             senderId: msg.senderId,
             senderType: msg.senderType,
-            content: msg.constent,
+            content: msg.content,
             createdAt: new Date(msg.createdAt),
         }));
         await prisma.message.createMany({
@@ -70,7 +75,7 @@ async function flushBufferToDb(){
         });
         //Redis unseen counter (only if DB insert was successful)
         for (const msg of prismaPayload) {
-            const receiverType = msg.senderType === "user" ? "seller" : "user";
+            const receiverType = RECEIVER_TYPE_MAPPING[msg.senderType] || 'user';
             await incrementUnseenCount(receiverType, msg.conversationId);
         }
 

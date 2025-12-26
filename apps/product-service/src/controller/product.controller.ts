@@ -342,8 +342,18 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
                 skip,
                 take: limit,
                 include: {
-                    images: true,
-                    Shop: true,
+                    images: {
+                        select: {
+                            file_url: true,
+                        }
+                    },
+                    Shop: {
+                        select: {
+                            id: true,
+                            name: true,
+                            rating: true,
+                        }
+                    },
                 },
                 where: baseFilter,
                 orderBy: orderBy,
@@ -396,8 +406,18 @@ export const getAllEvents = async (req: Request, res: Response, next: NextFuncti
                 skip,
                 take: limit,
                 include: {
-                    images: true,
-                    Shop: true,
+                    images: {
+                        select: {
+                            file_url: true,
+                        }
+                    },
+                    Shop: {
+                        select: {
+                            id: true,
+                            name: true,
+                            rating: true,
+                        }
+                    },
                 },
                 orderBy: { 
                     totalSales: "desc",

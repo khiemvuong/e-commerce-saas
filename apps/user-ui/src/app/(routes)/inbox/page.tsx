@@ -15,7 +15,6 @@ const Page = () => {
     const searchParams = useSearchParams();
     const { user, isLoading: userLoading } = useRequiredAuth();
     const router = useRouter();
-    const wsRef = useRef<WebSocket | null>(null);
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
     const queryClient = useQueryClient();
@@ -26,19 +25,16 @@ const Page = () => {
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const conversationId = searchParams.get("conversationId");
-    const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
     const { ws, unreadCounts } = useWebSocket();
     const { data: messages = [] } = useQuery({
         queryKey: ["messages", conversationId],
         queryFn: async () => {
-            if (!conversationId || hasFetchedOnce) return [];
+            if (!conversationId) return [];
             const res = await axiosInstance.get(
                 `/chatting/api/get-messages/${conversationId}`,
                 isProtected
             );
             setPage(1);
-            setHasFetchedOnce(true);
-            setHasFetchedOnce(true);
             return res.data.messages.reverse();
         },
         enabled: !!conversationId,
@@ -85,23 +81,25 @@ const Page = () => {
         }
     }, [conversationId, chats]);
 
-    // Fetch messages when selectedChat changes
     useEffect(() => {
-        if (selectedChat) {
-            const fetchMessages = async () => {
-                try {
-                    const res = await axiosInstance.get(
-                        `/chatting/api/get-messages/${selectedChat.conversationId}`,
-                        isProtected
-                    );
-                    setMessage(res.data.messages.reverse()); // Reverse to show oldest first if needed, or handle via flex-col-reverse
-                } catch (error) {
-                    console.error("Error fetching messages:", error);
-                }
-            };
-            fetchMessages();
-        }
-    }, [selectedChat]);
+        if (!ws || !conversationId) return;
+        const handleMessage = (event: any) => {
+            const data = JSON.parse(event.data);
+            if (
+                data.type === "MESSAGE_RECEIVED" &&
+                data.payload.conversationId === conversationId
+            ) {
+                queryClient.setQueryData(
+                    ["messages", conversationId],
+                    (old: any = []) => {
+                        return [...old, data.payload];
+                    }
+                );
+            }
+        };
+        ws.addEventListener("message", handleMessage);
+        return () => ws.removeEventListener("message", handleMessage);
+    }, [ws, conversationId, queryClient]);
 
     // Scroll to bottom when messages change
     useEffect(() => {
@@ -115,18 +113,19 @@ const Page = () => {
     };
 
     const handleChatSelect = (chat: any) => {
-        setHasFetchedOnce(false);
         setChats((prev) =>
             prev.map((c) =>
                 c.conversationId === chat.conversationId ? { ...c, unreadCount: 0 } : c
             )
         );
-        router.push(`?conversationId =${chat.conversationId}`);
+        router.push(`?conversationId=${chat.conversationId}`);
 
-        ws?.send(JSON.stringify({
-            type: "MARK_AS_SEEN",
-            conversationId: chat.conversationId,
-        }));
+        ws?.send(
+            JSON.stringify({
+                type: "MARK_AS_SEEN",
+                conversationId: chat.conversationId,
+            })
+        );
     };
 
     const scrollToBottom = () => {
@@ -135,12 +134,12 @@ const Page = () => {
                 scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
             }, 0);
         });
-    }
+    };
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!message.trim() || !selectedChat) return;
         const payload = {
-            fromUserOd: user?.id,
+            fromUserId: user?.id,
             toUserId: selectedChat?.seller?.id,
             conversationId: selectedChat?.conversationId,
             messageBody: message,
@@ -148,18 +147,6 @@ const Page = () => {
         };
 
         ws?.send(JSON.stringify(payload));
-        queryClient.setQueryData(
-            ["messages", selectedChat.conversationId],
-            (old: any = []) => [
-                ...old,
-                {
-                    content: payload.messageBody,
-                    senderType: "user",
-                    seen: false,
-                    createdAt: new Date().toISOString(),
-                },
-            ]
-        );
         setChats((prevChats) =>
             prevChats.map((chat) =>
                 chat.conversationId
@@ -266,7 +253,7 @@ const Page = () => {
                                     ref={messageContainerRef}
                                 >
                                     {messages.map((msg: any, index: number) => {
-                                        const isMe = msg.senderId === user?.id;
+                                        const isMe = msg.senderType === "user";
                                         return (
                                             <div
                                                 key={msg.id || index}
