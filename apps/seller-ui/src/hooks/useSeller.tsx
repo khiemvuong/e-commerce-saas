@@ -14,7 +14,9 @@ const useSeller = () => {
         queryKey: ["seller"],
         queryFn: fetchSeller,
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry:1,
+        retry: 0, // Changed from 1 to 0 - let axios handle retries
+        refetchOnWindowFocus: false, // Prevent unnecessary refetches
+        retryOnMount: false,
     });
     return {seller,isLoading,isError,refetch};
 };

@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { addUserAddress, createShop, createStripeConnectLink, deleteUserAddress, getAdmin, getSeller, getUser, getUserAddresses, loginAdmin, loginSeller, logOutSeller, logOutUser, refreshToken, registerSeller, resetUserPassword, updateUserPassword, uploadAvatar, updateUserProfile, userForgotPassword, userLogin, userRegistetration, verifySeller, verifyUser, verifyUserForgotPassword } from "../controller/auth.controller";
+import { addUserAddress, createShop, createStripeConnectLink, deleteUserAddress, getAdmin, getSeller, getUser, getUserAddresses, loginAdmin, loginSeller, logOutAdmin, logOutSeller, logOutUser, refreshToken, registerSeller, resetUserPassword, updateUserPassword, uploadAvatar, updateUserProfile, userForgotPassword, userLogin, userRegistetration, verifySeller, verifyUser, verifyUserForgotPassword } from "../controller/auth.controller";
 import isAuthenticated from "@packages/middleware/isAuthenticated";
 import { isAdmin, isSeller } from "@packages/middleware/authorizeRoles";
 import rateLimit from 'express-rate-limit';
@@ -13,7 +13,8 @@ const loginLimiter = rateLimit({
 });
 const refreshLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 10, // 10 requests per minute
+    max: 30, // 30 requests per minute (increased from 10)
+    message: 'Too many refresh token requests, please try again later'
 });
 const router:Router = express.Router();
 router.post("/user-registration", userRegistetration);
@@ -32,7 +33,7 @@ router.post("/create-stripe-link", createStripeConnectLink);
 router.post("/login-seller", loginLimiter, loginSeller);
 router.post("/logout-seller", isAuthenticated, isSeller, logOutSeller);
 router.post("/login-admin", loginLimiter, loginAdmin);
-// router.post("/logout-admin", isAuthenticated, isAdmin, logOutAdmin);
+router.post("/logout-admin", isAuthenticated, isAdmin, logOutAdmin);
 router.get("/logged-in-seller", isAuthenticated, isSeller, getSeller);
 router.get("/logged-in-admin", isAuthenticated, isAdmin, getAdmin);
 router.post("/change-password",isAuthenticated, updateUserPassword);

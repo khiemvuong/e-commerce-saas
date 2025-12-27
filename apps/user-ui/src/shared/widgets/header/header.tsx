@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { Search, Heart, ShoppingCart, X, Menu } from "lucide-react";
 import { useState } from "react";
-import ProfileIcon from "../../../assets/svgs/profile-icon";
 import useUser from "apps/user-ui/src/hooks/useUser";
 import { useStore } from "apps/user-ui/src/store";
 import IlanLogo3 from "apps/user-ui/src/assets/svgs/ilan-logo-3";
@@ -12,6 +11,7 @@ import { navItems } from "apps/user-ui/src/configs/constants";
 import { usePathname } from 'next/navigation';
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
+import UserMenu from "./user-menu";
 
 const Header = () => {
   const pathname = usePathname();
@@ -28,6 +28,8 @@ const Header = () => {
       const res = await axiosInstance.get('/admin/api/get-all-customizations');
       return res.data;
     },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
@@ -107,45 +109,7 @@ const Header = () => {
               {/* User Actions */}
               <div className="flex items-center gap-2 md:gap-4">
                 {/* Profile */}
-                {(!isLoading && user) ? (
-                  // ĐÃ ĐĂNG NHẬP: toàn khối trỏ tới /profile?active=profile
-                  <Link
-                    href={"/profile?active=profile"}
-                    className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100 hover:border-blue-500 transition overflow-hidden">
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <ProfileIcon size={18} className="text-gray-600" />
-                      )}
-                    </div>
-                    <div className="hidden lg:flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium leading-tight">
-                        Hello,
-                      </span>
-                      <span className="text-sm text-gray-800 font-Roboto font-bold leading-tight truncate max-w-[100px]">
-                        {user?.name ? ` ${user.name}` : ","}
-                      </span>                     
-                    </div>
-                  </Link>
-                ) : (
-                  // CHƯA ĐĂNG NHẬP: avatar + nút Sign in
-                  <div className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition">
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100">
-                      <ProfileIcon size={18} className="text-gray-600" />
-                    </div>
-                    <div className="hidden lg:flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium leading-tight">Hello,</span>
-                      <Link
-                        href="/login"
-                        className="text-sm text-blue-600 hover:text-blue-800 font-bold transition"
-                      >
-                        Sign in
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                <UserMenu user={user} />
 
                 {/* Wishlist */}
                 <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700 hover:text-red-500 transition">
@@ -187,7 +151,7 @@ const Header = () => {
         {/* Header Bottom (Nav) - Desktop Only */}
         <div className="hidden md:block w-full border-t border-gray-200/50">
            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <HeaderBottom />
+              <HeaderBottom user={user} />
            </div>
         </div>
       </header>

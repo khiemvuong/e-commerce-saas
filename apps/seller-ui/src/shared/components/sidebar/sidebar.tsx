@@ -4,6 +4,7 @@ import useSeller from 'apps/seller-ui/src/hooks/useSeller';
 import useSidebar from 'apps/seller-ui/src/hooks/useSidebar'
 import { usePathname } from 'next/navigation';
 import React, { useEffect } from 'react'
+import { useLogout } from '../../../hooks/useLogout';
 import Box from '../box';
 import Link from 'next/link';
 import { Sidebar } from './sidebar.styles';
@@ -16,6 +17,7 @@ const SidebarWrapper = () => {
     const {activeSidebar,setActiveSidebar} = useSidebar();
     const pathName = usePathname();
     const{seller} = useSeller();
+    const { logout, isLoggingOut } = useLogout();
 
     useEffect(() => {
         setActiveSidebar(pathName);
@@ -134,12 +136,17 @@ const SidebarWrapper = () => {
                                 isActive={activeSidebar === '/dashboard/discount-codes'}
                                 href="/dashboard/discount-codes"
                             />
-                            <SidebarItem
-                                title='Logout'
-                                icon={<LogOut fill={getIconColor('/dashboard/logout')} />}
-                                isActive={activeSidebar === '/dashboard/logout'}
-                                href="/dashboard/logout"
-                            />
+                            <div 
+                                className="cursor-pointer"
+                                onClick={() => !isLoggingOut && logout()}
+                            >
+                                <SidebarItem
+                                    title={isLoggingOut ? 'Logging out...' : 'Logout'}
+                                    icon={<LogOut fill={getIconColor('/dashboard/logout')} />}
+                                    isActive={false}
+                                    href="#"
+                                />
+                            </div>
                         </SidebarMenu>
 
                     </div>

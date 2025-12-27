@@ -11,7 +11,6 @@ import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { isProtected } from 'apps/user-ui/src/utils/protected';
 
 const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: boolean) => void }) => {
     const [activeImage, setActiveImage] = useState(0);
@@ -76,9 +75,7 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
         try {
             const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
                 sellerId: shopDetails?.sellerId || data?.Shop?.sellerId,
-            },
-                isProtected
-            );
+            });
             router.push(`/inbox?conversationId=${res.data.conversation.id}`);
         } catch (error) {
             console.error('Error starting chat with seller:', error);
@@ -182,7 +179,7 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
                             </button>
                         </div>
                         {/*Product Title*/}
-                        <h3 className="text-2xl font-semibold text-gray-900 mt-3">
+                        <h3 className="text-2xl font-semibold text-gray-900 mt-3 line-clamp-2">
                             {data?.title}
                         </h3>
                         {/*Product rating and Stock*/}

@@ -171,6 +171,11 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
 export const getUser = async (req: any, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?.id;
+
+        if (!userId) {
+            return next(new AuthError("User not authenticated"));
+        }
+
         const user = await prisma.users.findUnique({
             where: { id: userId },
             include: { avatar: true }
@@ -558,9 +563,13 @@ export const logOutAdmin = async (req: any, res: Response, next: NextFunction) =
 
 //Logout user
 export const logOutUser = async (req: any, res: Response, next: NextFunction) => {
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token");
-    res.status(200).json({message: "Logged out successfully"});
+    try {
+        res.clearCookie("access_token");
+        res.clearCookie("refresh_token");
+        res.status(200).json({message: "Logged out successfully"});
+    } catch (error) {
+        next(error);
+    }
 }
 
 export const updateUserPassword = async (req: any, res: Response, next: NextFunction) => {

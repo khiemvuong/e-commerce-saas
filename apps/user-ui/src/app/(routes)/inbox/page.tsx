@@ -5,7 +5,6 @@ import useRequiredAuth from "apps/user-ui/src/hooks/useRequiredAuth";
 import ChatInput from "apps/user-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/user-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
-import { isProtected } from "apps/user-ui/src/utils/protected";
 import { Send } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -33,8 +32,7 @@ const Page = () => {
         queryFn: async () => {
             if (!conversationId) return [];
             const res = await axiosInstance.get(
-                `/chatting/api/get-messages/${conversationId}`,
-                isProtected
+                `/chatting/api/get-messages/${conversationId}`
             );
             setPage(1);
             setHasMore(res.data.hasMore);
@@ -51,8 +49,7 @@ const Page = () => {
         isLoadingMoreRef.current = true;
         const nextPage = page + 1;
         const res = await axiosInstance.get(
-            `/chatting/api/get-messages/${conversationId}?page=${nextPage}`,
-            isProtected
+            `/chatting/api/get-messages/${conversationId}?page=${nextPage}`
         );
 
         queryClient.setQueryData(
@@ -66,8 +63,7 @@ const Page = () => {
         queryKey: ["conversations"],
         queryFn: async () => {
             const res = await axiosInstance.get(
-                "/chatting/api/get-user-conversations",
-                isProtected
+                "/chatting/api/get-user-conversations"
             );
             return res.data.conversations;
         },

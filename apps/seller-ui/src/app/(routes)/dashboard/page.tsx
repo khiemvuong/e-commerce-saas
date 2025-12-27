@@ -66,7 +66,7 @@ const page = () => {
                                     contentStyle={{backgroundColor: '#1f2937', borderRadius: '8px', border: '1px solid #374151', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.5)'}}
                                     itemStyle={{color: '#e5e7eb'}}
                                     labelStyle={{color: '#9ca3af'}}
-                                    formatter={(value: number) => [`$${value}`, 'Revenue']}
+                                    formatter={(value: number | undefined) => [value ? `$${value.toLocaleString()}` : '$0', 'Revenue']}
                                 />
                                 <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
                             </AreaChart>

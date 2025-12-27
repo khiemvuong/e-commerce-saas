@@ -13,7 +13,6 @@ import Image from 'next/image';
 import ProductCard from '../../components/cards/product-card';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { useRouter } from 'next/navigation';
-import { isProtected } from 'apps/user-ui/src/utils/protected';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
 
 const ProductDetails = ({productDetails}:{productDetails: any}) => {
@@ -113,9 +112,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
         try {
             const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
                 sellerId: productDetails?.Shop?.sellerId,
-            },
-                isProtected
-            );
+            });
             router.push(`/inbox?conversationId=${res.data.conversation.id}`);
         } catch (error) {
             console.error('Error starting chat with seller:', error);

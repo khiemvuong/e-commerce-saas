@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@packages/*": [
+        "../../packages/*"
       ]
     },
     "outDir": "dist",
@@ -33,7 +36,7 @@
   },
   "include": [
     "../../apps/admin-ui/.next/types/**/*.ts",
-    "../../packages/**/*.tsx",
+    "../../packages/**/*.ts",
     "../../dist/apps/admin-ui/.next/types/**/*.ts",
     "next-env.d.ts",
     "src/**/*.js",

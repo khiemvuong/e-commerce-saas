@@ -4,6 +4,7 @@ import useAdmin from "apps/admin-ui/src/app/hooks/useAdmin";
 import useSidebar from "apps/admin-ui/src/app/hooks/useSidebar";
 import { usePathname } from "next/navigation";
 import React, { useEffect } from "react";
+import { useLogout } from '../../../hooks/useLogout';
 import Box from "../box";
 import { Sidebar } from "./sidebar.styles";
 import Link from "next/link";
@@ -16,6 +17,7 @@ const SidebarWrapper = () => {
     const {activeSidebar,setActiveSidebar} = useSidebar();
     const pathName = usePathname();
     const{admin} = useAdmin();
+    const { logout, isLoggingOut } = useLogout();
 
     useEffect(() => {
         setActiveSidebar(pathName);
@@ -132,12 +134,17 @@ const SidebarWrapper = () => {
                         </SidebarMenu>
                         {/*Extras*/}
                         <SidebarMenu title='Extras'>
-                            <SidebarItem
-                                title='Logout'
-                                icon={<LogOut fill={getIconColor('/dashboard/logout')} />}
-                                isActive={activeSidebar === '/dashboard/logout'}
-                                href="/"
-                            />
+                            <div 
+                                className="cursor-pointer"
+                                onClick={() => !isLoggingOut && logout()}
+                            >
+                                <SidebarItem
+                                    title={isLoggingOut ? 'Logging out...' : 'Logout'}
+                                    icon={<LogOut fill={getIconColor('/dashboard/logout')} />}
+                                    isActive={false}
+                                    href="#"
+                                />
+                            </div>
                         </SidebarMenu>
                     </div>
 
