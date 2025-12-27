@@ -353,7 +353,7 @@ export const fetchSellerMessages = async (
             take: pageSize,
         });
         return res.status(200).json({
-            user: { // ✅ Fixed: changed from "seller" to "user"
+            user: {
                 id: user?.id || null,
                 name: user?.name || "Unknown",
                 isOnline,

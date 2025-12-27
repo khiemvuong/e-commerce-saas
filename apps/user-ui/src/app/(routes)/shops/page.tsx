@@ -6,6 +6,7 @@ import ShopCard from 'apps/user-ui/src/shared/components/cards/shop.card'
 import { categories } from 'apps/user-ui/src/utils/categories'
 import { countries } from 'apps/user-ui/src/utils/countries'
 import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
+import { Search } from 'lucide-react'
 const Page = () => {
     const router = useRouter();
     const [isShopLoading, setIsShopLoading] = useState(false);
@@ -14,6 +15,8 @@ const Page = () => {
     const [page, setPage] = useState(1);
     const [shops, setShops] = useState<any[]>([]);
     const [totalPages, setTotalPages] = useState(1);
+    const [search, setSearch] = useState("");
+    const [searchInput, setSearchInput] = useState("");
     
     // Temp states for filters (before Apply is clicked)
     const [tempCategories, setTempCategories] = useState<string[]>([]);
@@ -21,6 +24,9 @@ const Page = () => {
 
     const updateURL = () => {
         const params = new URLSearchParams();
+        if (search) {
+            params.set("search", search);
+        }
         if (selectedCategories.length > 0) {
             params.set("categories", selectedCategories.join(","));
         }
@@ -36,6 +42,7 @@ const Page = () => {
         setIsShopLoading(true);
         try {
             const query = new URLSearchParams();
+            if (search) query.set("search", search);
             if (selectedCategories.length > 0) 
                 query.set("categories", selectedCategories.join(","));
             if (selectedCountries.length > 0)
@@ -59,7 +66,7 @@ const Page = () => {
     useEffect(() => {
         updateURL();
         fetchFilteredShops();
-    },[selectedCategories, selectedCountries, page]);
+    },[selectedCategories, selectedCountries, page, search]);
     
 
     const toggleCategory = (label: string) => {
@@ -85,12 +92,31 @@ const Page = () => {
         setSelectedCountries(tempCountries);
         setPage(1);
     }
+
+    const handleSearch = () => {
+        setSearch(searchInput);
+        setPage(1);
+    }
+
   return (
     <div className="w-full min-h-screen pb-10 mt-10">
         
         <div className="w-full flex flex-col lg:flex-row gap-8 lg:gap-20 px-4 lg:px-0">
         {/*Side Bar for filters*/}
         <aside className='w-full lg:w-[270px] space-y-6'>
+            {/* Search Input */}
+            <div className="relative">
+                 <input
+                    type="text"
+                    placeholder="Search shops..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-black transition-colors"
+                />
+                <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
+            </div>
+
             {/*Category Filter*/}
             <div className="bg-white border border-gray-200 rounded-sm p-6">
                 <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Categories</h3>

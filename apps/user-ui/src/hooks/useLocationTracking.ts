@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react";
 
-const LOCATION_STORAGE_KEY = "user-location";
+const LOCATION_STORAGE_KEY = "user-location-v1";
 const LOCATION_EXPIRY_DAYS = 20;
 
 const getStoredLocation = () => {
@@ -48,20 +48,49 @@ const useLocationTracking = () => {
         }
 
         // Fetch location mới
-        fetch("https://ipapi.co/json/")
-            .then(response => response.json())
+        fetch("https://api.ipdata.co/?api-key=55a764f51128c7d0c2c73e8f9ad969003ac6362999287dbbc8cacdd6", {
+            headers: {
+                "Accept": "application/json"
+            }
+        })
+            .then(async (response) => {
+                if (!response.ok) throw new Error("Network response was not ok");
+                return response.json();
+            })
             .then(data => {
                 const newLocation = { 
-                    country: data.country, 
-                    city: data.city, 
+                    country: data.country_name || data.country || "Unknown", 
+                    city: data.city || "Unknown", 
                     timestamp: Date.now() 
                 };
                 localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
                 setLocation(newLocation);
                 console.log('✅ New location saved:', newLocation);
             })
-            .catch(error => {
-                console.error("❌ Error fetching location data:", error);
+            .catch(async (error) => {
+                console.warn("⚠️ Primary location API failed, trying fallback...", error);
+                try {
+                    // Fallback API: ipwho.is
+                    const fallbackRes = await fetch("https://ipwho.is/");
+                    if (!fallbackRes.ok) throw new Error("Fallback network response not ok");
+                    
+                    const fallbackData = await fallbackRes.json();
+                    
+                    if (fallbackData.success === false) {
+                        throw new Error(fallbackData.message || "Fallback API Error");
+                    }
+
+                    const newLocation = { 
+                        country: fallbackData.country || "Unknown", 
+                        city: fallbackData.city || "Unknown", 
+                        timestamp: Date.now() 
+                    };
+                    localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(newLocation));
+                    setLocation(newLocation);
+                } catch (fallbackError) {
+                    console.error("❌ All location APIs failed:", fallbackError);
+                    setLocation({ country: "Unknown", city: "Unknown", timestamp: Date.now() });
+                }
             });
     }, []);
 

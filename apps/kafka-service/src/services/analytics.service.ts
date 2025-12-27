@@ -26,6 +26,13 @@ export const  updateUserAnalytics = async (event: any) => {
                 timestamp: new Date(),
             });
         }
+        else if(event.action === 'shop_view'){
+            updatedActions.push({
+                action: 'shop_view',
+                shopId: event?.shopId,
+                timestamp: new Date(),
+            });
+        }
         else if(["add_to_cart","add_to_wishlist"].includes(event.action) && !actionExists){
             updatedActions.push({
                 action: event?.action,
@@ -87,7 +94,9 @@ export const  updateUserAnalytics = async (event: any) => {
         });
 
         //Update product analytics
-        await updateProductAnalytics(event);
+        if (event.productId) {
+            await updateProductAnalytics(event);
+        }
     } catch (error) {
         console.log('Error in updateUserAnalytics:', error);
     }
@@ -167,3 +176,66 @@ export const updateProductAnalytics = async (event: any) => {
         console.log('Error in updateProductAnalytics:', error);
     }
 }
+
+export const updateShopAnalytics = async (event: any) => {
+    try {
+        if (!event.shopId) return;
+
+        // 1. Update Shop Analytics (Total Visitors & Stats)
+        const shopAnalytics = await prisma.shopAnalytics.findUnique({
+            where: { shopId: event.shopId }
+        });
+
+        const country = event.country || 'Unknown';
+        const city = event.city || 'Unknown';
+        const device = event.device || 'Unknown';
+
+        let countryStats: any = shopAnalytics?.countryStats || {};
+        let cityStats: any = shopAnalytics?.cityStats || {};
+        let deviceStats: any = shopAnalytics?.deviceStats || {};
+
+        // Helper to increment stats
+        const incrementStat = (obj: any, key: string) => {
+            obj[key] = (obj[key] || 0) + 1;
+        };
+
+        incrementStat(countryStats, country);
+        incrementStat(cityStats, city);
+        incrementStat(deviceStats, device);
+
+        await prisma.shopAnalytics.upsert({
+            where: { shopId: event.shopId },
+            create: {
+                shopId: event.shopId,
+                totalVisitors: 1,
+                countryStats,
+                cityStats,
+                deviceStats,
+                lastVisitedAt: new Date(),
+            },
+            update: {
+                totalVisitors: { increment: 1 },
+                countryStats,
+                cityStats,
+                deviceStats,
+                lastVisitedAt: new Date(),
+            }
+        });
+
+        // 2. Track Unique Visitors (if userId exists)
+        if (event.userId) {
+            try {
+                await prisma.uniqueShopVisitors.create({
+                    data: {
+                        shopId: event.shopId,
+                        userId: event.userId,
+                    }
+                });
+            } catch (e) {
+                // Ignore unique constraint violation
+            }
+        }
+    } catch (error) {
+        console.log("Error updating shop analytics:", error);
+    }
+};

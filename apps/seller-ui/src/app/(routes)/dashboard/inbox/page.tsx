@@ -16,6 +16,8 @@ const SellerInboxPage = () => {
     const router = useRouter();
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+    const isLoadingMoreRef = useRef(false);
+    const previousScrollHeightRef = useRef(0);
     const queryClient = useQueryClient();
     const [chats, setChats] = useState<any[]>([]);
     const [selectedChat, setSelectedChat] = useState<any>(null);
@@ -35,6 +37,7 @@ const SellerInboxPage = () => {
                 `/chatting/api/get-seller-messages/${conversationId}`
             );
             setPage(1);
+            setHasMore(res.data.hasMore);
             return res.data.messages.reverse();
         },
         enabled: !!conversationId,
@@ -42,6 +45,10 @@ const SellerInboxPage = () => {
     });
 
     const loadMoreMessages = async () => {
+        if (messageContainerRef.current) {
+            previousScrollHeightRef.current = messageContainerRef.current.scrollHeight;
+        }
+        isLoadingMoreRef.current = true;
         const nextPage = page + 1;
         const res = await axiosInstance.get(
             `/chatting/api/get-seller-messages/${conversationId}?page=${nextPage}`
@@ -70,6 +77,15 @@ const SellerInboxPage = () => {
     }, [conversations]);
 
     useEffect(() => {
+        if (isLoadingMoreRef.current) {
+            if (messageContainerRef.current) {
+                const newScrollHeight = messageContainerRef.current.scrollHeight;
+                const diff = newScrollHeight - previousScrollHeightRef.current;
+                messageContainerRef.current.scrollTop += diff;
+            }
+            isLoadingMoreRef.current = false;
+            return;
+        }
         if (messages?.length > 0) scrollToBottom();
     }, [messages]);
 
@@ -82,25 +98,37 @@ const SellerInboxPage = () => {
 
 
     useEffect(() => {
-        if (!ws || !conversationId) return;
+        if (!ws) return;
         const handleMessage = (event: any) => {
             const data = JSON.parse(event.data);
-            if (data.type === "MESSAGE_RECEIVED" && data.payload.conversationId === conversationId) {
-                queryClient.setQueryData(["seller-messages", conversationId], (old: any = []) => {
-                    return [...old, data.payload];
-                });
+            if (data.type === "MESSAGE_RECEIVED") {
+                // Update sidebar chats (last message & unread count)
+                setChats((prevChats) => 
+                    prevChats.map((chat) => {
+                        if (chat.conversationId === data.payload.conversationId) {
+                            return {
+                                ...chat,
+                                lastMessage: data.payload.content,
+                                unreadCount: chat.conversationId === conversationId ? 0 : (chat.unreadCount || 0) + 1,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        return chat;
+                    })
+                );
+
+                if (data.payload.conversationId === conversationId) {
+                    queryClient.setQueryData(["seller-messages", conversationId], (old: any = []) => {
+                        return [...old, data.payload];
+                    });
+                    // Mark as seen immediately
+                    ws.send(JSON.stringify({ type: "MARK_AS_SEEN", conversationId, senderType: "seller" }));
+                }
             }
         };
         ws.addEventListener("message", handleMessage);
         return () => ws.removeEventListener("message", handleMessage);
     }, [ws, conversationId, queryClient]);
-
-    // Scroll to bottom
-    useEffect(() => {
-        if (scrollAnchorRef.current) {
-            scrollAnchorRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages]);
 
     const getLastMessage = (chat: any) => {
         return chat?.lastMessage || "No messages yet";
@@ -134,7 +162,8 @@ const SellerInboxPage = () => {
 
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!message.trim() || !selectedChat) return;
+        if (!message.trim() || !selectedChat || isSending) return;
+        setIsSending(true);
 
         const payload = {
             fromUserId: seller?.id, // ID của người gửi (Seller)
@@ -161,6 +190,7 @@ const SellerInboxPage = () => {
         );
         setMessage("");
         scrollToBottom();
+        setTimeout(() => setIsSending(false), 300);
     };
 
     return (

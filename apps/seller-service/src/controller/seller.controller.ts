@@ -64,13 +64,6 @@ export const getShopById = async (
                     where: {
                         type: { in: ["avatar", "cover"] }
                     }
-                },
-                products: {
-                    where: { isDeleted: false },
-                    orderBy: { createdAt: "desc" },
-                    include: {
-                        images: { take: 1 }
-                    }
                 }
             }
         });
@@ -78,6 +71,36 @@ export const getShopById = async (
         res.status(200).json({
             success: true,
             shop
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Get Shop Products
+export const getShopProducts = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { id } = req.params;
+
+        if (!id) {
+            return next(new ValidationError("Shop ID is required"));
+        }
+
+        const products = await prisma.products.findMany({
+            where: { shopId: id, isDeleted: false },
+            orderBy: { createdAt: "desc" },
+            include: {
+                images: { take: 1 }
+            }
+        });
+
+        res.status(200).json({
+            success: true,
+            products
         });
     } catch (error) {
         next(error);
@@ -382,6 +405,111 @@ export const getOrderDetails = async (req:any,res:Response,next:NextFunction) =>
         next(error);
     }
 }
+
+// Toggle Follow Shop
+export const toggleFollowShop = async (
+    req: any,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const { shopId } = req.body;
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return next(new ValidationError("Please login to follow shops"));
+        }
+
+        if (!shopId) {
+            return next(new ValidationError("Shop ID is required"));
+        }
+
+        const shop = await prisma.shops.findUnique({ where: { id: shopId } });
+        if (!shop) {
+            return next(new ValidationError("Shop not found"));
+        }
+
+        // Check if already following using the unique constraint in followers table
+        const existingFollow = await prisma.followers.findUnique({
+            where: {
+                userId_shopId: {
+                    userId,
+                    shopId
+                }
+            }
+        });
+
+        if (existingFollow) {
+            // Unfollow
+            const user = await prisma.users.findUnique({ where: { id: userId } });
+            
+            await prisma.$transaction([
+                prisma.followers.delete({
+                    where: {
+                        userId_shopId: {
+                            userId,
+                            shopId
+                        }
+                    }
+                }),
+                prisma.shops.update({
+                    where: { id: shopId },
+                    data: {
+                        followers: {
+                            set: shop.followers.filter((id) => id !== userId)
+                        }
+                    }
+                }),
+                prisma.users.update({
+                    where: { id: userId },
+                    data: {
+                        following: {
+                            set: user?.following.filter((id) => id !== shopId) || []
+                        }
+                    }
+                })
+            ]);
+
+            res.status(200).json({
+                success: true,
+                message: "Unfollowed successfully",
+            });
+        } else {
+            // Follow
+            await prisma.$transaction([
+                prisma.followers.create({
+                    data: {
+                        userId,
+                        shopId
+                    }
+                }),
+                prisma.shops.update({
+                    where: { id: shopId },
+                    data: {
+                        followers: {
+                            push: userId
+                        }
+                    }
+                }),
+                prisma.users.update({
+                    where: { id: userId },
+                    data: {
+                        following: {
+                            push: shopId
+                        }
+                    }
+                })
+            ]);
+
+            res.status(200).json({
+                success: true,
+                message: "Followed successfully",
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
 
 //Update order status
 export const updateDeliveryStatus = async (req:Request,res:Response,next:NextFunction) => {

@@ -202,10 +202,11 @@ const CartPage = () => {
                             </thead>
                             <tbody>
                                 {cart.map((item: any) => (
+                                    item ? (
                                     <tr key={item.cartId || item.id} className="border-b border-gray-300">
                                         <td className="p-4 flex items-center gap-4">
                                             <Image
-                                                src={item.images[0]?.file_url}
+                                                src={item?.images?.[0]?.file_url || '/placeholder.png'}
                                                 alt={item.title}
                                                 width={80}
                                                 height={80}
@@ -256,12 +257,12 @@ const CartPage = () => {
                                             {item?.id === discountedProductId ? (
                                                 <div className="flex flex-col items-center">
                                                     <span className="line-through text-gray-600 text-sm">
-                                                        ${item.sale_price.toFixed(2)}
+                                                        ${(item?.sale_price || 0).toFixed(2)}
                                                     </span>{" "}
                                                     <span className="text-green-600 font-semibold">
                                                         $
                                                         {(
-                                                            (item.sale_price * (100 - discountPercent)) /
+                                                            ((item?.sale_price || 0) * (100 - discountPercent)) /
                                                             100
                                                         ).toFixed(2)}
                                                     </span>
@@ -270,7 +271,7 @@ const CartPage = () => {
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span>{`$${item.sale_price.toFixed(2)}`}</span>
+                                                <span>{`$${(item?.sale_price || 0).toFixed(2)}`}</span>
                                             )}
                                         </td>
                                         <td>
@@ -302,6 +303,7 @@ const CartPage = () => {
                                             </button>
                                         </td>
                                     </tr>
+                                    ) : null
                                 ))}
                             </tbody>
                         </table>

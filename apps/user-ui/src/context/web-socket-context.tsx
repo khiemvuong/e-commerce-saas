@@ -58,9 +58,9 @@ export const WebSocketProvider = ({
                 reconnectTimeout = setTimeout(connect, 3000);
             };
 
-            ws.onerror = (error) => {
-                console.error("WebSocket connection error. State:", ws?.readyState);
-            };
+            // ws.onerror = (error) => {
+            //     console.error("WebSocket connection error. State:", ws?.readyState);
+            // };
         };
 
         connect();

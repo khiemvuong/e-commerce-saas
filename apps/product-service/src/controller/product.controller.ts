@@ -615,7 +615,30 @@ export const getFilteredEvents = async (
                 where: filters,
                 skip,
                 take: parsedLimit,
-                include: { images: true, Shop: true },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    sale_price: true,
+                    regular_price: true,
+                    rating: true,
+                    stock: true,
+                    short_description: true,
+                    totalSales: true,
+                    starting_date: true,
+                    ending_date: true,
+                    images: {
+                        take: 2,
+                        select: { file_url: true }
+                    },
+                    Shop: {
+                        select: {
+                            id: true,
+                            name: true,
+                            rating: true,
+                        }
+                    }
+                }
             }),
             prisma.products.count({
                 where: filters,
@@ -644,6 +667,7 @@ export const getFilteredShops = async (
 ) => {
     try {
         const {
+            search,
             categories = [],
             countries =[],
             page = 1,
@@ -655,6 +679,14 @@ export const getFilteredShops = async (
         const skip = (parsedPage - 1) * parsedLimit;
 
         const filters: Record<string, any> = {};
+
+        if (search) {
+            filters.name = {
+                contains: search as string,
+                mode: "insensitive",
+            };
+        }
+
         if (categories && (categories as string[]).length > 0) {
             filters.category = {
                 in: Array.isArray(categories)
@@ -686,11 +718,34 @@ export const getFilteredShops = async (
                 skip,
                 take: parsedLimit,
                 include: { 
-                    sellers: true,
-                    products: true,
+                    sellers: {
+                        select: {
+                            id: true,
+                            name: true,
+                            country: true,
+                        }
+                    },
+                    products: {
+                        take: 4,
+                        where: { isDeleted: false },
+                        select: {
+                            id: true,
+                            images: {
+                                take: 1,
+                                select: { file_url: true }
+                            }
+                        }
+                    },
+                    _count: {
+                        select: { products: true }
+                    },
                     images: {
                         where: {
                             type: { in: ["avatar", "cover"] }
+                        },
+                        select: {
+                            file_url: true,
+                            type: true
                         }
                     }
                 }
