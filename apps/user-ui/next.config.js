@@ -34,6 +34,15 @@ const nextConfig = {
       },
     ],
   },
+  // Suppress HMR WebSocket connection warnings
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.infrastructureLogging = {
+        level: 'error',
+      };
+    }
+    return config;
+  },
 };
 
 const plugins = [

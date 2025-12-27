@@ -17,7 +17,16 @@ const nextConfig = {
         hostname: 'ik.imagekit.io',
       },
     ],
-  }
+  },
+  // Suppress HMR WebSocket connection warnings
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.infrastructureLogging = {
+        level: 'error',
+      };
+    }
+    return config;
+  },
 };
 
 const plugins = [
