@@ -454,11 +454,11 @@ export const createStripeConnectLink = async (req: Request, res: Response, next:
                 stripeId: account.id,
             },
         });
-
+        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const accountLink = await stripe.accountLinks.create({
             account: account.id,
-            refresh_url: "http://localhost:3000/success",
-            return_url: "http://localhost:3000/success",
+            refresh_url: `${baseUrl}/stripe/refresh`,
+            return_url: `${baseUrl}/stripe/success`,
             type: "account_onboarding",
         });
 

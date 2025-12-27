@@ -30,8 +30,10 @@
     "emoji-picker-react": "^4.16.1",
     "express": "^4.21.2",
     "express-http-proxy": "^2.1.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.1.0",
     "framer-motion": "^12.23.25",
+    "helmet": "^8.1.0",
     "ioredis": "^5.8.0",
     "jotai": "^2.15.0",
     "jsonwebtoken": "^9.0.2",
@@ -55,6 +57,7 @@
     "styled-components": "^6.1.19",
     "swagger-ui-express": "^5.0.1",
     "ua-parser-js": "^2.0.6",
+    "xss-clean": "^0.1.4",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
