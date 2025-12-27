@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 
 const Footer = () => {
   const pathname = usePathname();
-  if(pathname==='/inbox') return null;
   const { data: customizationData } = useQuery({
     queryKey: ['customizations'],
     queryFn: async () => {
@@ -17,6 +16,8 @@ const Footer = () => {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes (formerly cacheTime)
   });
+
+  if(pathname==='/inbox') return null;
 
   const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
   const logoUrl = logos.length >= 2 ? logos[1].file_url : null;

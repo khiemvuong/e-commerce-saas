@@ -25,7 +25,6 @@ const SellerDashboard = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("products");
   const route = useRouter();
-  // Form State
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
   const [website, setWebsite] = useState("");

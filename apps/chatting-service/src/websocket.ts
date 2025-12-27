@@ -35,7 +35,7 @@ export async function createWebsocketServer(server: HttpServer) {
                     const isSeller = registeredUserId.startsWith("seller_");
                     const redisKey = isSeller
                         ? `online:seller:${registeredUserId.replace("seller_", "")}`
-                        : `online:user:${registeredUserId}`;
+                        : `online:user:${registeredUserId.replace("user_", "")}`;
                     await redis.set(redisKey, "1");
                     await redis.expire(redisKey, 60 * 5); // expire in 5 minutes
                     return;
@@ -81,7 +81,7 @@ export async function createWebsocketServer(server: HttpServer) {
                 };
 
                 const messageEvent = JSON.stringify({
-                    type: "NEW_MESSAGE",
+                    type: "MESSAGE_RECEIVED",
                     payload: messagePayload,
                 });
 

@@ -11,17 +11,17 @@ import {
 const WebSocketContext = createContext<any>(null);
 export const WebSocketProvider = ({
     children,
-    user,
+    seller,
 }: {
     children: React.ReactNode;
-    user: any;
+    seller: any;
 }) => {
     const [wsReady, setWsReady] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        if (!user?.id) return;
+        if (!seller?.id) return;
         let ws: WebSocket | null = null;
         let reconnectTimeout: NodeJS.Timeout;
 
@@ -37,7 +37,7 @@ export const WebSocketProvider = ({
 
             ws.onopen = () => {
                 console.log("WebSocket connection opened");
-                ws?.send(`user_${user.id}`);
+                ws?.send(`seller_${seller.id}`);
                 setWsReady(true);
             };
 
@@ -67,14 +67,14 @@ export const WebSocketProvider = ({
 
         return () => {
             if (ws) {
-                ws.onclose = null; // Prevent reconnect on unmount
+                ws.onclose = null; 
                 ws.onerror = null;
                 ws.onopen = null;
                 ws.close();
             }
             clearTimeout(reconnectTimeout);
         };
-    }, [user?.id]);
+    }, [seller?.id]);
 
     return (
         <WebSocketContext.Provider value={{ ws: wsRef.current, unreadCounts }}>

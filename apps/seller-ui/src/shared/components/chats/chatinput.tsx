@@ -34,7 +34,7 @@ const ChatInput = ({
   return (
     <form
       onSubmit={onSendMessage}
-      className="border-t border-t-gray-200 bg-white px-4 py-3 flex items-center gap-2 relative"
+      className="border-t border-t-gray-2oo bg-white px-4 py-3 flex items-center gap-2 relative"
     >
       {/*Upload Icon*/}
       <label className="cursor-pointer p-2 hover:bg-gray-100 rounded-md">

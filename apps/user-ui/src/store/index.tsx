@@ -56,10 +56,6 @@ const useStore = create<Store>()(
                     selectedOptions: product.selectedOptions,
                     quantity: product.quantity
                 });
-
-                // Sanitize product data to save localStorage space
-                // Remove large fields like descriptions that are not needed in cart
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { detailed_description, short_description, ...productToSave } = product as any;
 
                 set((state) => {

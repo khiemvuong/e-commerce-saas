@@ -197,7 +197,7 @@ export const getSellerConversations = async (
                         id: user?.id || null,
                         name: user?.name || "Unknown",
                         isOnline,
-                        avatar: user?.avatar || null,
+                        avatar: user?.avatar?.[0]?.file_url || null,
                     },
                     lastMessage:
                         lastMessage?.content || "Say something to start the conversation", // ✅ Fixed typo
@@ -353,11 +353,11 @@ export const fetchSellerMessages = async (
             take: pageSize,
         });
         return res.status(200).json({
-            user: { // ✅ Fixed: changed from "seller" to "user"
+            user: {
                 id: user?.id || null,
                 name: user?.name || "Unknown",
                 isOnline,
-                avatar: user?.avatar || null,
+                avatar: user?.avatar?.[0]?.file_url || null,
             },
             messages,
             currentPage: page,

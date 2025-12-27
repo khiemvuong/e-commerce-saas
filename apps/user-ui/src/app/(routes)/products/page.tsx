@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
-import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
+import ComponentLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
+
 const MIN=0;
 const MAX=1199;
 const Page = () => {
     const router = useRouter();
-    const [isProductLoading, setIsProductLoading] = useState(false);
+    const [isProductLoading, setIsProductLoading] = useState(true);
     const [priceRange, setPriceRange] = useState([0,1199]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -55,7 +56,7 @@ const Page = () => {
     }
 
 
-    const fetchFilteredProducts = async () => {
+    const fetchFilteredProducts = async (signal?: AbortSignal) => {
         setIsProductLoading(true);
         try {
             const query = new URLSearchParams();
@@ -71,21 +72,27 @@ const Page = () => {
             query.set("limit", "12");
             
             const res = await axiosInstance.get(
-                `/product/api/get-filtered-products?${query.toString()}`
+                `/product/api/get-filtered-products?${query.toString()}`,
+                { signal }
             );
             setProducts(res.data.products);
             setTotalPages(res.data.pagination.totalPages);
-        } catch (error) {
-            console.error("Error fetching filtered products:", error);
-        }
-        finally {
             setIsProductLoading(false);
+        } catch (error) {
+            if ((error as any).name !== 'CanceledError') {
+                console.error("Error fetching filtered products:", error);
+                setIsProductLoading(false);
+            }
         }
-
     }
     useEffect(() => {
+        const controller = new AbortController();
         updateURL();
-        fetchFilteredProducts();
+        fetchFilteredProducts(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
     },[priceRange,selectedCategories,selectedColors,selectedSizes,page]);
     const {data,isLoading} = useQuery({
         queryKey: ["categories"],
@@ -268,7 +275,7 @@ const Page = () => {
                     <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Collection Of Products</h1>
             </div>
             {isProductLoading ? (
-                <PageLoader text="Loading products" />
+                <ComponentLoader text="Loading products..." />
             ) : products.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {products.map((product) => (

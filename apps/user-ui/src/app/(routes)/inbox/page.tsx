@@ -15,9 +15,10 @@ const Page = () => {
     const searchParams = useSearchParams();
     const { user, isLoading: userLoading } = useRequiredAuth();
     const router = useRouter();
-    const wsRef = useRef<WebSocket | null>(null);
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+    const isLoadingMoreRef = useRef(false);
+    const previousScrollHeightRef = useRef(0);
     const queryClient = useQueryClient();
     const [chats, setChats] = useState<any[]>([]);
     const [selectedChat, setSelectedChat] = useState<any>(null);
@@ -26,19 +27,17 @@ const Page = () => {
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const conversationId = searchParams.get("conversationId");
-    const [hasFetchedOnce, setHasFetchedOnce] = useState(false);
-    const { ws, unreadCounts } = useWebSocket();
+    const { ws } = useWebSocket();
     const { data: messages = [] } = useQuery({
         queryKey: ["messages", conversationId],
         queryFn: async () => {
-            if (!conversationId || hasFetchedOnce) return [];
+            if (!conversationId) return [];
             const res = await axiosInstance.get(
                 `/chatting/api/get-messages/${conversationId}`,
                 isProtected
             );
             setPage(1);
-            setHasFetchedOnce(true);
-            setHasFetchedOnce(true);
+            setHasMore(res.data.hasMore);
             return res.data.messages.reverse();
         },
         enabled: !!conversationId,
@@ -46,6 +45,10 @@ const Page = () => {
     });
 
     const loadMoreMessages = async () => {
+        if (messageContainerRef.current) {
+            previousScrollHeightRef.current = messageContainerRef.current.scrollHeight;
+        }
+        isLoadingMoreRef.current = true;
         const nextPage = page + 1;
         const res = await axiosInstance.get(
             `/chatting/api/get-messages/${conversationId}?page=${nextPage}`,
@@ -75,6 +78,15 @@ const Page = () => {
     }, [conversations]);
 
     useEffect(() => {
+        if (isLoadingMoreRef.current) {
+            if (messageContainerRef.current) {
+                const newScrollHeight = messageContainerRef.current.scrollHeight;
+                const diff = newScrollHeight - previousScrollHeightRef.current;
+                messageContainerRef.current.scrollTop += diff;
+            }
+            isLoadingMoreRef.current = false;
+            return;
+        }
         if (messages?.length > 0) scrollToBottom();
     }, [messages]);
 
@@ -85,48 +97,62 @@ const Page = () => {
         }
     }, [conversationId, chats]);
 
-    // Fetch messages when selectedChat changes
     useEffect(() => {
-        if (selectedChat) {
-            const fetchMessages = async () => {
-                try {
-                    const res = await axiosInstance.get(
-                        `/chatting/api/get-messages/${selectedChat.conversationId}`,
-                        isProtected
-                    );
-                    setMessage(res.data.messages.reverse()); // Reverse to show oldest first if needed, or handle via flex-col-reverse
-                } catch (error) {
-                    console.error("Error fetching messages:", error);
-                }
-            };
-            fetchMessages();
-        }
-    }, [selectedChat]);
+        if (!ws) return;
+        const handleMessage = (event: any) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "MESSAGE_RECEIVED") {
+                // Update sidebar chats (last message & unread count)
+                setChats((prevChats) => 
+                    prevChats.map((chat) => {
+                        if (chat.conversationId === data.payload.conversationId) {
+                            return {
+                                ...chat,
+                                lastMessage: data.payload.content,
+                                unreadCount: chat.conversationId === conversationId ? 0 : (chat.unreadCount || 0) + 1,
+                            };
+                        }
+                        return chat;
+                    })
+                );
 
-    // Scroll to bottom when messages change
-    useEffect(() => {
-        if (scrollAnchorRef.current) {
-            scrollAnchorRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages]);
+                // If message is for current conversation, update messages list
+                if (data.payload.conversationId === conversationId) {
+                    queryClient.setQueryData(
+                        ["messages", conversationId],
+                        (old: any = []) => [...old, data.payload]
+                    );
+                    // Mark as seen immediately
+                    ws.send(JSON.stringify({
+                        type: "MARK_AS_SEEN",
+                        conversationId: conversationId,
+                        senderType: "user"
+                    }));
+                }
+            }
+        };
+        ws.addEventListener("message", handleMessage);
+        return () => ws.removeEventListener("message", handleMessage);
+    }, [ws, conversationId, queryClient]);
 
     const getLastMessage = (chat: any) => {
         return chat?.lastMessage || "No messages yet";
     };
 
     const handleChatSelect = (chat: any) => {
-        setHasFetchedOnce(false);
         setChats((prev) =>
             prev.map((c) =>
                 c.conversationId === chat.conversationId ? { ...c, unreadCount: 0 } : c
             )
         );
-        router.push(`?conversationId =${chat.conversationId}`);
+        router.push(`?conversationId=${chat.conversationId}`);
 
-        ws?.send(JSON.stringify({
-            type: "MARK_AS_SEEN",
-            conversationId: chat.conversationId,
-        }));
+        ws?.send(
+            JSON.stringify({
+                type: "MARK_AS_SEEN",
+                conversationId: chat.conversationId,
+            })
+        );
     };
 
     const scrollToBottom = () => {
@@ -135,12 +161,13 @@ const Page = () => {
                 scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
             }, 0);
         });
-    }
+    };
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!message.trim() || !selectedChat) return;
+        if (!message.trim() || !selectedChat || isSending) return;
+        setIsSending(true);
         const payload = {
-            fromUserOd: user?.id,
+            fromUserId: user?.id,
             toUserId: selectedChat?.seller?.id,
             conversationId: selectedChat?.conversationId,
             messageBody: message,
@@ -148,27 +175,16 @@ const Page = () => {
         };
 
         ws?.send(JSON.stringify(payload));
-        queryClient.setQueryData(
-            ["messages", selectedChat.conversationId],
-            (old: any = []) => [
-                ...old,
-                {
-                    content: payload.messageBody,
-                    senderType: "user",
-                    seen: false,
-                    createdAt: new Date().toISOString(),
-                },
-            ]
-        );
         setChats((prevChats) =>
             prevChats.map((chat) =>
-                chat.conversationId
+                chat.conversationId === selectedChat.conversationId
                     ? { ...chat, lastMessage: payload.messageBody }
                     : chat
             )
         );
         setMessage("");
         scrollToBottom();
+        setTimeout(() => setIsSending(false), 300);
     };
 
     return (
@@ -266,7 +282,7 @@ const Page = () => {
                                     ref={messageContainerRef}
                                 >
                                     {messages.map((msg: any, index: number) => {
-                                        const isMe = msg.senderId === user?.id;
+                                        const isMe = msg.senderType === "user";
                                         return (
                                             <div
                                                 key={msg.id || index}

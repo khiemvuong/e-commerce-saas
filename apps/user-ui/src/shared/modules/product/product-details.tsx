@@ -1,6 +1,5 @@
 'use client';
-import React, { useEffect } from 'react'
-import { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, RotateCcw, Heart, MapPin, Package, WalletMinimal, MessageSquareText } from 'lucide-react';
 import Link from 'next/link';
@@ -13,23 +12,29 @@ import AddToCartButton from '../../components/buttons/add-to-cart-button';
 import Image from 'next/image';
 import ProductCard from '../../components/cards/product-card';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { useRouter } from 'next/navigation';
+import { isProtected } from 'apps/user-ui/src/utils/protected';
+import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
 
 const ProductDetails = ({productDetails}:{productDetails: any}) => {
+    const router = useRouter();
     const [currentImage, setCurrentImage] = useState(0);
     const [isSelected, setIsSelect] = useState(productDetails?.colors?.[0] || '');
     const [isSizeSelected, setIsSizeSelect] = useState(productDetails?.sizes?.[0] || '');  
     const [quantity, setQuantity] = useState(1);
     const [selectedProperties, setSelectedProperties] = useState<Record<string, string>>({});
     const [activeTab, setActiveTab] = useState<'description' | 'reviews'>('description');
+    const [isChatLoading, setIsChatLoading] = useState(false);
     
     const wishlist = useStore((state:any) => state.wishlist);
     const addToWishlist = useStore((state:any) => state.addToWishlist);
     const removeFromWishlist = useStore((state:any) => state.removeFromWishlist);
     const isWishlisted = wishlist.some((item:any) => item.id === productDetails.id);
-    const {user} = useUser();
+    const {user, isLoading: isLoadingUser} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const [recommendedProducts, setRecommendedProducts] = useState([]);
+    const hasTrackedView = useRef(false);
 
     const discountPercentage = productDetails?.regular_price && productDetails?.sale_price ? Math.round(((productDetails?.regular_price - productDetails?.sale_price) / productDetails?.regular_price) * 100) : 0;
     
@@ -86,6 +91,39 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
             setSelectedProperties(defaults);
         }
     }, [productDetails]);
+
+    useEffect(() => {
+        if (productDetails?.id && location && deviceInfo && !isLoadingUser && !hasTrackedView.current) {
+            sendKafkaEvent({
+                userId: user?.id,
+                productId: productDetails.id,
+                shopId: productDetails.Shop?.id,
+                action: "product_view",
+                device: deviceInfo || "Unknown Device",
+                country: location.country || undefined,
+                city: location.city || undefined,
+            });
+            hasTrackedView.current = true;
+        }
+    }, [productDetails?.id, location, deviceInfo, user?.id, isLoadingUser]);
+
+    const handleChat = async () => {
+        if (isChatLoading) return;
+        setIsChatLoading(true);
+        try {
+            const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
+                sellerId: productDetails?.Shop?.sellerId,
+            },
+                isProtected
+            );
+            router.push(`/inbox?conversationId=${res.data.conversation.id}`);
+        } catch (error) {
+            console.error('Error starting chat with seller:', error);
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
+    
 
   return (
     <div className="w-full bg-white">
@@ -238,23 +276,6 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                 <div className="text-gray-600 text-sm leading-relaxed border-b pb-5">
                     {productDetails?.short_description || 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna. Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna.'}
                 </div>
-
-                {/* Bullet Points
-                <ul className="space-y-2 text-sm text-gray-700">
-                    <li className="flex items-start gap-2">
-                        <span className="text-gray-900">•</span>
-                        <span>Lorem ipsum dolor sit amet, adipi scing elit</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-gray-900">•</span>
-                        <span>Lorem ipsum dolor sit amet, consectetuer adipi scing elit</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                        <span className="text-gray-900">•</span>
-                        <span>Lorem ipsum dolor sit amet, adipi</span>
-                    </li>
-                </ul> */}
-
                 {/* Color Selection */}
                 {productDetails?.colors?.length > 0 && (
                     <div className="space-y-2">
@@ -400,13 +421,14 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                         
                         {/* Action Buttons */}
                         <div className="flex items-center gap-2">
-                            <Link
-                                href={`#`}
-                                className="px-4 py-2 border border-gray-300 text-gray-900 text-sm rounded-md hover:bg-gray-50 transition flex items-center gap-1"
+                            <button
+                                onClick={handleChat}
+                                disabled={isChatLoading}
+                                className="px-4 py-2 border border-gray-300 text-gray-900 text-sm rounded-md hover:bg-gray-50 transition flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <MessageSquareText size={16} />
-                                Chat
-                            </Link>
+                                {isChatLoading ? 'Starting...' : 'Chat'}
+                            </button>
                         </div>
                     </div>
                     {/*Seller Performance*/}
