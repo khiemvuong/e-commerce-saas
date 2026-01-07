@@ -76,5 +76,5 @@ const server = app.listen(port, () => {
   console.log(`Swagger docs available at http://localhost:${port}/docs`);
 });
 server.on("error", (err) => {
-  console.error("Server erros:", err);
+  console.error("Server errors:", err);
 });

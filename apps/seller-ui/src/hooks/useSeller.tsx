@@ -4,21 +4,24 @@ import axiosInstance from "../utils/axiosInstance";
 // Fetch seller data from API
 
 const fetchSeller = async () => {
-    const response = await axiosInstance.get('/api/logged-in-seller');
-    return response.data.seller;
+    try {
+        const response = await axiosInstance.get('/api/logged-in-seller');
+        return response.data.seller;
+    } catch (error) {
+        return null;
+    }
 };
 
 
 const useSeller = () => {
-    const {data: seller, isLoading, isError, refetch} = useQuery({
+    const {data: seller, isPending, isError, refetch} = useQuery({
         queryKey: ["seller"],
         queryFn: fetchSeller,
         staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 0, // Changed from 1 to 0 - let axios handle retries
-        refetchOnWindowFocus: false, // Prevent unnecessary refetches
-        retryOnMount: false,
+        retry: false,
+        refetchOnWindowFocus: false,
     });
-    return {seller,isLoading,isError,refetch};
+    return {seller: seller as any, isLoading: isPending, isError, refetch};
 };
 
 export default useSeller;

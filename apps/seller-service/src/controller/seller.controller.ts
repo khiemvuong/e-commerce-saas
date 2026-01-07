@@ -28,8 +28,24 @@ export const getShopDetails = async (
                 products: {
                     where: { isDeleted: false },
                     orderBy: { createdAt: "desc" },
-                    include: {
-                        images: { take: 1 }
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        sale_price: true,
+                        regular_price: true,
+                        stock: true,
+                        rating: true,
+                        totalSales: true,
+                        status: true,
+                        createdAt: true,
+                        images: {
+                            take: 1,
+                            select: {
+                                id: true,
+                                file_url: true
+                            }
+                        }
                     }
                 }
             }
@@ -93,8 +109,24 @@ export const getShopProducts = async (
         const products = await prisma.products.findMany({
             where: { shopId: id, isDeleted: false },
             orderBy: { createdAt: "desc" },
-            include: {
-                images: { take: 1 }
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
             }
         });
 
@@ -275,7 +307,20 @@ export const getSellerAnalytics = async (
             where: { shopId: shop.id, isDeleted: false },
             orderBy: { totalSales: 'desc' },
             take: 5,
-            include: { images: { take: 1 } }
+            select: {
+                id: true,
+                title: true,
+                sale_price: true,
+                regular_price: true,
+                totalSales: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
+            }
         });
 
         // 3. Recent Orders
@@ -319,7 +364,13 @@ export const getSellerOrders = async (req:any, res:Response, next:NextFunction) 
                         id: true,
                         name: true,
                         email: true,
-                        avatar: true,
+                        avatar: {
+                            take: 1,
+                            select: {
+                                id: true,
+                                file_url: true
+                            }
+                        }
                     }
                 }
             },

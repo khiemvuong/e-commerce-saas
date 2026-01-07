@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
-import useSeller from "../hooks/useSeller";
-import { Toaster, toast } from "react-hot-toast";
+import { toast } from "react-hot-toast";
 import {
   Image as Store,
   Save,
@@ -32,15 +31,6 @@ const SellerDashboard = () => {
   const [openingHours, setOpeningHours] = useState("");
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
-
-  const { seller, isLoading: isSellerLoading } = useSeller();
-
-  useEffect(() => {
-    if (!isSellerLoading && !seller) {
-      toast.error("Please login to continue");
-      route.push("/login");
-    }
-  }, [seller, isSellerLoading, route]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["seller-shop"],
@@ -136,7 +126,7 @@ const SellerDashboard = () => {
   const getAvatar = () => images.find((img) => img.type === "avatar");
   const getCover = () => images.find((img) => img.type === "cover");
 
-  if (isLoading || isSellerLoading) return <PageLoader />;
+  if (isLoading) return <PageLoader />;
   
   if (error) {
     route.push("/login");
@@ -144,7 +134,8 @@ const SellerDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-800 font-sans selection:bg-purple-300 pb-20">
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-800 font-sans selection:bg-purple-300 pb-20">
       {/* Cover Image Section */}
       <div className="relative h-[250px] w-full group overflow-hidden">
         {getCover() ? (
@@ -364,8 +355,8 @@ const SellerDashboard = () => {
           </div>
         )}
       </div>
-      <Toaster position="bottom-right" />
-    </div>
+      </div>
+    </>
   );
 };
 

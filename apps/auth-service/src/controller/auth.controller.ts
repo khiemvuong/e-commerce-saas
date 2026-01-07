@@ -15,19 +15,24 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export const userRegistetration = async (req: Request, res: Response, next: NextFunction) => {
     try {
         validateRegistrationData(req.body, "user");
-        const{name,email} = req.body;
-    
-        const existingUser = await prisma.users.findUnique({where: {email}});
+        const { name, email } = req.body;
 
-        if(existingUser){
+        const existingUser = await prisma.users.findUnique({ where: { email } });
+
+        if (existingUser) {
             return next(new ValidationError("User already exists with this email"));
         }
 
-        await checkOtpRestrictions(email,next);
+        await checkOtpRestrictions(email, next);
 
-        await trackOtpRequest(email,next);
-        await sendOtp(name,email,"user-activation-mail");
+        await trackOtpRequest(email, next);
+        await sendOtp(name, email, "user-activation-mail");
 
+        await sendLog({
+            type: 'info',
+            message: `OTP sent for user registration: ${email}`,
+            source: 'auth-service'
+        });
         res.status(200).json({
             message: "OTP sent to email. Please verify your account"
         });
@@ -44,8 +49,8 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
         if (!email || !otp || !password || !name) {
             return next(new ValidationError("All fields are required"));
         }
-        const existingUser = await prisma.users.findUnique({where: {email}});
-        if(existingUser){
+        const existingUser = await prisma.users.findUnique({ where: { email } });
+        if (existingUser) {
             return next(new ValidationError("User already exists with this email"));
         }
 
@@ -59,6 +64,11 @@ export const verifyUser = async (req: Request, res: Response, next: NextFunction
                 role: "user",
                 password: hashedPassword
             }
+        });
+        await sendLog({
+            type: 'success',
+            message: `User registered successfully: ${email}`,
+            source: 'auth-service'
         });
         res.status(201).json({
             success: true,
@@ -78,13 +88,23 @@ export const userLogin = async (req: Request, res: Response, next: NextFunction)
             return next(new ValidationError("Email and password are required"));
         }
 
-        const user = await prisma.users.findUnique({where: {email}});
-        if(!user){
+        const user = await prisma.users.findUnique({ where: { email } });
+        if (!user) {
+            await sendLog({
+                type: 'warning',
+                message: `Login failed: User not found for email ${email}`,
+                source: 'auth-service'
+            });
             return next(new AuthError("User doesn't exists!"));
         }
         //Verify password
         const isMatch = await bcrypt.compare(password, user.password!);
         if (!isMatch) {
+            await sendLog({
+                type: 'warning',
+                message: `Login failed: Invalid password for user ${email}`,
+                source: 'auth-service'
+            });
             return next(new AuthError("Invalid email or password"));
         }
 
@@ -94,19 +114,24 @@ export const userLogin = async (req: Request, res: Response, next: NextFunction)
         //Generate access and refresh token
         const accessToken = jwt.sign({ id: user.id, role: "user" },
             process.env.ACCESS_TOKEN_SECRET as string, {
-                expiresIn: '15min'
-            });
+            expiresIn: '15min'
+        });
         const refreshToken = jwt.sign({ id: user.id, role: "user" },
             process.env.REFRESH_TOKEN_SECRET as string, {
-                expiresIn: '7d'
-            });
+            expiresIn: '7d'
+        });
         // Store the refresh and access token in httpOnly secure cookies
         setCookie(res, 'refresh_token', refreshToken);
         setCookie(res, 'access_token', accessToken);
+        await sendLog({
+            type: 'success',
+            message: `User logged in successfully: ${email}`,
+            source: 'auth-service'
+        });
         //Send response
         res.status(200).json({
             message: "Login successful",
-            user:{ id: user.id, name: user.name, email: user.email },
+            user: { id: user.id, name: user.name, email: user.email },
         });
     } catch (error) {
         next(error);
@@ -117,10 +142,10 @@ export const userLogin = async (req: Request, res: Response, next: NextFunction)
 export const refreshToken = async (req: any, res: Response, next: NextFunction) => {
     try {
         const refreshToken =
-        req.cookies["refresh_token"] ||
-        req.cookies["seller-refresh-token"] ||
-        req.cookies["admin-refresh-token"] ||
-        req.headers.authorization?.split(" ")[1];
+            req.cookies["refresh_token"] ||
+            req.cookies["seller-refresh-token"] ||
+            req.cookies["admin-refresh-token"] ||
+            req.headers.authorization?.split(" ")[1];
         if (!refreshToken) {
             throw new ValidationError("Unauthorized! No refresh token provided");
         }
@@ -134,7 +159,7 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
         if (decoded.role === "user") {
             account = await prisma.users.findUnique({ where: { id: decoded.id } });
         } else if (decoded.role === "seller") {
-            account = await prisma.sellers.findUnique({ 
+            account = await prisma.sellers.findUnique({
                 where: { id: decoded.id },
                 include: { shop: true },
             });
@@ -145,21 +170,21 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
             return new AuthError("Forbidden! User not found");
         }
 
-        const newAccessToken = jwt.sign({ id:decoded.id, role: decoded.role },
+        const newAccessToken = jwt.sign({ id: decoded.id, role: decoded.role },
             process.env.ACCESS_TOKEN_SECRET as string, {
             expiresIn: '15min'
         });
 
-        if(decoded.role==="user"){
+        if (decoded.role === "user") {
             setCookie(res, 'access_token', newAccessToken);
-        } else if(decoded.role==="seller"){
+        } else if (decoded.role === "seller") {
             setCookie(res, 'seller-access-token', newAccessToken);
-        } else if(decoded.role==="admin"){
+        } else if (decoded.role === "admin") {
             setCookie(res, 'admin-access-token', newAccessToken);
         }
 
         req.role = decoded.role;
-        return res.status(201).json({success: true, message: "Access token"})
+        return res.status(201).json({ success: true, message: "Access token" })
 
 
     } catch (error) {
@@ -170,6 +195,11 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
 // get logged in user
 export const getUser = async (req: any, res: Response, next: NextFunction) => {
     try {
+        await sendLog({
+            type:'success',
+            message:`User data fetched for user ID: ${req.user?.id}`,
+            source:"auth-service",
+        })
         const userId = req.user?.id;
 
         if (!userId) {
@@ -180,14 +210,13 @@ export const getUser = async (req: any, res: Response, next: NextFunction) => {
             where: { id: userId },
             include: { avatar: true }
         });
-        
+
         if (!user) {
-             return next(new AuthError("User not found"));
+            return next(new AuthError("User not found"));
         }
 
-        // Map the avatar array to a single URL string for the frontend
         const userResponse = { ...user, avatar: user.avatar.length > 0 ? user.avatar[0].file_url : null };
-        res.status(201).json({success: true, user: userResponse})
+        res.status(201).json({ success: true, user: userResponse })
     } catch (error) {
         next(error);
     }
@@ -200,7 +229,7 @@ export const userForgotPassword = async (req: Request, res: Response, next: Next
 // Verify user OTP for forgot password
 export const verifyUserForgotPassword = async (req: Request, res: Response, next: NextFunction) => {
     await verifyForgotPasswordOtp(req, res, next);
-    }
+}
 
 //Reset user password
 export const resetUserPassword = async (req: Request, res: Response, next: NextFunction) => {
@@ -209,8 +238,8 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
         if (!email || !otp || !newPassword) {
             return next(new ValidationError("All fields are required"));
         }
-        const user = await prisma.users.findUnique({where: {email}});
-        if(!user){
+        const user = await prisma.users.findUnique({ where: { email } });
+        if (!user) {
             return next(new ValidationError("User doesn't exists!"));
         }
 
@@ -226,6 +255,11 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
             data: { password: hashedPassword }
         });
 
+        await sendLog({
+            type: 'success',
+            message: `Password reset successfully for user: ${email}`,
+            source: 'auth-service'
+        });
         res.status(200).json({
             message: "Password reset successfully"
         });
@@ -238,22 +272,27 @@ export const resetUserPassword = async (req: Request, res: Response, next: NextF
 export const registerSeller = async (req: Request, res: Response, next: NextFunction) => {
     try {
         validateRegistrationData(req.body, "seller");
-        const{name,email} = req.body;
+        const { name, email } = req.body;
 
         const existingSeller = await prisma.sellers.findUnique({
             where: {
                 email
             }
         });
-        
+
         if (existingSeller) {
             throw new ValidationError("Seller already exists with this email");
         }
 
-        await checkOtpRestrictions(email,next);
-        await trackOtpRequest(email,next);
-        await sendOtp(name,email,"seller-activation");
+        await checkOtpRestrictions(email, next);
+        await trackOtpRequest(email, next);
+        await sendOtp(name, email, "seller-activation");
 
+        await sendLog({
+            type: 'info',
+            message: `OTP sent for seller registration: ${email}`,
+            source: 'auth-service'
+        });
         res.status(200).json({
             message: "OTP sent to email. Please verify your account"
         });
@@ -265,13 +304,13 @@ export const registerSeller = async (req: Request, res: Response, next: NextFunc
 //Verify seller OTP
 export const verifySeller = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { name, email, otp, password,  phone_number, country } = req.body;
+        const { name, email, otp, password, phone_number, country } = req.body;
         if (!email || !otp || !password || !name || !phone_number || !country) {
             return next(new ValidationError("All fields are required"));
         }
-        const existingSeller = await prisma.sellers.findUnique({where: {email}});
+        const existingSeller = await prisma.sellers.findUnique({ where: { email } });
 
-        if(existingSeller){
+        if (existingSeller) {
             return next(new ValidationError("Seller already exists with this email"));
         }
 
@@ -303,16 +342,21 @@ export const verifySeller = async (req: Request, res: Response, next: NextFuncti
         // để cookie tồn tại được khi Stripe redirect về.
         setCookie(res, "seller-access-token", accessToken);
         setCookie(res, "seller-refresh-token", refreshToken);
+        await sendLog({
+            type: 'success',
+            message: `Seller registered successfully: ${email}`,
+            source: 'auth-service'
+        });
         res.status(201).json({
             success: true,
             message: "Seller registered and logged in successfully!",
-            seller: { 
-                id: seller.id, 
-                name: seller.name, 
-                email: seller.email, 
-                phone_number: seller.phone_number, 
-                country: seller.country, 
-                stripeId: seller.stripeId 
+            seller: {
+                id: seller.id,
+                name: seller.name,
+                email: seller.email,
+                phone_number: seller.phone_number,
+                country: seller.country,
+                stripeId: seller.stripeId
             },
         });
     } catch (error) {
@@ -361,12 +405,12 @@ export const updateUserProfile = async (req: any, res: Response, next: NextFunct
         const { name, avatar } = req.body;
 
         if (avatar && avatar.file_url && avatar.fileId) {
-             // Delete old avatar images
-             await prisma.images.deleteMany({
+            // Delete old avatar images
+            await prisma.images.deleteMany({
                 where: { userId, type: 'avatar' }
-             });
-             
-             await prisma.users.update({
+            });
+
+            await prisma.users.update({
                 where: { id: userId },
                 data: {
                     name,
@@ -378,7 +422,7 @@ export const updateUserProfile = async (req: any, res: Response, next: NextFunct
                         }
                     }
                 }
-             });
+            });
         } else {
             await prisma.users.update({
                 where: { id: userId },
@@ -400,19 +444,24 @@ export const createShop = async (req: Request, res: Response, next: NextFunction
             return next(new ValidationError("All fields are required"));
         }
         const shopData: any = {
-                name,
-                bio,
-                address,
-                opening_hours,
-                category,
-                sellerId,
+            name,
+            bio,
+            address,
+            opening_hours,
+            category,
+            sellerId,
         };
 
-        if(website && website.trim()!==""){
+        if (website && website.trim() !== "") {
             shopData.website = website;
         }
         const shop = await prisma.shops.create({
             data: shopData
+        });
+        await sendLog({
+            type: 'success',
+            message: `Shop created: ${name} (ID: ${shop.id}) by seller ${sellerId}`,
+            source: 'auth-service'
         });
         res.status(201).json({
             success: true,
@@ -467,11 +516,21 @@ export const createStripeConnectLink = async (req: Request, res: Response, next:
             type: "account_onboarding",
         });
 
+        await sendLog({
+            type: 'info',
+            message: `Stripe connect link generated for seller ${sellerId}`,
+            source: 'auth-service'
+        });
         res.status(200)
-        .json({ url: accountLink.url });
-    } catch (error:any) {
+            .json({ url: accountLink.url });
+    } catch (error: any) {
         console.error("Stripe Connect Link Error:", error);
 
+        await sendLog({
+            type: 'error',
+            message: `Stripe Connect Link Error for seller ${req.body.sellerId}: ${error.message}`,
+            source: 'auth-service'
+        });
         if (error.type === "StripeInvalidRequestError") {
             return res.status(400).json({ message: error.message });
         }
@@ -492,14 +551,24 @@ export const loginSeller = async (req: Request, res: Response, next: NextFunctio
             return next(new ValidationError("Email and password are required"));
         }
 
-        const seller = await prisma.sellers.findUnique({where: {email}});
-        
-        if(!seller){
+        const seller = await prisma.sellers.findUnique({ where: { email } });
+
+        if (!seller) {
+            await sendLog({
+                type: 'warning',
+                message: `Seller login failed: Email not found ${email}`,
+                source: 'auth-service'
+            });
             return next(new AuthError("Seller doesn't exists!"));
         }
         //Verify password
         const isMatch = await bcrypt.compare(password, seller.password!);
         if (!isMatch) {
+            await sendLog({
+                type: 'warning',
+                message: `Seller login failed: Invalid password for ${email}`,
+                source: 'auth-service'
+            });
             return next(new ValidationError("Invalid email or password"));
         }
         res.clearCookie("access_token");
@@ -508,19 +577,24 @@ export const loginSeller = async (req: Request, res: Response, next: NextFunctio
         //Generate access and refresh token
         const accessToken = jwt.sign({ id: seller.id, role: "seller" },
             process.env.ACCESS_TOKEN_SECRET as string, {
-                expiresIn: '15min'
-            });
+            expiresIn: '15min'
+        });
         const refreshToken = jwt.sign({ id: seller.id, role: "seller" },
             process.env.REFRESH_TOKEN_SECRET as string, {
-                expiresIn: '7d'
-            });
+            expiresIn: '7d'
+        });
         // Store the refresh and access token in httpOnly secure cookies
         setCookie(res, "seller-refresh-token", refreshToken);
         setCookie(res, "seller-access-token", accessToken);
+        await sendLog({
+            type: 'success',
+            message: `Seller logged in successfully: ${email}`,
+            source: 'auth-service'
+        });
         //Send response
         res.status(200).json({
             message: "Login successful",
-            seller:{ id: seller.id, name: seller.name, email: seller.email, phone_number: seller.phone_number, country: seller.country, stripeId: seller.stripeId },
+            seller: { id: seller.id, name: seller.name, email: seller.email, phone_number: seller.phone_number, country: seller.country, stripeId: seller.stripeId },
         });
     } catch (error) {
         next(error);
@@ -530,8 +604,8 @@ export const loginSeller = async (req: Request, res: Response, next: NextFunctio
 //Get logged in seller
 export const getSeller = async (req: any, res: Response, next: NextFunction) => {
     try {
-        const seller=req.seller;
-        res.status(201).json({success: true, seller})
+        const seller = req.seller;
+        res.status(201).json({ success: true, seller })
     } catch (error) {
         next(error);
     }
@@ -541,14 +615,14 @@ export const getSeller = async (req: any, res: Response, next: NextFunction) => 
 export const logOutSeller = async (req: any, res: Response, next: NextFunction) => {
     res.clearCookie("seller-access-token");
     res.clearCookie("seller-refresh-token");
-    res.status(200).json({message: "Logged out successfully"});
+    res.status(200).json({ message: "Logged out successfully" });
 }
 
 //Get logged in admin
 export const getAdmin = async (req: any, res: Response, next: NextFunction) => {
     try {
-        const admin=req.admin;
-        res.status(201).json({success: true, admin})
+        const admin = req.admin;
+        res.status(201).json({ success: true, admin })
     } catch (error) {
         next(error);
     }
@@ -558,7 +632,7 @@ export const getAdmin = async (req: any, res: Response, next: NextFunction) => {
 export const logOutAdmin = async (req: any, res: Response, next: NextFunction) => {
     res.clearCookie("admin-access-token");
     res.clearCookie("admin-refresh-token");
-    res.status(200).json({message: "Logged out successfully"});
+    res.status(200).json({ message: "Logged out successfully" });
 }
 
 //Logout user
@@ -566,7 +640,7 @@ export const logOutUser = async (req: any, res: Response, next: NextFunction) =>
     try {
         res.clearCookie("access_token");
         res.clearCookie("refresh_token");
-        res.status(200).json({message: "Logged out successfully"});
+        res.status(200).json({ message: "Logged out successfully" });
     } catch (error) {
         next(error);
     }
@@ -580,16 +654,16 @@ export const updateUserPassword = async (req: any, res: Response, next: NextFunc
             return next(new ValidationError("All fields are required"));
         }
 
-        if(newPassword !== confirmPassword){
+        if (newPassword !== confirmPassword) {
             return next(new ValidationError("New password and confirm password do not match"));
         }
 
-        if(currentPassword === newPassword){
+        if (currentPassword === newPassword) {
             return next(new ValidationError("New password must be different from current password"));
         }
 
         const user = await prisma.users.findUnique({ where: { id: userId } });
-        if (!user ||!user.password) {
+        if (!user || !user.password) {
             return next(new AuthError("User not found or password not set"));
         }
 
@@ -598,7 +672,7 @@ export const updateUserPassword = async (req: any, res: Response, next: NextFunc
             return next(new ValidationError("Current password is incorrect"));
         }
 
-        const hashedNewPassword =  await bcrypt.hash(newPassword, 12);
+        const hashedNewPassword = await bcrypt.hash(newPassword, 12);
 
         await prisma.users.update({
             where: { id: userId },
@@ -713,9 +787,9 @@ export const addUserAddress = async (req: any, res: Response, next: NextFunction
 export const deleteUserAddress = async (req: any, res: Response, next: NextFunction) => {
     try {
         const userId = req.user?.id;
-        const {addressId} = req.params;
+        const { addressId } = req.params;
 
-        if(!addressId){
+        if (!addressId) {
             return next(new ValidationError("Address ID is required"));
         }
 
@@ -725,7 +799,7 @@ export const deleteUserAddress = async (req: any, res: Response, next: NextFunct
                 userId
             }
         });
-        if(!existingAddress){
+        if (!existingAddress) {
             return next(new ValidationError("Address not found"));
         }
 
@@ -735,7 +809,7 @@ export const deleteUserAddress = async (req: any, res: Response, next: NextFunct
             }
         });
 
-        res.status(200).json({success: true, message: "Address deleted successfully"});
+        res.status(200).json({ success: true, message: "Address deleted successfully" });
     } catch (error) {
         next(error);
     }

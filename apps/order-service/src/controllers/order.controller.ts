@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { Request,NextFunction,Response } from "express";
 import { Stripe } from "stripe";
 import { sendEmail } from "../utils/send-email";
+import { sendLog } from '@packages/utils/kafka';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 //Create payment intent
@@ -29,6 +30,11 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
                 sessionId: sessionId,
                 userId: req.user.id,
             },
+        });
+        await sendLog({
+            type: 'info',
+            message: `Payment intent created for user: ${req.user.id}, amount: ${amount}`,
+            source: 'order-service'
         });
         res.send({
             clientSecret: paymentIntent.client_secret,
@@ -130,6 +136,11 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             600, // 10 minutes expiration
             JSON.stringify(sessionData)
         );
+        await sendLog({
+            type: 'info',
+            message: `Payment session created: ${sessionId} for user: ${userId}`,
+            source: 'order-service'
+        });
         res.status(201).json({ sessionId });
     } catch (error) {
         next(error);
@@ -179,6 +190,11 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
             );
         } catch (err:any) {
             console.error("Stripe webhook signature verification failed:", err.message);
+            await sendLog({
+                type: 'error',
+                message: `Stripe webhook signature verification failed: ${err.message}`,
+                source: 'order-service'
+            });
             return res.status(400).send(`Webhook Error: ${err.message}`);
         }
 
@@ -192,6 +208,11 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
 
             if(!sessionData){
                 console.warn("Payment session not found or expired for sessionId:", sessionId);
+                await sendLog({
+                    type: 'warning',
+                    message: `Payment session not found or expired for sessionId: ${sessionId}`,
+                    source: 'order-service'
+                });
                 return res
                 .status(404)
                 .send("Payment session not found or expired");
@@ -235,7 +256,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                 }
 
                 //Create order in DB
-                await prisma.orders.create({
+                const order = await prisma.orders.create({
                     data: {
                         userId,
                         shopId,
@@ -254,6 +275,11 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                             })),
                         },
                     },
+                });
+                await sendLog({
+                    type: 'success',
+                    message: `Order created: ${order.id} for user: ${userId}, shop: ${shopId}`,
+                    source: 'order-service'
                 });
                 //Update product & analystics
                 for(const item of orderItems){
@@ -313,19 +339,29 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                     }
                 }
 
-                await sendEmail(
-                    email,
-                    'Order Confirmation',
-                    "order-confirmation",
-                    {
-                        name,
-                        cart,
-                        totalAmount: coupon?.discountAmount
-                            ? (totalAmount - coupon.discountAmount)
-                            : totalAmount,
-                        trackingUrl :`https://ilan.com/order/${sessionId}`,
-                    }
-                )
+                try {
+                    await sendEmail(
+                        email,
+                        'Order Confirmation',
+                        "order-confirmation",
+                        {
+                            name,
+                            cart,
+                            totalAmount: coupon?.discountAmount
+                                ? (totalAmount - coupon.discountAmount)
+                                : totalAmount,
+                            trackingUrl :`https://ilan.com/order/${sessionId}`,
+                        }
+                    )
+                } catch (error: any) {
+                    console.error("Failed to send order confirmation email:", error);
+                    await sendLog({
+                        type: 'error',
+                        message: `Failed to send email for order ${sessionId}: ${error.message}`,
+                        source: 'order-service'
+                    });
+                    // Không throw error ở đây để tránh Stripe retry webhook gây trùng đơn hàng
+                }
 
                 //Create notifications for sellers
                 const createdShopIds = Object.keys(shopGrouped);
@@ -381,8 +417,13 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
             }
         }
         res.status(200).json({received: true});
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error processing order creation:", error);
+        await sendLog({
+            type: 'error',
+            message: `Error processing order creation: ${error.message}`,
+            source: 'order-service'
+        });
         return next(error);
     }
 }
@@ -403,6 +444,11 @@ export const verifyCouponCode = async (req:any,res:Response,next:NextFunction) =
         });
 
         if(!discount){
+            await sendLog({
+                type: 'info',
+                message: `Invalid coupon code attempt: ${couponCode}`,
+                source: 'order-service'
+            });
             return next(new ValidationError("Invalid coupon code"));
         }
 
@@ -431,6 +477,11 @@ export const verifyCouponCode = async (req:any,res:Response,next:NextFunction) =
         //Prevent discount from being more than total price
         discountAmount = Math.min(discountAmount, price);
 
+        await sendLog({
+            type: 'info',
+            message: `Coupon code verified: ${couponCode}`,
+            source: 'order-service'
+        });
         res.status(200).json({
             valid:true,
             discount: discount.discountValue,
@@ -489,5 +540,3 @@ export const getAdminOrders = async (req:any,res:Response,next:NextFunction) => 
         next(error);
     }
 }
-
-
