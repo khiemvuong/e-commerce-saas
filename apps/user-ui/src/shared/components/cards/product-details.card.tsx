@@ -192,6 +192,13 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
                             ) : (
                                 <span className="ml-4 text-sm text-red-600 font-medium">Out of Stock</span>
                             )}
+                            {/* COD Badge */}
+                            {data?.cash_on_delivery === 'yes' && (
+                                <>
+                                    <span className="mx-3 text-gray-500">|</span>
+                                    <span className="text-sm text-green-600 font-medium">💵 COD</span>
+                                </>
+                            )}
                         </div>
                         {/*Price*/}
                         <div className="mt-1 flex items-center gap-4">

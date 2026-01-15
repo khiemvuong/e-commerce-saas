@@ -551,17 +551,13 @@ const handleImageChange = async (file: File | null, index: number) => {
                   {/* Detail Description */}
                   <div className="mt-2">
                       <label className="block font-semibold text-gray-300 mb-1">
-                        Detailed Description * (Min 100 words)
+                        Detailed Description *
                       </label>
                       <Controller
                         name="detailed_description"
                         control={control}
                         rules={{
-                          required: "Detailed description is required",
-                          validate: (value) => {
-                            const wordCount = value.trim().split(/\s+/).length;
-                            return wordCount >= 100 || `Detailed description must be at least 100 words (Current: ${wordCount} words)`;
-                          }
+                          required: "Detailed description is required"
                         }}
                         render={({ field }) => (
                           <RichTextEditor

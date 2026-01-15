@@ -114,16 +114,18 @@ model address {
 // Orders model - Track customer orders
 model orders {
   id                String       @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String       @db.ObjectId
-  user              users        @relation(fields: [userId], references: [id])
+  userId            String?      @db.ObjectId
+  user              users?       @relation(fields: [userId], references: [id])
   shopId            String       @db.ObjectId
   shop              shops        @relation(fields: [shopId], references: [id])
   total             Float
   shippingAddressId String?      @db.ObjectId
   couponCode        String?
   discountAmount    Float        @default(0)
-  status            String?
+  status            String?      // "Paid" | "COD" | "Pending"
+  paymentMethod     String       @default("stripe") // "stripe" | "cod"
   deliveryStatus    String       @default("Ordered")
+  guestEmail        String?      // For guest COD orders
   items             orderItems[] @relation("OrderItemsRelation")
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt

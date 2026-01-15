@@ -407,6 +407,29 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                         </div>
                     </div>
 
+                    {/* Cash on Delivery */}
+                    <div className="flex items-start gap-3">
+                        <WalletMinimal size={18} className={`mt-0.5 flex-shrink-0 ${
+                            productDetails?.cash_on_delivery === 'yes' 
+                                ? 'text-green-600' 
+                                : 'text-gray-400'
+                        }`} />
+                        <div className="flex-1">
+                            <p className={`text-sm font-medium ${
+                                productDetails?.cash_on_delivery === 'yes' 
+                                    ? 'text-green-700' 
+                                    : 'text-gray-500'
+                            }`}>
+                                {productDetails?.cash_on_delivery === 'yes' 
+                                    ? 'Cash on Delivery Available' 
+                                    : 'Cash on Delivery Not Available'}
+                            </p>
+                            {productDetails?.cash_on_delivery === 'yes' && (
+                                <p className="text-xs text-gray-500 mt-0.5">Pay with cash upon delivery</p>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Sold by */}
                     <div className="flex items-center justify-between gap-3 pt-2 border-t">
                         <div className="flex-1">

@@ -1,7 +1,7 @@
 import { isAdmin } from '@packages/middleware/authorizeRoles';
 import isAuthenticated from '@packages/middleware/isAuthenticated';
 import express, { Router } from 'express';
-import { addNewAdmin, getAllAdmins, getAllCustomizations, getAllEvents, getAllProducts, getAllSellers, getAllUsers, removeAdmin, updateSiteConfig, uploadSiteImage } from '../controllers/admin.controller';
+import { addNewAdmin, getAllAdmins, getAllCustomizations, getAllEvents, getAllNotifications, getAllProducts, getAllSellers, getAllUsers, getUserNotifications, removeAdmin, updateSiteConfig, uploadSiteImage } from '../controllers/admin.controller';
 
 const router: Router = express.Router();
 
@@ -15,5 +15,6 @@ router.put('/update-site-config', isAuthenticated,isAdmin, updateSiteConfig);
 router.get('/get-all-users', isAuthenticated,isAdmin, getAllUsers);
 router.get('/get-all-sellers', isAuthenticated,isAdmin, getAllSellers);
 router.post('/upload-site-image', isAuthenticated, isAdmin, uploadSiteImage);
-
+router.get('/get-all-notifications',isAuthenticated,isAdmin, getAllNotifications);
+router.get('/get-user-notifications',isAuthenticated, getUserNotifications);
 export default router;

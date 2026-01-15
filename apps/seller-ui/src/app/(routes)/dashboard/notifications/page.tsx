@@ -17,21 +17,19 @@ import {
     Info,
 } from 'lucide-react';
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
-import axiosInstance from 'apps/admin-ui/src/utils/axiosInstance';
-import BreadCrumbs from 'apps/admin-ui/src/shared/components/breadcrums';
-import ComponentLoader from 'apps/admin-ui/src/shared/components/loading/component-loader';
+import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 
-const Notifications = () => {
+const SellerNotifications = () => {
     const [globalFilter, setGlobalFilter] = useState('');
     const deferredFilter = useDeferredValue(globalFilter);
     const [page, setPage] = useState(1);
     const limit = 10; // items per page
 
     const { data, isLoading }: UseQueryResult<any> = useQuery({
-        queryKey: ['all-notifications', page, deferredFilter],
+        queryKey: ['seller-notifications', page, deferredFilter],
         queryFn: async () => {
             const res = await axiosInstance.get(
-                `/admin/api/get-all-notifications?page=${page}&limit=${limit}&search=${deferredFilter}`
+                `/seller/api/seller-notifications?page=${page}&limit=${limit}&search=${deferredFilter}`
             );
             return res.data;
         },
@@ -72,7 +70,7 @@ const Notifications = () => {
                 header: 'Type',
                 accessorKey: 'type',
                 cell: ({ row }: any) => {
-                    const type = row.original.type || 'info';
+                    const type = row.original.type || 'System';
                     const style = getNotificationStyle(type);
                     const IconComponent = style.icon;
 
@@ -157,7 +155,7 @@ const Notifications = () => {
         const csvData = allNotifications.map((notification: any) =>
             [
                 `"${notification.id}"`,
-                `"${String(notification.type || 'info').replace(/"/g, '""')}"`,
+                `"${String(notification.type || 'System').replace(/"/g, '""')}"`,
                 `"${String(notification.title || '').replace(/"/g, '""')}"`,
                 `"${String(notification.message || '').replace(/"/g, '""')}"`,
                 `"${new Date(notification.createdAt).toLocaleString('vi-VN')}"`,
@@ -169,17 +167,17 @@ const Notifications = () => {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `notifications-page-${page}-${new Date().getTime()}.csv`);
+        link.setAttribute('download', `seller-notifications-page-${page}-${new Date().getTime()}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
     return (
-        <div className="w-full min-h-screen p-6 bg-gray-950 text-white">
+        <div className="w-full min-h-screen p-6 bg-gray-900 text-white">
             {/* Header */}
-            <div className="flex justify-between items-center mb-4">
-                <BreadCrumbs title="Notifications" />
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Notifications</h1>
                 <button
                     onClick={exportCSV}
                     disabled={isLoading || allNotifications.length === 0}
@@ -191,7 +189,7 @@ const Notifications = () => {
             </div>
 
             {/* Search Bar */}
-            <div className="mb-6 flex items-center bg-gray-900 border border-gray-800 p-3 rounded-lg hover:border-gray-700 transition">
+            <div className="mb-6 flex items-center bg-gray-800 border border-gray-700 p-3 rounded-lg hover:border-gray-600 transition">
                 <Search size={20} className="text-gray-400 mr-3" />
                 <input
                     type="text"
@@ -203,14 +201,16 @@ const Notifications = () => {
             </div>
 
             {/* Table */}
-            <div className="bg-gray-900 rounded-xl shadow-xl border border-gray-800 overflow-hidden">
+            <div className="bg-gray-800 rounded-xl shadow-xl border border-gray-700 overflow-hidden">
                 {isLoading ? (
-                    <ComponentLoader text="Loading notifications..." />
+                    <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                    </div>
                 ) : (
                     <>
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-gray-800 border-b border-gray-700">
+                                <thead className="bg-gray-700 border-b border-gray-600">
                                     {table.getHeaderGroups().map((headerGroup) => (
                                         <tr key={headerGroup.id}>
                                             {headerGroup.headers.map((header) => (
@@ -229,20 +229,20 @@ const Notifications = () => {
                                         </tr>
                                     ))}
                                 </thead>
-                                <tbody className="divide-y divide-gray-800">
+                                <tbody className="divide-y divide-gray-700">
                                     {table.getRowModel().rows.length === 0 ? (
                                         <tr>
                                             <td colSpan={columns.length} className="text-center text-gray-500 py-12">
                                                 <div className="flex flex-col items-center gap-2">
-                                                    <Bell size={48} className="text-gray-700" />
+                                                    <Bell size={48} className="text-gray-600" />
                                                     <p className="text-lg font-medium">No notifications found</p>
-                                                    <p className="text-sm text-gray-600">Try adjusting your search</p>
+                                                    <p className="text-sm text-gray-500">Try adjusting your search</p>
                                                 </div>
                                             </td>
                                         </tr>
                                     ) : (
                                         table.getRowModel().rows.map((row) => (
-                                            <tr key={row.id} className="hover:bg-gray-800/50 transition">
+                                            <tr key={row.id} className="hover:bg-gray-700/50 transition">
                                                 {row.getVisibleCells().map((cell) => (
                                                     <td key={cell.id} className="px-6 py-4">
                                                         {flexRender(
@@ -258,7 +258,7 @@ const Notifications = () => {
                             </table>
                         </div>
                         {totalPages > 1 && (
-                            <div className="flex items-center justify-between px-6 py-4 bg-gray-800 border-t border-gray-700">
+                            <div className="flex items-center justify-between px-6 py-4 bg-gray-700 border-t border-gray-600">
                                 <div className="text-sm text-gray-400">
                                     Showing <span className="font-medium text-white">{(page - 1) * limit + 1}</span> to{' '}
                                     <span className="font-medium text-white">
@@ -270,7 +270,7 @@ const Notifications = () => {
                                     <button
                                         onClick={() => setPage((p) => Math.max(p - 1, 1))}
                                         disabled={page === 1}
-                                        className="px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                        className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                                     >
                                         <ChevronLeft size={18} />
                                     </button>
@@ -281,7 +281,7 @@ const Notifications = () => {
                                     <button
                                         onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
                                         disabled={page === totalPages}
-                                        className="px-3 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                        className="px-3 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
                                     >
                                         <ChevronRight size={18} />
                                     </button>
@@ -295,4 +295,4 @@ const Notifications = () => {
     );
 };
 
-export default Notifications;
+export default SellerNotifications;

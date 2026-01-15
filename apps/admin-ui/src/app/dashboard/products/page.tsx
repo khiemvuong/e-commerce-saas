@@ -121,6 +121,19 @@ const ProductList = () => {
             ),
             },
             {
+                header:'COD',
+                accessorKey:'cod',
+                cell:({row}:any) => (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        row.original.cash_on_delivery === 'yes' 
+                            ? 'bg-green-600 text-white' 
+                            : 'bg-gray-600 text-gray-300'
+                    }`}>
+                        {row.original.cash_on_delivery === 'yes' ? 'COD Available' : 'No COD'}
+                    </span>
+                ),
+            },
+            {
                 header:'Actions',
                 accessorKey:'actions',
                 cell:({row}:any) => (
