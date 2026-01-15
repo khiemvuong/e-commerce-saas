@@ -13,6 +13,8 @@ import {
     Mail,
     UserPlus,
     UserCheck,
+    Package,
+    Sparkles,
 } from "lucide-react";
 import ProductCard from "apps/user-ui/src/shared/components/cards/product-card";
 import useUser from "apps/user-ui/src/hooks/useUser";
@@ -23,13 +25,11 @@ import useDeviceTracking from "apps/user-ui/src/hooks/useDeviceTracking";
 import { sendKafkaEvent } from "apps/user-ui/src/actions/track-user";
 
 const ShopDetails = ({ shop }: { shop: any }) => {
-    const [activeTab, setActiveTab] = useState("products");
     const { user, isLoading: isLoadingUser } = useUser();
     const [isFollowing, setIsFollowing] = useState(false);
     const [followerCount, setFollowerCount] = useState(0);
     const [isLoadingFollow, setIsLoadingFollow] = useState(false);
-    const [products, setProducts] = useState<any[]>([]);
-    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+    const [isLoading, setIsLoading] = useState(true);
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
     const hasTrackedView = useRef(false);
@@ -51,25 +51,9 @@ const ShopDetails = ({ shop }: { shop: any }) => {
     useEffect(() => {
         if (shop) {
             setFollowerCount(shop.followers?.length || 0);
+            setIsLoading(false);
         }
     }, [shop]);
-
-    useEffect(() => {
-        const fetchProducts = async () => {
-            if (!shop?.id) return;
-            try {
-                setIsLoadingProducts(true);
-                const res = await axiosInstance.get(`/seller/api/get-shop-products/${shop.id}`);
-                setProducts(res.data.products);
-            } catch (error) {
-                console.error("Failed to fetch products", error);
-            } finally {
-                setIsLoadingProducts(false);
-            }
-        };
-
-        fetchProducts();
-    }, [shop?.id]);
 
     useEffect(() => {
         if (user && shop && shop.followers) {
@@ -274,53 +258,72 @@ const ShopDetails = ({ shop }: { shop: any }) => {
                     </div>
                 </div>
 
-                {/* Navigation Tabs */}
-                <div className="border-b border-gray-200 mb-8 sticky top-0 bg-white/80 backdrop-blur-md z-10 rounded-t-xl">
-                    <div className="flex gap-8 px-4">
-                        <button
-                            onClick={() => setActiveTab("products")}
-                            className={`py-4 font-medium text-sm border-b-2 transition-colors ${activeTab === "products"
-                                    ? "border-purple-600 text-purple-600"
-                                    : "border-transparent text-gray-500 hover:text-purple-500"
-                                }`}
-                        >
-                            Products
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("about")}
-                            className={`py-4 font-medium text-sm border-b-2 transition-colors ${activeTab === "about"
-                                    ? "border-purple-600 text-purple-600"
-                                    : "border-transparent text-gray-500 hover:text-purple-500"
-                                }`}
-                        >
-                            About
-                        </button>
-                    </div>
-                </div>
-
-                {/* Content */}
-                {activeTab === "products" && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-12">
-                        {isLoadingProducts ? (
-                            <div className="col-span-full flex justify-center py-12">
-                                <Loader2 className="animate-spin text-purple-600" size={40} />
+                {/* Events Section */}
+                {shop.events && shop.events.length > 0 && (
+                    <section className="mb-12">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                                <Sparkles className="text-white" size={24} />
                             </div>
-                        ) : products && products.length > 0 ? (
-                            products.map((product: any) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))
-                        ) : (
-                            <div className="col-span-full text-center py-12 text-gray-500">
-                                No products found in this shop.
-                            </div>
-                        )}
-                    </div>
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                Events
+                            </h2>
+                            <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-sm font-medium">
+                                {shop.events.length} events
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {shop.events.map((event: any) => (
+                                <div key={event.id} className="relative">
+                                    {/* Event Date Badge */}
+                                    {event.starting_date && event.ending_date && (
+                                        <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                                            {new Date(event.starting_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - {new Date(event.ending_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                                        </div>
+                                    )}
+                                    <ProductCard product={event} />
+                                </div>
+                            ))}
+                        </div>
+                    </section>
                 )}
 
-                {activeTab === "about" && (
+                {/* Products Section */}
+                <section className="mb-12">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-blue-500 rounded-lg">
+                            <Package className="text-white" size={24} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900">
+                            Products
+                        </h2>
+                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium">
+                            {shop.products?.length || 0} products
+                        </span>
+                    </div>
+                    {isLoading ? (
+                        <div className="flex justify-center py-12">
+                            <Loader2 className="animate-spin text-purple-600" size={40} />
+                        </div>
+                    ) : shop.products && shop.products.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                            {shop.products.map((product: any) => (
+                                <ProductCard key={product.id} product={product} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-gray-500 bg-white/50 rounded-2xl">
+                            <Package className="mx-auto mb-4 text-gray-400" size={48} />
+                            <p>No products found in this shop.</p>
+                        </div>
+                    )}
+                </section>
+
+                {/* About Section */}
+                <section className="mb-12">
                     <div className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                         <h3 className="text-xl font-bold mb-4 text-gray-900">
-                            About Shop
+                            About shop
                         </h3>
                         <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
                             {shop.description || shop.bio || "No description available."}
@@ -328,7 +331,7 @@ const ShopDetails = ({ shop }: { shop: any }) => {
 
                         <div className="mt-8 pt-8 border-t border-gray-100">
                             <h4 className="font-semibold text-gray-900 mb-4">
-                                Contact Information
+                                Contact information
                             </h4>
                             <div className="space-y-3">
                                 {shop.address && (
@@ -357,7 +360,7 @@ const ShopDetails = ({ shop }: { shop: any }) => {
                             </div>
                         </div>
                     </div>
-                )}
+                </section>
             </div>
         </div>
     );

@@ -13,6 +13,7 @@ import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
 import OverlayLoader from '../loading/page-loader';
 import { motion } from 'framer-motion';
+import { optimizeImageUrl, getBlurPlaceholder, IMAGE_PRESETS } from 'apps/user-ui/src/utils/imageOptimizer';
 
 const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?: boolean }) => {
     const isEvent = isEventProp ?? !!(product?.starting_date && product?.ending_date);
@@ -130,10 +131,13 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                 <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
                     <Link href={`/product/${product?.slug}`} onClick={handleProductClick}>
                         <Image
-                            src={product?.images?.[0]?.file_url || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
-                            alt={product?.title}
-                            width={500}
-                            height={500}
+                            src={optimizeImageUrl(product?.images?.[0]?.file_url, IMAGE_PRESETS.cardThumbnail) || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
+                            alt={product?.title || 'Product image'}
+                            width={400}
+                            height={400}
+                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            placeholder="blur"
+                            blurDataURL={getBlurPlaceholder(product?.images?.[0]?.file_url) || "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEERAA=="}
                             className="w-full h-auto object-scale-down group-hover:scale-110 transition-transform duration-500"
                         />
                     </Link>

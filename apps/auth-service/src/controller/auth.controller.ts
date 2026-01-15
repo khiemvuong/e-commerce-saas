@@ -157,14 +157,20 @@ export const refreshToken = async (req: any, res: Response, next: NextFunction) 
 
         let account;
         if (decoded.role === "user") {
-            account = await prisma.users.findUnique({ where: { id: decoded.id } });
+            account = await prisma.users.findUnique({ 
+                where: { id: decoded.id },
+                select: { id: true }
+            });
         } else if (decoded.role === "seller") {
             account = await prisma.sellers.findUnique({
                 where: { id: decoded.id },
-                include: { shop: true },
+                select: { id: true, shop: { select: { id: true } } },
             });
         } else if (decoded.role === "admin") {
-            account = await prisma.users.findUnique({ where: { id: decoded.id } });
+            account = await prisma.users.findUnique({ 
+                where: { id: decoded.id },
+                select: { id: true }
+            });
         }
         if (!account) {
             return new AuthError("Forbidden! User not found");
@@ -208,7 +214,13 @@ export const getUser = async (req: any, res: Response, next: NextFunction) => {
 
         const user = await prisma.users.findUnique({
             where: { id: userId },
-            include: { avatar: true }
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                avatar: { take: 1, select: { file_url: true } },
+            }
         });
 
         if (!user) {

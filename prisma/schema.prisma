@@ -43,6 +43,8 @@ model images {
   productsId   String?      @db.ObjectId
   siteConfigId String?      @db.ObjectId
   site_config  site_config? @relation(fields: [siteConfigId], references: [id])
+
+  @@index([productsId])
 }
 
 model users {
@@ -61,6 +63,9 @@ model users {
   followings  followers[]
   orders      orders[]
   analytics   userAnalytics?
+
+  @@index([role])
+  @@index([createdAt])
 }
 
 model shopReviews {
@@ -129,6 +134,12 @@ model orders {
   items             orderItems[] @relation("OrderItemsRelation")
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([deliveryStatus])
 }
 
 model orderItems {
@@ -214,6 +225,13 @@ model products {
   shopId                String            @db.ObjectId
   Shop                  shops             @relation(fields: [shopId], references: [id])
   analytics             productAnalytics?
+
+  @@index([shopId])
+  @@index([category])
+  @@index([status, isDeleted])
+  @@index([totalSales])
+  @@index([createdAt])
+  @@index([sale_price])
 }
 
 // Product Analytics - Track product performance metrics

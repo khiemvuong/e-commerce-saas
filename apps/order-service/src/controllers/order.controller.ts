@@ -47,10 +47,13 @@ export const createPaymentIntent = async (req:any,res:Response,next:NextFunction
 //Create payment session
 export const createPaymentSession = async (req:any,res:Response,next:NextFunction) => {
     try {
+        console.log("[DEBUG] createPaymentSession called");
         const {cart,selectedAddressId,coupon} = req.body;
         const userId = req.user.id;
+        console.log("[DEBUG] userId:", userId, "cart items:", cart?.length);
 
         if(!cart || cart.length===0 || !Array.isArray(cart)){
+            console.log("[DEBUG] Cart validation failed");
             return next(new ValidationError("Cart is empty or invalid"));
         }
 
@@ -92,7 +95,16 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             }
         }
 
-        const uniqueShopIds = [...new Set(cart.map((item:any) => item.shopId))];
+        // Filter out undefined/null shopIds to prevent Prisma error
+        const uniqueShopIds = [...new Set(
+            cart.map((item:any) => item.shopId).filter((id: any) => id !== undefined && id !== null)
+        )] as string[];
+        console.log("[DEBUG] uniqueShopIds:", uniqueShopIds);
+
+        if (uniqueShopIds.length === 0) {
+            console.log("[DEBUG] No valid shopIds found in cart");
+            return next(new ValidationError("Cart contains products without shop information"));
+        }
 
         const shops = await prisma.shops.findMany({
             where: {
@@ -123,6 +135,7 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
         },0);
         //Create session payload
         const sessionId = crypto.randomUUID();
+        console.log("[DEBUG] Generated sessionId:", sessionId);
         const sessionData = {
             userId,
             cart,
@@ -131,18 +144,27 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             shippingAddressId: selectedAddressId,
             coupon: coupon || null,
         }
-        await redis.setex(
-            `payment-session:${sessionId}`, 
-            600, // 10 minutes expiration
-            JSON.stringify(sessionData)
-        );
+        console.log("[DEBUG] About to save to Redis...");
+        try {
+            await redis.setex(
+                `payment-session:${sessionId}`, 
+                600, // 10 minutes expiration
+                JSON.stringify(sessionData)
+            );
+            console.log("[DEBUG] Redis setex succeeded");
+        } catch (redisError) {
+            console.error("[DEBUG] Redis setex FAILED:", redisError);
+            throw redisError;
+        }
         await sendLog({
             type: 'info',
             message: `Payment session created: ${sessionId} for user: ${userId}`,
             source: 'order-service'
         });
+        console.log("[DEBUG] Returning sessionId to client:", sessionId);
         res.status(201).json({ sessionId });
     } catch (error) {
+        console.error("[DEBUG] createPaymentSession error:", error);
         next(error);
     }
 };
@@ -511,14 +533,25 @@ export const getUserOrders = async (req:any,res:Response,next:NextFunction) => {
         const orders = await prisma.orders.findMany({
             where: {userId},
             orderBy: {createdAt: 'desc'},
-            include: {
-                items: true,
-                shop: {
+            take: 50,
+            select: {
+                id: true,
+                total: true,
+                status: true,
+                paymentMethod: true,
+                deliveryStatus: true,
+                createdAt: true,
+                items: {
                     select: {
                         id: true,
-                        name: true,
+                        productId: true,
+                        quantity: true,
+                        price: true,
+                        title: true,
+                        selectedOptions: true,
                     }
-                }
+                },
+                shop: { select: { id: true, name: true } },
             }
         });
 
@@ -531,20 +564,37 @@ export const getUserOrders = async (req:any,res:Response,next:NextFunction) => {
 // Get admin orders
 export const getAdminOrders = async (req:any,res:Response,next:NextFunction) => {
     try {
-        const orders = await prisma.orders.findMany({
-            orderBy: {createdAt: 'desc'},
-            include: {
-                user: true,
-                shop: {
-                    select: {
-                        id: true,
-                        name: true,
-                    }
-                }
-            }
-        });
+        const page = parseInt((req.query.page as string) || "1", 10);
+        const limit = parseInt((req.query.limit as string) || "20", 10);
+        const skip = Math.max(0, (page - 1) * limit);
 
-        res.status(200).json({success: true, orders});
+        const [orders, total] = await Promise.all([
+            prisma.orders.findMany({
+                skip,
+                take: limit,
+                orderBy: {createdAt: 'desc'},
+                select: {
+                    id: true,
+                    total: true,
+                    status: true,
+                    paymentMethod: true,
+                    deliveryStatus: true,
+                    guestEmail: true,
+                    createdAt: true,
+                    user: { select: { id: true, name: true, email: true } },
+                    shop: { select: { id: true, name: true } },
+                }
+            }),
+            prisma.orders.count()
+        ]);
+
+        res.status(200).json({
+            success: true,
+            orders,
+            total,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+        });
     } catch (error) {
         next(error);
     }

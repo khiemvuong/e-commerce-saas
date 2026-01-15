@@ -5,7 +5,6 @@ import { X, Wand } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import Input from 'packages/components/input';
-import RichTextEditor from 'packages/components/rich-text-editor';
 import ColorSelector from 'packages/components/color-selector';
 import CustomSpecifications from 'packages/components/custom-specification';
 import CustomProperties from 'packages/components/custom-properties';
@@ -14,6 +13,9 @@ import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeho
 import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+import { useImageCompression } from 'apps/seller-ui/src/hooks/useImageCompression';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
+import RichTextEditor from 'packages/components/rich-text-editor';
 
 interface UploadedImage {
     file_url: string;
@@ -49,7 +51,8 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
             sizes: product?.sizes || [],
             custom_specifications: product?.custom_specifications || [],
             custom_properties: product?.custom_properties || [],
-            discountCode: product?.discount_codes?.map((d: any) => d.id) || [],
+            // discount_codes is now String[] from API
+            discountCode: product?.discount_codes || [],
             images: product?.images || [],
         }
     });
@@ -63,6 +66,12 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
     const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
     const [processing, setProcessing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Image compression hook - compress images before upload
+    const { compress } = useImageCompression({
+      preset: 'balanced',
+      showToasts: true,
+    });
 
     useEffect(() => {
         if (product?.images) {
@@ -80,20 +89,22 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
     }, [product, setValue]);
 
     const { data } = useQuery({
-        queryKey: ['categories'],
+        queryKey: queryKeys.categories,
         queryFn: async () => {
             const res = await axiosInstance.get('/product/api/get-categories');
             return res.data;
         },
-        staleTime: 5 * 60 * 1000,
+        staleTime: API_CONFIG.STALE_TIME.STATIC,
+        gcTime: API_CONFIG.GC_TIME.DEFAULT,
     });
 
     const { data: discountCodes = [] } = useQuery({
-        queryKey: ['shop-discounts'],
+        queryKey: queryKeys.discounts,
         queryFn: async () => {
             const res = await axiosInstance.get('/product/api/get-discount-codes');
             return res?.data?.discount_codes || [];
         },
+        staleTime: API_CONFIG.STALE_TIME.DISCOUNTS,
     });
 
     const categories = data?.categories || [];
@@ -135,14 +146,18 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
             return;
         }
 
-        const objectUrl = URL.createObjectURL(file);
+        // Compress image before storing
+        const compressionResult = await compress(file);
+        const fileToUse = compressionResult?.compressedFile || file;
+
+        const objectUrl = URL.createObjectURL(fileToUse);
         setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
         
-        // Store file locally, do not upload yet
+        // Store compressed file locally, do not upload yet
         const newImage: UploadedImage = {
             file_url: objectUrl,
             fileId: '', // Empty until upload
-            file: file,
+            file: fileToUse,
         };
 
         const updated = [...images];

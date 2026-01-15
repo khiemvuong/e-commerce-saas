@@ -22,10 +22,11 @@ import DeleteConfirmationModal from 'apps/seller-ui/src/shared/components/modals
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import EditProductModal from 'apps/seller-ui/src/shared/components/modals/edit.product.modal';
 import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 
 const fetchProducts = async () => {
-        const res=await axiosInstance.get('/product/api/get-shop-products');
+    const res=await axiosInstance.get('/product/api/get-my-products');
     return res?.data?.products;
 }
 const deleteProduct = async (productId:string) => {
@@ -42,9 +43,10 @@ const ProductList = () => {
     const queryClient=useQueryClient();
 
     const {data: products=[], isLoading}=useQuery({
-        queryKey:['shop-products'],
+        queryKey: queryKeys.products.all,
         queryFn:fetchProducts,
-        staleTime:5 * 60 * 1000, //5 minutes
+        staleTime: API_CONFIG.STALE_TIME.PRODUCTS,
+        gcTime: API_CONFIG.GC_TIME.DEFAULT,
     });
 
     const deleteMutation=useMutation({
@@ -87,28 +89,15 @@ const ProductList = () => {
                     const truncatedTitle = row.original.title.length > 25
                     ? row.original.title.substring(0, 25) + '...'
                     : row.original.title;
-                    
-                    const isEvent = row.original.starting_date && row.original.ending_date;
 
                     return(
-                        <div className="flex flex-col gap-1">
-                            <Link
-                                href={`${process.env.NEXT_PUBLIC_USER_UI_URL}/product/${row.original.slug}`}
-                                className="text-blue-400 hover:underline"
-                                title={row.original.title}
-                            >
-                                {truncatedTitle}
-                            </Link>
-                            {isEvent ? (
-                                <span className="text-[10px] bg-purple-600 text-white px-2 py-0.5 rounded-full w-fit">
-                                    Event
-                                </span>
-                            ) : (
-                                <span className="text-[10px] bg-gray-700 text-gray-300 px-2 py-0.5 rounded-full w-fit">
-                                    Standard
-                                </span>
-                            )}
-                        </div>
+                        <Link
+                            href={`${process.env.NEXT_PUBLIC_USER_UI_URL}/product/${row.original.slug}`}
+                            className="text-blue-400 hover:underline"
+                            title={row.original.title}
+                        >
+                            {truncatedTitle}
+                        </Link>
                     );
                 }
                 

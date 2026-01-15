@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import PageLoader from "../shared/components/loading/page-loader";
 
 
-const SellerDashboard = () => {
+const SellerShop = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("products");
   const route = useRouter();
@@ -283,7 +283,17 @@ const SellerDashboard = () => {
                   : "border-transparent text-gray-500 hover:text-purple-500"
               }`}
             >
-              Products
+              Products ({data?.products?.length || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab("events")}
+              className={`py-4 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "events"
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-gray-500 hover:text-purple-500"
+              }`}
+            >
+              Events ({data?.events?.length || 0})
             </button>
             <button
               onClick={() => setActiveTab("about")}
@@ -300,10 +310,48 @@ const SellerDashboard = () => {
 
         {/* Content */}
         {activeTab === "products" && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-12">
-            {data?.products?.map((product: any) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+          <div className="pb-12">
+            {data?.products?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {data?.products?.map((product: any) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p>Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!</p>
+                <button 
+                  onClick={() => route.push('/dashboard/create-products')}
+                  className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-full hover:bg-purple-700 transition"
+                >
+                  Thêm sản phẩm
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "events" && (
+          <div className="pb-12">
+            {data?.events?.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {data?.events?.map((event: any) => (
+                  <div key={event.id} className="relative">
+                    <ProductCard product={event} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <p>Chưa có sự kiện nào. Hãy tạo sự kiện giảm giá!</p>
+                <button 
+                  onClick={() => route.push('/dashboard/create-events')}
+                  className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 transition"
+                >
+                  Tạo sự kiện
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -360,4 +408,4 @@ const SellerDashboard = () => {
   );
 };
 
-export default SellerDashboard;
+export default SellerShop;

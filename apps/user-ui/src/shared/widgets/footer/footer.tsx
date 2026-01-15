@@ -20,7 +20,7 @@ const Footer = () => {
   if(pathname==='/inbox') return null;
 
   const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
-  const logoUrl = logos.length >= 2 ? logos[1].file_url : null;
+  const logoUrl = logos.length >= 2 ? logos[0].file_url : null;
 
   return (
     <footer className="bg-[#3D3D3D] text-white">

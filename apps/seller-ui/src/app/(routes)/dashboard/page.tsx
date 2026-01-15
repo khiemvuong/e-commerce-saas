@@ -6,7 +6,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 
-const page = () => {
+const SellerDashboard = () => {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -124,4 +124,4 @@ const page = () => {
     )
 }
 
-export default page
+export default SellerDashboard;
