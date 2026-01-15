@@ -2,6 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query"
 import axiosInstance from "../utils/axiosInstance"
 import { useAuthStore } from "../store/authStore";
+import { API_CONFIG, queryKeys } from "../utils/apiConfig";
 
 // Fetch user data from API
 const fetchUser = async () => {
@@ -17,9 +18,10 @@ const fetchUser = async () => {
 const useUser = () => {
     const { setLoggedIn, isLoggedIn } = useAuthStore();
     const { data: user, isPending, isError } = useQuery({
-        queryKey: ["user"],
+        queryKey: queryKeys.user,
         queryFn: fetchUser,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: API_CONFIG.STALE_TIME.USER,
+        gcTime: API_CONFIG.GC_TIME.DEFAULT,
         retry: false,
         refetchOnWindowFocus: false,
     });

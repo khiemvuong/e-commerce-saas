@@ -3,6 +3,7 @@ import { client } from "@packages/libs/imagekit";
 import { toFile } from "@imagekit/nodejs";
 import prisma from "@packages/libs/prisma";
 import { Request, Response, NextFunction } from "express";
+import { PRODUCT_FULL_SELECT } from "../constants/productSelect";
 
 // Get product categories
 export const getCategories = async (req:Request, res:Response, next:NextFunction) => {
@@ -202,7 +203,7 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
                 sizes: sizes || [],
                 starting_date: null,
                 ending_date: null,
-                discount_codes: discountCodes.map((codeId:string) => ({ id: codeId })),
+                discount_codes: discountCodes || [],
                 images: {
                     create:images
                         .filter((img:any)=> img && img.file_url && img.fileId)
@@ -224,8 +225,8 @@ export const createProduct = async (req:any, res:Response, next:NextFunction) =>
     }
 }
 
-//Get loggin seller products
-export const getShopProducts = async (req:any, res:Response, next:NextFunction) => {
+//Get seller's own products with full data for edit modal (excludes events)
+export const getMyProducts = async (req:any, res:Response, next:NextFunction) => {
     try {
         // Check if seller is authenticated
         if(!req.seller || !req.seller.id){
@@ -237,18 +238,30 @@ export const getShopProducts = async (req:any, res:Response, next:NextFunction) 
             return next(new ValidationError("You don't have a shop. Please create a shop first"));
         }
 
+        // Exclude events (products with starting_date and ending_date)
         const products=await prisma.products.findMany({
-            where:{ shopId: req.seller.shop.id },
-            include:{ images:true }
+            where:{ 
+                shopId: req.seller.shop.id,
+                // Filter out events - only return standard products
+                OR: [
+                    { starting_date: null },
+                    { ending_date: null }
+                ]
+            },
+            orderBy: { createdAt: 'desc' },
+            select: PRODUCT_FULL_SELECT
         });
         
         res.status(200).json({success:true,products});
 
     } catch (error) {
-        console.error("Get shop products error:", error);
+        console.error("Get my products error:", error);
         return next(error);
     }
 }
+
+// @deprecated Use getMyProducts instead - kept for backward compatibility
+export const getShopProducts = getMyProducts;
 
 //Delete product
 export const deleteProduct = async (req:any, res:Response, next:NextFunction) => {
@@ -341,19 +354,22 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
             prisma.products.findMany({
                 skip,
                 take: limit,
-                include: {
-                    images: {
-                        select: {
-                            file_url: true,
-                        }
-                    },
-                    Shop: {
-                        select: {
-                            id: true,
-                            name: true,
-                            rating: true,
-                        }
-                    },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    sale_price: true,
+                    regular_price: true,
+                    rating: true,
+                    totalSales: true,
+                    stock: true,
+                    cash_on_delivery: true,
+                    shopId: true,
+                    colors: true,
+                    sizes: true,
+                    custom_properties: true,
+                    images: { take: 2, select: { file_url: true } },
+                    Shop: { select: { id: true, name: true } },
                 },
                 where: baseFilter,
                 orderBy: orderBy,
@@ -365,6 +381,16 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
                 take: 10,
                 where: baseFilter,
                 orderBy,
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    sale_price: true,
+                    regular_price: true,
+                    rating: true,
+                    totalSales: true,
+                    images: { take: 1, select: { file_url: true } },
+                },
             }),
         ]);
         
@@ -405,19 +431,24 @@ export const getAllEvents = async (req: Request, res: Response, next: NextFuncti
                 where: baseFilter,
                 skip,
                 take: limit,
-                include: {
-                    images: {
-                        select: {
-                            file_url: true,
-                        }
-                    },
-                    Shop: {
-                        select: {
-                            id: true,
-                            name: true,
-                            rating: true,
-                        }
-                    },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    sale_price: true,
+                    regular_price: true,
+                    rating: true,
+                    totalSales: true,
+                    stock: true,
+                    cash_on_delivery: true,
+                    shopId: true,
+                    colors: true,
+                    sizes: true,
+                    custom_properties: true,
+                    starting_date: true,
+                    ending_date: true,
+                    images: { take: 2, select: { file_url: true } },
+                    Shop: { select: { id: true, name: true, rating: true } },
                 },
                 orderBy: { 
                     totalSales: "desc",
@@ -428,6 +459,18 @@ export const getAllEvents = async (req: Request, res: Response, next: NextFuncti
                     where:baseFilter,
                     take:10,
                     orderBy: { totalSales: "desc" 
+                    },
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        sale_price: true,
+                        regular_price: true,
+                        rating: true,
+                        totalSales: true,
+                        starting_date: true,
+                        ending_date: true,
+                        images: { take: 1, select: { file_url: true } },
                     },
             }),
         ]);
@@ -454,9 +497,31 @@ export const getProductDetails = async (
         const { slug } = req.params;
         const product = await prisma.products.findUnique({
             where: { slug },
-            include: {
-                images: true,
-                Shop: true,
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                category: true,
+                sub_category: true,
+                short_description: true,
+                detailed_description: true,
+                video_url: true,
+                tags: true,
+                brand: true,
+                colors: true,
+                sizes: true,
+                stock: true,
+                sale_price: true,
+                regular_price: true,
+                rating: true,
+                warranty: true,
+                custom_specifications: true,
+                custom_properties: true,
+                cash_on_delivery: true,
+                discount_codes: true,
+                shopId: true,
+                images: { select: { id: true, file_url: true, fileId: true } },
+                Shop: { select: { id: true, name: true, rating: true, address: true } },
             },
         });
         if (!product) {
@@ -532,7 +597,23 @@ export const getFilteredProducts = async (
                 where: filters,
                 skip,
                 take: parsedLimit,
-                include: { images: true, Shop: true },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    sale_price: true,
+                    regular_price: true,
+                    rating: true,
+                    stock: true,
+                    totalSales: true,
+                    cash_on_delivery: true,
+                    shopId: true,
+                    colors: true,
+                    sizes: true,
+                    custom_properties: true,
+                    images: { take: 2, select: { file_url: true } },
+                    Shop: { select: { id: true, name: true } },
+                },
             }),
             prisma.products.count({
                 where: filters,
@@ -627,17 +708,13 @@ export const getFilteredEvents = async (
                     totalSales: true,
                     starting_date: true,
                     ending_date: true,
-                    images: {
-                        take: 2,
-                        select: { file_url: true }
-                    },
-                    Shop: {
-                        select: {
-                            id: true,
-                            name: true,
-                            rating: true,
-                        }
-                    }
+                    cash_on_delivery: true,
+                    shopId: true,
+                    colors: true,
+                    sizes: true,
+                    custom_properties: true,
+                    images: { take: 2, select: { file_url: true } },
+                    Shop: { select: { id: true, name: true, rating: true } },
                 }
             }),
             prisma.products.count({
@@ -959,9 +1036,8 @@ export const editProduct = async (req: any, res: Response, next: NextFunction) =
                 tags: Array.isArray(tags) ? tags : tags?.split(","),
                 colors: colors || [],
                 sizes: sizes || [],
-                discount_codes: {
-                    set: discountCodes.map((codeId: string) => ({ id: codeId })),
-                },
+                // discount_codes is String[] in schema - direct assignment
+                discount_codes: discountCodes || [],
                 images: {
                     deleteMany: {},
                     create: images
@@ -985,8 +1061,8 @@ export const editProduct = async (req: any, res: Response, next: NextFunction) =
     }
 };
 
-// Get shop events
-export const getShopEvents = async (req: any, res: Response, next: NextFunction) => {
+// Get seller's own events with full data for edit modal
+export const getMyEvents = async (req: any, res: Response, next: NextFunction) => {
     try {
         if (!req.seller || !req.seller.shop || !req.seller.shop.id) {
             return next(new AuthError("Please login as seller to view shop events"));
@@ -998,15 +1074,19 @@ export const getShopEvents = async (req: any, res: Response, next: NextFunction)
                 starting_date: { not: null },
                 ending_date: { not: null },
             },
-            include: { images: true }
+            orderBy: { createdAt: 'desc' },
+            select: PRODUCT_FULL_SELECT
         });
 
         return res.status(200).json({ success: true, events });
     } catch (error) {
-        console.error("Get shop events error:", error);
+        console.error("Get my events error:", error);
         return next(error);
     }
 };
+
+// @deprecated Use getMyEvents instead - kept for backward compatibility
+export const getShopEvents = getMyEvents;
 
 // Edit event
 export const editEvent = async (req: any, res: Response, next: NextFunction) => {

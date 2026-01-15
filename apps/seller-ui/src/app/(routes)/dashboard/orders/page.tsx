@@ -13,6 +13,7 @@ import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import Link from 'next/link';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 const fetchOrders = async () => {
     const res = await axiosInstance.get('/seller/api/get-seller-orders');
@@ -23,9 +24,10 @@ const OrdersTable = () => {
     const [globalFilter, setGlobalFilter] = useState('');
 
     const { data: orders = [], isLoading } = useQuery({
-        queryKey: ['seller-orders'],
+        queryKey: queryKeys.orders.all,
         queryFn: fetchOrders,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: API_CONFIG.STALE_TIME.ORDERS,
+        gcTime: API_CONFIG.GC_TIME.SHORT,
     });
 
     const columns = useMemo(

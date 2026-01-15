@@ -33,7 +33,7 @@ const Header = () => {
   });
 
   const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
-  const logoUrl = logos.length >= 2 ? logos[0].file_url : null;
+  const logoUrl = logos.length >= 2 ? logos[1].file_url : null;
 
   return (
     <div className="w-full sticky top-0 left-0 z-50 transition-all duration-300">

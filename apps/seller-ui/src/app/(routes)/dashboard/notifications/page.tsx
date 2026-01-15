@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 const SellerNotifications = () => {
     const [globalFilter, setGlobalFilter] = useState('');
@@ -26,7 +27,7 @@ const SellerNotifications = () => {
     const limit = 10; // items per page
 
     const { data, isLoading }: UseQueryResult<any> = useQuery({
-        queryKey: ['seller-notifications', page, deferredFilter],
+        queryKey: [queryKeys.notifications, page, deferredFilter],
         queryFn: async () => {
             const res = await axiosInstance.get(
                 `/seller/api/seller-notifications?page=${page}&limit=${limit}&search=${deferredFilter}`
@@ -34,7 +35,8 @@ const SellerNotifications = () => {
             return res.data;
         },
         placeholderData: (prev) => prev,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: API_CONFIG.STALE_TIME.NOTIFICATIONS,
+        gcTime: API_CONFIG.GC_TIME.SHORT,
     });
 
     useEffect(() => {

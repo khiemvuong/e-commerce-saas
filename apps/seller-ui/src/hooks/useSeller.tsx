@@ -1,5 +1,6 @@
 import {useQuery} from "@tanstack/react-query"
 import axiosInstance from "../utils/axiosInstance";
+import { API_CONFIG } from "../utils/apiConfig";
 
 // Fetch seller data from API
 
@@ -17,7 +18,8 @@ const useSeller = () => {
     const {data: seller, isPending, isError, refetch} = useQuery({
         queryKey: ["seller"],
         queryFn: fetchSeller,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: API_CONFIG.STALE_TIME.STATIC,
+        gcTime: API_CONFIG.GC_TIME.DEFAULT,
         retry: false,
         refetchOnWindowFocus: false,
     });

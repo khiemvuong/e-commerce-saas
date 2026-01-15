@@ -9,9 +9,10 @@ import Image from 'next/image';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ComponentLoader from 'apps/seller-ui/src/shared/components/loading/component-loader';
 import EditEventModal from 'apps/seller-ui/src/shared/components/modals/edit.event.modal';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 const fetchEvents = async () => {
-  const res = await axiosInstance.get('/product/api/get-shop-events');
+  const res = await axiosInstance.get('/product/api/get-my-events');
   return res?.data?.events;
 };
 
@@ -21,9 +22,10 @@ const EventList = () => {
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['shop-events'],
+    queryKey: queryKeys.events.all,
     queryFn: fetchEvents,
-    staleTime: 5 * 60 * 1000,
+    staleTime: API_CONFIG.STALE_TIME.PRODUCTS,
+    gcTime: API_CONFIG.GC_TIME.DEFAULT,
   });
 
   const openEditModal = (event: any) => {

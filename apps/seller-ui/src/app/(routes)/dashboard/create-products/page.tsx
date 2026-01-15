@@ -17,6 +17,8 @@ import React, { useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+import { useImageCompression } from 'apps/seller-ui/src/hooks/useImageCompression';
+import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 interface UploadedImage {
   file_url: string;
@@ -39,25 +41,34 @@ const Page = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter();
 
+    // Image compression hook - compress images before upload
+    const { compress } = useImageCompression({
+      preset: 'balanced',
+      showToasts: true,
+    });
+
     const {data,isLoading,isError} = useQuery({
-      queryKey: ['categories'],
+      queryKey: queryKeys.categories,
       queryFn: async() => {
         try {
           const res = await axiosInstance.get('/product/api/get-categories');
           return res.data;
         } catch (error) {
           console.error(error);
+          throw error;
         }
-        },
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        retry: 2,
-      });
-      const{data:discountCodes=[],isLoading:discountLoading}=useQuery({
-        queryKey:['shop-discounts'],
-        queryFn: async ()=>{
-            const res=await axiosInstance.get('/product/api/get-discount-codes');
-            return res?.data?.discount_codes || [];
-        },
+      },
+      staleTime: API_CONFIG.STALE_TIME.STATIC,
+      gcTime: API_CONFIG.GC_TIME.DEFAULT,
+      retry: API_CONFIG.RETRY.DEFAULT,
+    });
+    const{data:discountCodes=[],isLoading:discountLoading}=useQuery({
+      queryKey: queryKeys.discounts,
+      queryFn: async ()=>{
+        const res=await axiosInstance.get('/product/api/get-discount-codes');
+        return res?.data?.discount_codes || [];
+      },
+      staleTime: API_CONFIG.STALE_TIME.DISCOUNTS,
     });
 
       const categories = data?.categories || [];
@@ -156,14 +167,18 @@ const handleImageChange = async (file: File | null, index: number) => {
     return;
   }
 
-  const objectUrl = URL.createObjectURL(file);
+  // Compress image before storing
+  const compressionResult = await compress(file);
+  const fileToUse = compressionResult?.compressedFile || file;
+
+  const objectUrl = URL.createObjectURL(fileToUse);
   setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
 
-  // Store file locally, do not upload yet
+  // Store compressed file locally, do not upload yet
   const newImage: UploadedImage = {
     file_url: objectUrl,
     fileId: '', // Empty until upload
-    file: file,
+    file: fileToUse,
   };
 
   const updated = [...images];

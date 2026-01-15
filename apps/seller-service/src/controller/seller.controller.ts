@@ -25,28 +25,74 @@ export const getShopDetails = async (
                         type: { in: ["avatar", "cover"] }
                     }
                 },
-                products: {
-                    where: { isDeleted: false },
-                    orderBy: { createdAt: "desc" },
+            }
+        });
+
+        if (!shop) {
+            return next(new ValidationError("Shop not found"));
+        }
+
+        // Get products (exclude events - products without starting_date/ending_date)
+        const products = await prisma.products.findMany({
+            where: { 
+                shopId: shop.id, 
+                isDeleted: false,
+                OR: [
+                    { starting_date: null },
+                    { ending_date: null }
+                ]
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                cash_on_delivery: true,
+                images: {
+                    take: 1,
                     select: {
                         id: true,
-                        title: true,
-                        slug: true,
-                        sale_price: true,
-                        regular_price: true,
-                        stock: true,
-                        rating: true,
-                        totalSales: true,
-                        status: true,
-                        createdAt: true,
-                        cash_on_delivery: true,
-                        images: {
-                            take: 1,
-                            select: {
-                                id: true,
-                                file_url: true
-                            }
-                        }
+                        file_url: true
+                    }
+                }
+            }
+        });
+
+        // Get events (products with both starting_date and ending_date)
+        const events = await prisma.products.findMany({
+            where: { 
+                shopId: shop.id, 
+                isDeleted: false,
+                starting_date: { not: null },
+                ending_date: { not: null }
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                cash_on_delivery: true,
+                starting_date: true,
+                ending_date: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
                     }
                 }
             }
@@ -54,14 +100,18 @@ export const getShopDetails = async (
 
         res.status(200).json({
             success: true,
-            shop
+            shop: {
+                ...shop,
+                products,
+                events
+            }
         });
     } catch (error) {
         next(error);
     }
 };
 
-// Get Shop By ID
+// Get Shop By ID (for public user view)
 export const getShopById = async (
     req: Request,
     res: Response,
@@ -85,9 +135,83 @@ export const getShopById = async (
             }
         });
 
+        if (!shop) {
+            return next(new ValidationError("Shop not found"));
+        }
+
+        // Get products (exclude events)
+        const products = await prisma.products.findMany({
+            where: { 
+                shopId: id, 
+                isDeleted: false,
+                OR: [
+                    { starting_date: null },
+                    { ending_date: null }
+                ]
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                cash_on_delivery: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
+            }
+        });
+
+        // Get events (products with starting_date and ending_date)
+        const events = await prisma.products.findMany({
+            where: { 
+                shopId: id, 
+                isDeleted: false,
+                starting_date: { not: null },
+                ending_date: { not: null }
+            },
+            orderBy: { createdAt: "desc" },
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                cash_on_delivery: true,
+                starting_date: true,
+                ending_date: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
+            }
+        });
+
         res.status(200).json({
             success: true,
-            shop
+            shop: {
+                ...shop,
+                products,
+                events
+            }
         });
     } catch (error) {
         next(error);

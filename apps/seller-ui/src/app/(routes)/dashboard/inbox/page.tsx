@@ -5,6 +5,7 @@ import useSeller from "apps/seller-ui/src/hooks/useSeller";
 import ChatInput from "apps/seller-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/seller-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
+import { API_CONFIG } from "apps/seller-ui/src/utils/apiConfig";
 import { Send } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -41,7 +42,7 @@ const SellerInboxPage = () => {
             return res.data.messages.reverse();
         },
         enabled: !!conversationId,
-        staleTime: 2 * 60 * 1000, 
+        staleTime: API_CONFIG.STALE_TIME.ORDERS, // Use short stale time for chat
     });
 
     const loadMoreMessages = async () => {

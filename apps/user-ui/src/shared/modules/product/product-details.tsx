@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { ZoomIn, ZoomOut, RotateCcw, Heart, MapPin, Package, WalletMinimal, MessageSquareText } from 'lucide-react';
 import Link from 'next/link';
@@ -14,6 +14,19 @@ import ProductCard from '../../components/cards/product-card';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { useRouter } from 'next/navigation';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
+import { optimizeImageUrl, IMAGE_PRESETS } from 'apps/user-ui/src/utils/imageOptimizer';
+
+// Skeleton component for product cards
+const ProductCardSkeleton = () => (
+    <div className="animate-pulse">
+        <div className="bg-gray-200 aspect-square rounded-lg mb-3"></div>
+        <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+        </div>
+    </div>
+);
 
 const ProductDetails = ({productDetails}:{productDetails: any}) => {
     const router = useRouter();
@@ -32,12 +45,20 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
     const {user, isLoading: isLoadingUser} = useUser();
     const location = useLocationTracking();
     const deviceInfo = useDeviceTracking();
+    
+    // Lazy loading states for recommendations
     const [recommendedProducts, setRecommendedProducts] = useState([]);
+    const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(false);
+    const [hasLoadedRecommendations, setHasLoadedRecommendations] = useState(false);
+    const recommendationsRef = useRef<HTMLDivElement>(null);
     const hasTrackedView = useRef(false);
 
     const discountPercentage = productDetails?.regular_price && productDetails?.sale_price ? Math.round(((productDetails?.regular_price - productDetails?.sale_price) / productDetails?.regular_price) * 100) : 0;
     
-    const fetchRecommendedProducts = async () => {
+    const fetchRecommendedProducts = useCallback(async () => {
+        if (hasLoadedRecommendations || isRecommendationsLoading) return;
+        
+        setIsRecommendationsLoading(true);
         try {   
             const query = new URLSearchParams();
             
@@ -64,20 +85,34 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
             // Loại bỏ sản phẩm hiện tại khỏi danh sách recommended
             const filtered = (res.data.products || []).filter((p: any) => p.id !== productDetails?.id);
             
-            console.log('Products:', filtered.map((p: any) => p.name));
             setRecommendedProducts(filtered);
+            setHasLoadedRecommendations(true);
         } catch (error) {
             console.error("❌ Error fetching recommended products:", error);
+        } finally {
+            setIsRecommendationsLoading(false);
         }
-    };
+    }, [productDetails?.id, productDetails?.sale_price, productDetails?.regular_price, productDetails?.category, hasLoadedRecommendations, isRecommendationsLoading]);
 
+    // Intersection Observer for lazy loading recommendations
     useEffect(() => {
-        if (productDetails?.id) {
-            fetchRecommendedProducts();
-        } else {
-            console.log('⏳ Waiting for product details...');
+        if (!productDetails?.id) return;
+        
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !hasLoadedRecommendations) {
+                    fetchRecommendedProducts();
+                }
+            },
+            { threshold: 0.1, rootMargin: '200px' } // Start loading 200px before visible
+        );
+        
+        if (recommendationsRef.current) {
+            observer.observe(recommendationsRef.current);
         }
-    }, [productDetails?.id]);
+        
+        return () => observer.disconnect();
+    }, [productDetails?.id, hasLoadedRecommendations, fetchRecommendedProducts]);
 
     useEffect(() => {
         if (productDetails?.custom_properties && Array.isArray(productDetails.custom_properties)) {
@@ -149,7 +184,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                             }`}
                         >
                             <Image
-                                src={img.file_url}
+                                src={optimizeImageUrl(img.file_url, IMAGE_PRESETS.detailThumb)}
                                 alt={`Thumbnail ${index + 1}`}
                                 width={120}
                                 height={120}
@@ -201,7 +236,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                                         contentClass="!w-full !h-full flex items-center justify-center"
                                     >
                                         <img
-                                            src={productDetails?.images?.[currentImage]?.file_url || 'https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg'}
+                                            src={optimizeImageUrl(productDetails?.images?.[currentImage]?.file_url, IMAGE_PRESETS.detailMain) || 'https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg'}
                                             alt="Product image"
                                             className="max-w-full max-h-full object-contain cursor-zoom-in"
                                         />
@@ -529,14 +564,26 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                 </div>
             )}
         </div>
-        {/* Recommended Products - You may also like */}
-        <div className="w-[90%] lg:w-[80%] mx-auto pb-12 border-t-2">
+        {/* Recommended Products - You may also like (Lazy Loaded) */}
+        <div ref={recommendationsRef} className="w-[90%] lg:w-[80%] mx-auto pb-12 border-t-2 pt-8">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">You may also like</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {/* Map through recommended products */}
-                {recommendedProducts?.map((i: any) => (
-                    <ProductCard key={i.id} product={i} />
-                ))}
+                {isRecommendationsLoading ? (
+                    // Show skeleton placeholders while loading
+                    <>
+                        {[...Array(4)].map((_, index) => (
+                            <ProductCardSkeleton key={index} />
+                        ))}
+                    </>
+                ) : recommendedProducts?.length > 0 ? (
+                    // Show actual products
+                    recommendedProducts.map((i: any) => (
+                        <ProductCard key={i.id} product={i} />
+                    ))
+                ) : hasLoadedRecommendations ? (
+                    // No products found after loading
+                    <p className="col-span-full text-gray-500 text-center py-8">No similar products found</p>
+                ) : null}
             </div>
         </div>
     </div>
