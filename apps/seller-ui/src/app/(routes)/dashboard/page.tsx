@@ -1,7 +1,5 @@
 'use client';
-import useSeller from 'apps/seller-ui/src/hooks/useSeller';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
-import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -9,41 +7,29 @@ import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 
 const page = () => {
-    const route = useRouter();
-    const {seller,  isLoading: isSellerLoading} = useSeller();
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!isSellerLoading && !seller) {
-          toast.error("Please login to continue");
-          route.push("/login");
-        }
-    }, [seller, isSellerLoading, route]);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
-            if (seller) {
-                try {
-                    const response = await axiosInstance.get(`/seller/api/get-analytics`, {
-                        withCredentials: true
-                    });
-                    setData(response.data);
-                } catch (error) {
-                    console.error("Failed to fetch analytics", error);
-                    toast.error("Failed to load dashboard data");
-                } finally {
-                    setLoading(false);
-                }
+            try {
+                const response = await axiosInstance.get(`/seller/api/get-analytics`, {
+                    withCredentials: true
+                });
+                setData(response.data);
+            } catch (error) {
+                console.error("Failed to fetch analytics", error);
+                toast.error("Failed to load dashboard data");
+            } finally {
+                setLoading(false);
             }
         };
-        if (!isSellerLoading && seller) {
-            fetchAnalytics();
-        }
-    }, [seller, isSellerLoading]);
+        fetchAnalytics();
+    }, []);
       
     return (
-        (isSellerLoading || loading) ? <PageLoader /> : (
+        loading ? <PageLoader /> : (
             <div className="p-6 space-y-6 min-h-screen bg-black">
                 <BreadCrumbs title="Dashboard" />
                 
@@ -66,7 +52,7 @@ const page = () => {
                                     contentStyle={{backgroundColor: '#1f2937', borderRadius: '8px', border: '1px solid #374151', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.5)'}}
                                     itemStyle={{color: '#e5e7eb'}}
                                     labelStyle={{color: '#9ca3af'}}
-                                    formatter={(value: number) => [`$${value}`, 'Revenue']}
+                                    formatter={(value: number | undefined) => [value ? `$${value.toLocaleString()}` : '$0', 'Revenue']}
                                 />
                                 <Area type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
                             </AreaChart>

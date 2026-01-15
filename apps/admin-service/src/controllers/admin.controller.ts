@@ -460,3 +460,132 @@ export const getAllSellers = async (
         next(error);
     }
 };
+
+
+export const getAllNotifications = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const search = req.query.search as string;
+        const skip = (page - 1) * limit;
+
+        // Get all admin user IDs
+        const adminUsers = await prisma.users.findMany({
+            where: { role: "admin" },
+            select: { id: true },
+        });
+
+        const adminIds = adminUsers.map(admin => admin.id);
+
+        // If no admins exist, return empty result
+        if (adminIds.length === 0) {
+            return res.status(200).json({
+                success: true,
+                data: [],
+                meta: {
+                    totalNotifications: 0,
+                    currentPage: page,
+                    totalPages: 0,
+                },
+            });
+        }
+
+        // Build where clause
+        const where: any = {
+            receiverId: { in: adminIds },
+        };
+
+        if (search) {
+            where.AND = [
+                { receiverId: { in: adminIds } },
+                {
+                    OR: [
+                        { title: { contains: search, mode: "insensitive" } },
+                        { message: { contains: search, mode: "insensitive" } },
+                    ],
+                },
+            ];
+            delete where.receiverId; // Remove duplicate condition
+        }
+
+        const [notifications, totalNotifications] = await Promise.all([
+            prisma.notifications.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    title: true,
+                    message: true,
+                    type: true,
+                    createdAt: true,
+                },
+            }),
+            prisma.notifications.count({ where }),
+        ]);
+
+        const totalPages = Math.ceil(totalNotifications / limit);
+        return res.status(200).json({
+            success: true,
+            data: notifications,
+            meta: {
+                totalNotifications,
+                currentPage: page,
+                totalPages,
+            },
+        });
+    } catch (error) {
+        return next(error);
+    }
+};
+
+// get all user notification
+export const getUserNotifications = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const search = req.query.search as string;
+        const skip = (page - 1) * limit;
+
+        const where: any = {};
+        if (search) {
+            where.OR = [
+                { title: { contains: search, mode: "insensitive" } },
+                { message: { contains: search, mode: "insensitive" } },
+            ];
+        }
+
+        const [notifications, totalNotifications] = await Promise.all([
+            prisma.notifications.findMany({
+                where :{
+                    receiverId: req.user.id,
+                },
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    title: true,
+                    message: true,
+                    type: true,
+                    createdAt: true,
+                },
+            }),
+            prisma.notifications.count({ where }),
+        ]);
+
+        const totalPages = Math.ceil(totalNotifications / limit);
+        res.status(200).json({
+            success: true,
+            data: notifications,
+            meta: {
+                totalNotifications,
+                currentPage: page,
+                totalPages,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};

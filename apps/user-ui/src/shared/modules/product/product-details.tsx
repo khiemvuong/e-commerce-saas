@@ -13,7 +13,6 @@ import Image from 'next/image';
 import ProductCard from '../../components/cards/product-card';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { useRouter } from 'next/navigation';
-import { isProtected } from 'apps/user-ui/src/utils/protected';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
 
 const ProductDetails = ({productDetails}:{productDetails: any}) => {
@@ -113,9 +112,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
         try {
             const res = await axiosInstance.post('/chatting/api/create-user-conversationGroup', {
                 sellerId: productDetails?.Shop?.sellerId,
-            },
-                isProtected
-            );
+            });
             router.push(`/inbox?conversationId=${res.data.conversation.id}`);
         } catch (error) {
             console.error('Error starting chat with seller:', error);
@@ -407,6 +404,29 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                         <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">Warranty Information</p>
                             <p className="text-xs text-gray-500 mt-0.5">1 year manufacturer warranty</p>
+                        </div>
+                    </div>
+
+                    {/* Cash on Delivery */}
+                    <div className="flex items-start gap-3">
+                        <WalletMinimal size={18} className={`mt-0.5 flex-shrink-0 ${
+                            productDetails?.cash_on_delivery === 'yes' 
+                                ? 'text-green-600' 
+                                : 'text-gray-400'
+                        }`} />
+                        <div className="flex-1">
+                            <p className={`text-sm font-medium ${
+                                productDetails?.cash_on_delivery === 'yes' 
+                                    ? 'text-green-700' 
+                                    : 'text-gray-500'
+                            }`}>
+                                {productDetails?.cash_on_delivery === 'yes' 
+                                    ? 'Cash on Delivery Available' 
+                                    : 'Cash on Delivery Not Available'}
+                            </p>
+                            {productDetails?.cash_on_delivery === 'yes' && (
+                                <p className="text-xs text-gray-500 mt-0.5">Pay with cash upon delivery</p>
+                            )}
                         </div>
                     </div>
 

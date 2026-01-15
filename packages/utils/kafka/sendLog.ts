@@ -1,31 +1,30 @@
-import { kafka } from './index';
+import { kafka } from '../kafka';
 
 const producer = kafka.producer();
-
-interface LogData {
-    type: 'success' | 'error' | 'info' | 'warning';
+export async function sendLog({
+    type = 'info',
+    message ,
+    source = 'unknown-service',
+}:{
+    type?: 'success' | 'error' | 'info' | 'warning' | 'debug';
     message: string;
-    source: string;
-    metadata?: Record<string, any>;
-}
+    source?: string;
+}){
+    const logPayload = {
+        type,
+        message,
+        timestamp: new Date().toISOString(),
+        source,
+    };
 
-export async function sendLog(logData: LogData) {
-    try {
-        await producer.connect();
-        await producer.send({
-            topic: 'system-logs',
-            messages: [
-                {
-                    value: JSON.stringify({
-                        ...logData,
-                        timestamp: new Date().toISOString(),
-                    }),
-                },
-            ],
-        });
-    } catch (error) {
-        console.error('Error sending log to Kafka:', error);
-    } finally {
-        await producer.disconnect();
-    }
+    await producer.connect();
+    await producer.send({
+        topic: 'logs',
+        messages: [
+            {
+                value: JSON.stringify(logPayload),
+            },
+        ],
+    });
+    await producer.disconnect();
 }

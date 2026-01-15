@@ -28,8 +28,25 @@ export const getShopDetails = async (
                 products: {
                     where: { isDeleted: false },
                     orderBy: { createdAt: "desc" },
-                    include: {
-                        images: { take: 1 }
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        sale_price: true,
+                        regular_price: true,
+                        stock: true,
+                        rating: true,
+                        totalSales: true,
+                        status: true,
+                        createdAt: true,
+                        cash_on_delivery: true,
+                        images: {
+                            take: 1,
+                            select: {
+                                id: true,
+                                file_url: true
+                            }
+                        }
                     }
                 }
             }
@@ -93,8 +110,25 @@ export const getShopProducts = async (
         const products = await prisma.products.findMany({
             where: { shopId: id, isDeleted: false },
             orderBy: { createdAt: "desc" },
-            include: {
-                images: { take: 1 }
+            select: {
+                id: true,
+                title: true,
+                slug: true,
+                sale_price: true,
+                regular_price: true,
+                stock: true,
+                rating: true,
+                totalSales: true,
+                status: true,
+                createdAt: true,
+                cash_on_delivery: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
             }
         });
 
@@ -275,7 +309,20 @@ export const getSellerAnalytics = async (
             where: { shopId: shop.id, isDeleted: false },
             orderBy: { totalSales: 'desc' },
             take: 5,
-            include: { images: { take: 1 } }
+            select: {
+                id: true,
+                title: true,
+                sale_price: true,
+                regular_price: true,
+                totalSales: true,
+                images: {
+                    take: 1,
+                    select: {
+                        id: true,
+                        file_url: true
+                    }
+                }
+            }
         });
 
         // 3. Recent Orders
@@ -319,7 +366,13 @@ export const getSellerOrders = async (req:any, res:Response, next:NextFunction) 
                         id: true,
                         name: true,
                         email: true,
-                        avatar: true,
+                        avatar: {
+                            take: 1,
+                            select: {
+                                id: true,
+                                file_url: true
+                            }
+                        }
                     }
                 }
             },
@@ -564,3 +617,66 @@ export const updateDeliveryStatus = async (req:Request,res:Response,next:NextFun
         next(error);
     }
 }
+
+// Get seller notifications with pagination and search
+export const sellerNotifications = async (req: any, res: Response, next: NextFunction) => {
+    try {
+        const sellerId = req.seller?.id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 20;
+        const search = req.query.search as string;
+        const skip = (page - 1) * limit;
+
+        if (!sellerId) {
+            return next(new ValidationError("Unauthorized"));
+        }
+
+        // Build where clause
+        const where: any = {
+            receiverId: sellerId,
+        };
+
+        if (search) {
+            where.AND = [
+                { receiverId: sellerId },
+                {
+                    OR: [
+                        { title: { contains: search, mode: "insensitive" } },
+                        { message: { contains: search, mode: "insensitive" } },
+                    ],
+                },
+            ];
+            delete where.receiverId; // Remove duplicate condition
+        }
+
+        const [notifications, totalNotifications] = await Promise.all([
+            prisma.notifications.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: "desc" },
+                select: {
+                    id: true,
+                    title: true,
+                    message: true,
+                    type: true,
+                    createdAt: true,
+                },
+            }),
+            prisma.notifications.count({ where }),
+        ]);
+
+        const totalPages = Math.ceil(totalNotifications / limit);
+        return res.status(200).json({
+            success: true,
+            data: notifications,
+            meta: {
+                totalNotifications,
+                currentPage: page,
+                totalPages,
+            },
+        });
+    } catch (error) {
+        return next(error);
+    }
+};

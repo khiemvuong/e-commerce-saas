@@ -16,6 +16,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, {useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
 import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
+import useLogout from 'apps/user-ui/src/hooks/useLogout';
 
 const NavItems = ({label,Icon,active,danger,onClick}:any)=>(
     <button
@@ -33,6 +34,7 @@ const Page = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const { logout, isLoggingOut } = useLogout();
     const{user,isLoading} = useRequiredAuth();
     const { data: orders = [] } = useQuery({
         queryKey: ['user-orders'],
@@ -67,13 +69,6 @@ const Page = () => {
             setEditAvatar(user.avatar || null);
         }
     }, [isEditModalOpen, user]);
-
-    const logOutHandler = async () => {
-        await axiosInstance.get("/api/log-out-user").then((res) =>{
-            queryClient.invalidateQueries({queryKey: ['user']});
-            router.push("/login");
-        });
-    };
 
     const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -258,7 +253,7 @@ const Page = () => {
                             label="Logout"
                             Icon={LogOutIcon}
                             danger
-                            onClick={logOutHandler}
+                            onClick={logout}
                         />
                     </nav>
                 </div>
@@ -375,7 +370,7 @@ const Page = () => {
                     </div>
                 </div>
             )}
-            {(isUpdating || isUploading) && <PageLoader />}
+            {(isUpdating || isUploading || isLoggingOut) && <PageLoader />}
     </div>
   )
 }

@@ -5,7 +5,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
+import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 import { useMutation } from "@tanstack/react-query";
 
 type EmailForm = { email: string };
@@ -73,8 +74,8 @@ const ForgotPassword = () => {
   const requestOtpMutation = useMutation({
     mutationFn: async ({ email }: { email: string }) => {
       const e = sanitizedEmail(email);
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/forgot-password-user`,
+      const response = await axiosInstance.post(
+        `/api/forgot-password-user`,
         { email: e }
       );
       return response.data;
@@ -97,8 +98,8 @@ const ForgotPassword = () => {
     mutationFn: async () => {
       if (!userEmail) throw new Error("User email is not set");
       const code = getOtpString();
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-forgot-password-user`,
+      const response = await axiosInstance.post(
+        `/api/verify-forgot-password-user`,
         { email: userEmail, otp: code }
       );
       return response.data;
@@ -119,8 +120,8 @@ const ForgotPassword = () => {
     mutationFn: async ({ password }: { password: string }) => {
       // KHÔNG ném lỗi ở đây nữa — để RHF validate
       const code = getOtpString();
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_SERVER_URL}/api/reset-password-user`,
+      const response = await axiosInstance.post(
+        `/api/reset-password-user`,
         { email: userEmail, otp: code, newPassword: password }
       );
       return response.data;

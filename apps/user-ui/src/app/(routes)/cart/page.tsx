@@ -3,12 +3,12 @@ import useDeviceTracking from "apps/user-ui/src/hooks/useDeviceTracking";
 import useLocationTracking from "apps/user-ui/src/hooks/useLocationTracking";
 import { useStore } from "apps/user-ui/src/store";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Truck, CreditCard, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "node_modules/@tanstack/react-query/build/modern/useQuery";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import AddAddressModal from "apps/user-ui/src/shared/components/modals/AddAddressModal";
 import toast from "react-hot-toast";
 import OverlayLoader from "apps/user-ui/src/shared/components/loading/page-loader";
@@ -30,6 +30,28 @@ const CartPage = () => {
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [error, setError] = useState("");
     const [storedCouponCode, setStoredCouponCode] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState<"stripe" | "cod">("stripe");
+
+    // Check if all products in cart support COD
+    const codStatus = useMemo(() => {
+        if (cart.length === 0) return { allSupportCOD: false, nonCODItems: [] };
+        
+        const nonCODItems = cart.filter(
+            (item: any) => item && item.cash_on_delivery !== "yes"
+        );
+        
+        return {
+            allSupportCOD: nonCODItems.length === 0,
+            nonCODItems,
+        };
+    }, [cart]);
+
+    // Reset to stripe if COD is selected but not all items support it
+    useEffect(() => {
+        if (paymentMethod === "cod" && !codStatus.allSupportCOD) {
+            setPaymentMethod("stripe");
+        }
+    }, [codStatus.allSupportCOD, paymentMethod]);
 
     const couponCodeApplyHandler = async () => {
         setError("");
@@ -66,7 +88,7 @@ const CartPage = () => {
         }
     };
 
-    const creatPaymentSession = async () => {
+    const handleCheckout = async () => {
         if (!user) {
             toast.error("Please login to proceed to checkout.");
             router.push("/login");
@@ -78,8 +100,10 @@ const CartPage = () => {
             );
             return;
         }
+
         setLoading(true);
         try {
+            // Create payment session first (same for both methods)
             const res = await axiosInstance.post(
                 "/order/api/create-payment-session",
                 {
@@ -94,7 +118,28 @@ const CartPage = () => {
                 }
             );
             const sessionId = res.data.sessionId;
-            router.push(`/checkout?sessionId=${sessionId}`);
+
+            if (paymentMethod === "cod") {
+                // Create COD order directly
+                try {
+                    const codRes = await axiosInstance.post(
+                        "/order/api/create-cod-order",
+                        { sessionId }
+                    );
+                    
+                    if (codRes.data.success) {
+                        // Clear cart after successful order
+                        useStore.setState({ cart: [] });
+                        toast.success("Đặt hàng COD thành công!");
+                        router.push(`/payment-success?orderId=${codRes.data.orderId}&method=cod`);
+                    }
+                } catch (codError: any) {
+                    toast.error(codError?.response?.data?.message || "Failed to create COD order");
+                }
+            } else {
+                // Redirect to Stripe checkout
+                router.push(`/checkout?sessionId=${sessionId}`);
+            }
         } catch (error) {
             toast.error("Something went wrong. Please try again.");
         } finally {
@@ -251,6 +296,13 @@ const CartPage = () => {
                                                         )}
                                                     </div>
                                                 )}
+                                                {/* COD Badge */}
+                                                {item.cash_on_delivery === "yes" && (
+                                                    <span className="mt-1 inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full w-fit">
+                                                        <Truck size={12} />
+                                                        COD Available
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="p-4 text-gray-800 font-medium">
@@ -374,19 +426,80 @@ const CartPage = () => {
                                     )}
                                 </div>
                                 <hr className="mx-4 text-slate-200 my-4" />
+                                
+                                {/* Payment Method Selection */}
                                 <div className="mb-4">
                                     <h4 className="mb-[7px] font-medium text-[15px]">
                                         Select Payment Method
                                     </h4>
-                                    <select
-                                        // onChange={(e) => setSelectedPaymentMethod(e.target.value)}
-                                        // value={selectedPaymentMethod}
-                                        className=" w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                                    >
-                                        <option value="credit_card">Online Payment</option>
-                                        <option value="cash_on_delivery">Cash on Delivery</option>
-                                    </select>
+                                    <div className="space-y-2">
+                                        {/* Online Payment Option */}
+                                        <label 
+                                            className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                                                paymentMethod === "stripe" 
+                                                    ? "border-blue-500 bg-blue-50" 
+                                                    : "border-gray-300 hover:border-gray-400"
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="stripe"
+                                                checked={paymentMethod === "stripe"}
+                                                onChange={() => setPaymentMethod("stripe")}
+                                                className="w-4 h-4 text-blue-600"
+                                            />
+                                            <CreditCard size={20} className="text-gray-600" />
+                                            <div>
+                                                <span className="font-medium text-gray-800">Online Payment</span>
+                                                <p className="text-xs text-gray-500">Credit/Debit Card via Stripe</p>
+                                            </div>
+                                        </label>
+                                        
+                                        {/* COD Option */}
+                                        <label 
+                                            className={`flex items-center gap-3 p-3 border rounded-lg transition-all ${
+                                                !codStatus.allSupportCOD 
+                                                    ? "opacity-50 cursor-not-allowed border-gray-200 bg-gray-50" 
+                                                    : paymentMethod === "cod"
+                                                        ? "border-green-500 bg-green-50 cursor-pointer"
+                                                        : "border-gray-300 hover:border-gray-400 cursor-pointer"
+                                            }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="paymentMethod"
+                                                value="cod"
+                                                checked={paymentMethod === "cod"}
+                                                onChange={() => codStatus.allSupportCOD && setPaymentMethod("cod")}
+                                                disabled={!codStatus.allSupportCOD}
+                                                className="w-4 h-4 text-green-600"
+                                            />
+                                            <Truck size={20} className="text-gray-600" />
+                                            <div className="flex-1">
+                                                <span className="font-medium text-gray-800">Cash on Delivery</span>
+                                                <p className="text-xs text-gray-500">Pay when you receive</p>
+                                            </div>
+                                        </label>
+                                        
+                                        {/* Warning if COD not available */}
+                                        {!codStatus.allSupportCOD && codStatus.nonCODItems.length > 0 && (
+                                            <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                                                <div>
+                                                    <p className="text-sm text-yellow-700 font-medium">
+                                                        COD not available for all items
+                                                    </p>
+                                                    <p className="text-xs text-yellow-600 mt-1">
+                                                        {codStatus.nonCODItems.map((item: any) => item.title).join(", ")} 
+                                                        {" "}doesn&apos;t support COD
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
+                                
                                 <hr className="mx-4 text-slate-200 my-4" />
                                 <div className="flex justify-between items-center text-[#010f1c] text-[20px] font-[550] pb-3">
                                     <span>Total</span>
@@ -395,11 +508,25 @@ const CartPage = () => {
                                     </span>
                                 </div>
                                 <button
-                                    onClick={creatPaymentSession}
+                                    onClick={handleCheckout}
                                     disabled={loading}
-                                    className="w-full flex items-center justify-center gap-2 cursor-pointer mt-4 py-3 bg-[#010f1c] text-white rounded-md hover:bg-gray-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className={`w-full flex items-center justify-center gap-2 cursor-pointer mt-4 py-3 rounded-md transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                        paymentMethod === "cod"
+                                            ? "bg-green-600 text-white hover:bg-green-700"
+                                            : "bg-[#010f1c] text-white hover:bg-gray-600"
+                                    }`}
                                 >
-                                    Proceed to Checkout
+                                    {paymentMethod === "cod" ? (
+                                        <>
+                                            <Truck size={20} />
+                                            Place COD Order
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CreditCard size={20} />
+                                            Proceed to Checkout
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
@@ -417,3 +544,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+

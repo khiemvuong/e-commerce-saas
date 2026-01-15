@@ -6,6 +6,7 @@ import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 const SellerSuccessPage = () => {
     const [isLoading, setIsLoading] = useState(true);
 
@@ -42,7 +43,7 @@ const SellerSuccessPage = () => {
         const verifySellerStatus = async () => {
             try {
 
-                await axios.get('/auth/api/login-seller'); 
+                await axiosInstance.post('/auth/api/login-seller'); 
                 // Kích hoạt hiệu ứng chúc mừng
                 triggerConfetti();
                 setIsLoading(false);

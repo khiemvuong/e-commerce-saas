@@ -178,7 +178,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <Link
                         href={`/product/${product?.slug}`}
                         onClick={handleProductClick}
-                        className="block text-base font-bold text-gray-900 line-clamp-2 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 transition-all mb-3 leading-snug"
+                        className="text-base font-bold text-gray-900 line-clamp-2 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 transition-all mb-3 leading-snug"
                     >
                         {product?.title}
                     </Link>
@@ -204,6 +204,13 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <div className="mb-3">
                         <Rating rating={product?.rating} />
                     </div>
+
+                    {/* COD Badge */}
+                    {product?.cash_on_delivery === 'yes' && (
+                        <div className="flex items-center gap-1 text-green-600 text-xs font-medium mb-3">
+                            <span>💵 COD</span>
+                        </div>
+                    )}
 
                     {/* Event Timer */}
                     {isEvent && timeLeft && (

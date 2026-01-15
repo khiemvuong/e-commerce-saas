@@ -10,25 +10,28 @@ import { useRouter } from 'next/navigation';
 import {useForm} from 'react-hook-form';
 import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
-import axios, {  AxiosError } from 'axios';
-import { useMutation } from '@tanstack/react-query';
+import  {  AxiosError } from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
+    const queryClient = useQueryClient();
     const {register, handleSubmit, formState: {errors}} = useForm<FormData>();
 
     const loginMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/login-user`, data, {
+            const response = await axiosInstance.post(`/api/login-user`, data, {
                 withCredentials: true,
             });
             return response.data;
         },
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
             console.log("Login successful:", data);
             setServerError(null);
+            await queryClient.invalidateQueries({ queryKey: ['user'] });
             router.push("/");
         },
         onError: (error: AxiosError) => {

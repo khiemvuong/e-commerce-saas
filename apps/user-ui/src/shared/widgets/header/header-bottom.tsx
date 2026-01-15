@@ -3,38 +3,36 @@ import { AlignLeft, ChevronDown, ChevronRight, Heart, ShoppingCart, X } from 'lu
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import ProfileIcon from '../../../assets/svgs/profile-icon';
 import { navItems } from 'apps/user-ui/src/configs/constants';
-import useUser from "apps/user-ui/src/hooks/useUser";
 import { useStore } from 'apps/user-ui/src/store';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import { useQuery } from '@tanstack/react-query';
+import UserMenu from './user-menu';
 
-const HeaderBottom = () => {
+const HeaderBottom = ({ user }: { user: any }) => {
   const pathname = usePathname();
   const [show, setShow] = useState(false);
   const [isSticky, setIsSticky] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [subCategories, setSubCategories] = useState<Record<string, string[]>>({});
   const menuRef = useRef<HTMLDivElement | null>(null);
   const cart = useStore((state: any) => state.cart);
   const wishlist = useStore((state: any) => state.wishlist);
-  const { user, isLoading } = useUser();
 
   // Fetch categories from API
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const { data } = await axiosInstance.get('/product/api/get-categories');
-        setCategories(data.categories || []);
-        setSubCategories(data.subCategories || {});
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
+  const { data: categoryData } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get('/product/api/get-categories');
+      return data;
+    },
+    staleTime: 60 * 60 * 1000, // Cache trong 1 giờ
+    refetchOnWindowFocus: false,
+  });
+
+  const categories = categoryData?.categories || [];
+  const subCategories = categoryData?.subCategories || {};
+
   // Sticky on scroll
   useEffect(() => {
     const handleScroll = () => setIsSticky(window.scrollY > 100);
@@ -146,45 +144,7 @@ const HeaderBottom = () => {
               {/* User Actions */}
               <div className="flex items-center gap-4">
                 {/* Profile */}
-                {(!isLoading && user) ? (
-                  // ĐÃ ĐĂNG NHẬP: toàn khối trỏ tới /profile
-                  <Link
-                    href={"/profile?active=profile"}
-                    className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition"
-                  >
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100 hover:border-blue-500 transition overflow-hidden">
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        <ProfileIcon size={18} className="text-gray-600" />
-                      )}
-                    </div>
-                    <div className="hidden lg:flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium leading-tight">
-                        Hello,
-                      </span>
-                      <span className="text-sm text-gray-800 font-Roboto font-bold leading-tight truncate max-w-[100px]">
-                        {user?.name ? ` ${user.name}` : ","}
-                      </span>                     
-                    </div>
-                  </Link>
-                ) : (
-                  // CHƯA ĐĂNG NHẬP: avatar + nút Sign in
-                  <div className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition">
-                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100">
-                      <ProfileIcon size={18} className="text-gray-600" />
-                    </div>
-                    <div className="hidden lg:flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium leading-tight">Hello,</span>
-                      <Link
-                        href="/login"
-                        className="text-sm text-blue-600 hover:text-blue-800 font-bold transition"
-                      >
-                        Sign in
-                      </Link>
-                    </div>
-                  </div>
-                )}
+                <UserMenu user={user} />
 
                 {/* Wishlist */}
                 <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700 hover:text-red-500 transition">

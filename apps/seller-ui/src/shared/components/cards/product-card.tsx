@@ -129,6 +129,13 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                         <Rating rating={product?.rating} />
                     </div>
 
+                    {/* COD Badge */}
+                    {product?.cash_on_delivery === "yes" && (
+                        <div className="flex items-center gap-1 text-green-600 text-xs font-medium mb-3">
+                            <span>💵 COD</span>
+                        </div>
+                    )}
+
                     {/* Event Timer */}
                     {isEvent && timeLeft && (
                         <div className="mt-3 pt-3 border-t border-purple-200">

@@ -42,12 +42,16 @@ const ProvidersWithWebSocket = ({
     children: React.ReactNode;
 }) => {
     const { seller, isLoading } = useSeller();
-    if (isLoading) return null;
+    
+    // Don't return null during loading to avoid hydration mismatch
+    // Just render children without WebSocket until seller is loaded
+    if (isLoading) {
+        return <>{children}</>;
+    }
+    
     return (
         <>
-            {seller && (
-                <WebSocketProvider seller={seller}>{children}</WebSocketProvider>
-            )}
+            {seller && <WebSocketProvider seller={seller}>{children}</WebSocketProvider>}
             {!seller && children}
         </>
     );

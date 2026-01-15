@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`min-h-screen text-white bg-slate-900 font-sans antialiased ${poppins.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`min-h-screen text-white bg-slate-900 font-sans antialiased ${poppins.variable}`} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>
