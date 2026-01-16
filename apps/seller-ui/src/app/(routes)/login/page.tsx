@@ -5,20 +5,30 @@ type FormData={
     password: string;
 };
 import Link from 'next/link';
-import React, {useState} from 'react'
+import React, {useState, useEffect} from 'react'
 import { useRouter } from 'next/navigation';
 import {useForm} from 'react-hook-form';
 import { Eye, EyeOff } from 'lucide-react';
 import axios, {  AxiosError } from 'axios';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+import useSeller from 'apps/seller-ui/src/hooks/useSeller';
 
 const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
     const router = useRouter();
+    const queryClient = useQueryClient();
+    const {seller, isLoading: isSellerLoading} = useSeller();
     const {register, handleSubmit, formState: {errors}} = useForm<FormData>();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (!isSellerLoading && seller) {
+            router.replace('/');
+        }
+    }, [seller, isSellerLoading, router]);
 
     const loginMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -30,6 +40,8 @@ const Login = () => {
         onSuccess: (data) => {
             console.log("Login successful:", data);
             setServerError(null);
+            // Invalidate seller query to force refetch with new session
+            queryClient.invalidateQueries({ queryKey: ['seller'] });
             router.push("/");
         },
         onError: (error: AxiosError) => {
@@ -40,6 +52,24 @@ const Login = () => {
 
     const onSubmit = async (data: FormData) => {
         loginMutation.mutate(data);
+    }
+
+    // Show loading if checking auth
+    if (isSellerLoading) {
+        return (
+            <div className="w-full min-h-screen flex items-center justify-center bg-[f1f1f1]">
+                <PageLoader text="Checking authentication..." />
+            </div>
+        );
+    }
+
+    // Don't render login form if already authenticated
+    if (seller) {
+        return (
+            <div className="w-full min-h-screen flex items-center justify-center bg-[f1f1f1]">
+                <PageLoader text="Redirecting..." />
+            </div>
+        );
     }
 return (
     <div className="w-full py-10 min-h-screen bg-[f1f1f1]">

@@ -6,6 +6,8 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form';
 import axios, {AxiosError} from 'axios';
 import PageLoader from '../shared/components/loading/page-loader';
+import Link from 'next/link';
+
 type FormData = {
   email: string;
   password: string;
@@ -67,10 +69,15 @@ const Page = () => {
               })}
             />
           </div>
+          <div className="flex justify-end mt-2">
+            <Link href="/forgot-password" className="text-blue-400 hover:text-blue-300 text-sm hover:underline transition">
+              Forgot Password?
+            </Link>
+          </div>
           <button
             type="submit"
             disabled={loginMutation.isPending}
-            className="w-full mt-5 text-xl flex justify-center font-semibold font-Poppins cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
+            className="w-full mt-4 text-xl flex justify-center font-semibold font-Poppins cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
           >
             {loginMutation.isPending ? (
               <PageLoader text="Logging in..." />

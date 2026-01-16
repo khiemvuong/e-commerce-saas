@@ -16,7 +16,7 @@ import SidebarMenu from './sidabar.menu';
 const SidebarWrapper = () => {
     const {activeSidebar,setActiveSidebar} = useSidebar();
     const pathName = usePathname();
-    const{seller} = useSeller();
+    const{seller, isLoading} = useSeller();
     const { logout, isLoggingOut } = useLogout();
 
     useEffect(() => {
@@ -49,8 +49,17 @@ const SidebarWrapper = () => {
                     >
                         <Logo />
                         <Box>
-                            <h3 className = "text-xl font-medium text-[#ecedee]">{seller?.shop?.name}</h3>
-                            <h5 className = "text-xs font-medium text-[#ecedee] whitespace-nowrap overflow-hidden text-ellipsis max-w-[170px]">{seller?.shop?.address}</h5>
+                            {isLoading ? (
+                                <div className="animate-pulse">
+                                    <div className="h-5 w-28 bg-slate-700 rounded mb-1" />
+                                    <div className="h-3 w-36 bg-slate-700 rounded" />
+                                </div>
+                            ) : (
+                                <>
+                                    <h3 className = "text-xl font-medium text-[#ecedee]">{seller?.shop?.name || 'Shop Name'}</h3>
+                                    <h5 className = "text-xs font-medium text-[#ecedee] whitespace-nowrap overflow-hidden text-ellipsis max-w-[170px]">{seller?.shop?.address || 'Address'}</h5>
+                                </>
+                            )}
                         </Box>
                     </Link>
                 </Box>

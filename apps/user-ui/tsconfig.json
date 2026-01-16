@@ -44,7 +44,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "../../packages/components/color-selector/index.tsx", "../../packages/components/custom-properties/index.tsx", "../../packages/components/custom-specification/index.tsx", "../../packages/components/input/index.tsx"  ],
   "exclude": [
     "out-tsc",
     "dist",

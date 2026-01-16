@@ -37,6 +37,7 @@
   "include": [
     "../../apps/admin-ui/.next/types/**/*.ts",
     "../../packages/**/*.ts",
+    "../../packages/components/**/*.tsx",
     "../../dist/apps/admin-ui/.next/types/**/*.ts",
     "next-env.d.ts",
     "src/**/*.js",
