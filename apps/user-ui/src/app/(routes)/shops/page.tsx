@@ -7,6 +7,7 @@ import { categories } from 'apps/user-ui/src/utils/categories'
 import { countries } from 'apps/user-ui/src/utils/countries'
 import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 import { Search } from 'lucide-react'
+import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
 const Page = () => {
     const router = useRouter();
     const [isShopLoading, setIsShopLoading] = useState(false);
@@ -21,6 +22,10 @@ const Page = () => {
     // Temp states for filters (before Apply is clicked)
     const [tempCategories, setTempCategories] = useState<string[]>([]);
     const [tempCountries, setTempCountries] = useState<string[]>([]);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // Count active filters for badge
+    const activeFiltersCount = selectedCategories.length + selectedCountries.length;
 
     const updateURL = () => {
         const params = new URLSearchParams();
@@ -102,8 +107,73 @@ const Page = () => {
     <div className="w-full min-h-screen pb-10 mt-10">
         
         <div className="w-full flex flex-col lg:flex-row gap-8 lg:gap-20 px-4 lg:px-0">
+        {/* Mobile Filter Drawer */}
+        <MobileFilterDrawer 
+            isOpen={isFilterOpen} 
+            onClose={() => setIsFilterOpen(false)}
+            onApply={applyAllFilters}
+        >
+            {/* Search */}
+            <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-800 mb-3">Tìm kiếm</h3>
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Tìm cửa hàng..."
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-black"
+                    />
+                    <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
+                </div>
+            </div>
+
+            {/* Categories */}
+            <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-800 mb-3">Danh mục</h3>
+                <div className='space-y-3 max-h-[200px] overflow-y-auto'>
+                    {categories?.map((category: any) => (
+                        <label key={category.value} className="flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={tempCategories.includes(category.value)}
+                                onChange={() => toggleCategory(category.value)}
+                                className="form-checkbox h-4 w-4 text-gray-800 border-gray-300 rounded focus:ring-0"
+                            />
+                            <span className="ml-3 text-sm text-gray-700">{category.label}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+
+            {/* Countries */}
+            <div className="mb-4">
+                <h3 className="text-base font-medium text-gray-800 mb-3">Quốc gia</h3>
+                <div className='space-y-3 max-h-[200px] overflow-y-auto'>
+                    {[...countries].sort((a, b) => a.name.localeCompare(b.name)).map((country: any) => (
+                        <label key={country.code} className="flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={tempCountries.includes(country.code)}
+                                onChange={() => toggleCountry(country.code)}
+                                className="form-checkbox h-4 w-4 text-gray-800 border-gray-300 rounded focus:ring-0"
+                            />
+                            <span className="ml-3 text-sm text-gray-700">{country.name}</span>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        </MobileFilterDrawer>
+
+        {/* Floating Filter Button */}
+        <FloatingFilterButton 
+            onClick={() => setIsFilterOpen(true)} 
+            activeFiltersCount={activeFiltersCount}
+        />
+
         {/*Side Bar for filters*/}
-        <aside className='w-full lg:w-[270px] space-y-6'>
+        <aside className='hidden lg:block w-[270px] space-y-6'>
             {/* Search Input */}
             <div className="relative">
                  <input

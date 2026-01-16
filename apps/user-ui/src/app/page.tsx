@@ -7,6 +7,8 @@ import axiosInstance from '../utils/axiosInstance'
 import ProductCard from '../shared/components/cards/product-card'
 import ScrollToTop from '../shared/components/scroll-to-top'
 import ShopCard from '../shared/components/cards/shop.card'
+import CategorySection from '../shared/modules/categories/category-section'
+
 const page = () => {
   const {
     data:products,
@@ -55,6 +57,9 @@ const page = () => {
     <div className="min-h-screen pb-10">
       <Hero/>
       <div className='md:w-[80%] w-[95%] my-6 md:my-10 m-auto'>
+        {/* Category Section */}
+        <CategorySection />
+        
         {/*Suggested Product Seciton*/}
         <div>
           <div className="mb-4 md:mb-8">

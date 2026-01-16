@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import ProductCard from "../shared/components/cards/product-card";
 import { useRouter } from "next/navigation";
-import PageLoader from "../shared/components/loading/page-loader";
 
 
 const SellerShop = () => {
@@ -32,7 +31,7 @@ const SellerShop = () => {
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, error } = useQuery({
     queryKey: ["seller-shop"],
     queryFn: async () => {
       const res = await axiosInstance.get("/seller/api/get-shop-details");
@@ -126,7 +125,6 @@ const SellerShop = () => {
   const getAvatar = () => images.find((img) => img.type === "avatar");
   const getCover = () => images.find((img) => img.type === "cover");
 
-  if (isLoading) return <PageLoader />;
   
   if (error) {
     route.push("/login");

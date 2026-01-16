@@ -361,6 +361,7 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
                     sale_price: true,
                     regular_price: true,
                     rating: true,
+                    short_description: true,
                     totalSales: true,
                     stock: true,
                     cash_on_delivery: true,
@@ -440,6 +441,7 @@ export const getAllEvents = async (req: Request, res: Response, next: NextFuncti
                     rating: true,
                     totalSales: true,
                     stock: true,
+                    short_description: true,
                     cash_on_delivery: true,
                     shopId: true,
                     colors: true,
@@ -545,7 +547,7 @@ export const getFilteredProducts = async (
 ) => {
     try {
         const { 
-            priceRange = [0,10000],
+            priceRange,
             categories = [],
             colors=[],
             sizes=[],
@@ -553,24 +555,28 @@ export const getFilteredProducts = async (
             limit = 12 
         } = req.query;
 
-        const parsedPriceRange =
-        typeof priceRange === "string"
-            ? priceRange.split(",").map(Number)
-            : [0,10000];
-            const parsedPage = Number(page);
-            const parsedLimit = Number(limit);
-            const skip = (parsedPage - 1) * parsedLimit;
-            const filters : Record<string, any> = {
-                sale_price: {
+        const parsedPage = Number(page);
+        const parsedLimit = Number(limit);
+        const skip = (parsedPage - 1) * parsedLimit;
+        
+        const filters : Record<string, any> = {
+            AND: [
+                { isDeleted: false },
+                { starting_date: null },
+                { ending_date: null },
+            ]
+        };
+        
+        // Only apply priceRange filter if explicitly provided
+        if (priceRange && typeof priceRange === "string" && priceRange.length > 0) {
+            const parsedPriceRange = priceRange.split(",").map(Number);
+            if (parsedPriceRange.length === 2 && !isNaN(parsedPriceRange[0]) && !isNaN(parsedPriceRange[1])) {
+                filters.sale_price = {
                     gte: parsedPriceRange[0],
                     lte: parsedPriceRange[1],
-                },
-                AND: [
-                    { isDeleted: false },
-                    { starting_date: null },
-                    { ending_date: null },
-                ]
-            };
+                };
+            }
+        }
             if (categories && (categories as string[]).length>0 ) {
                 filters.category = { 
                     in: Array.isArray(categories) 
@@ -605,6 +611,7 @@ export const getFilteredProducts = async (
                     regular_price: true,
                     rating: true,
                     stock: true,
+                    short_description: true,
                     totalSales: true,
                     cash_on_delivery: true,
                     shopId: true,
@@ -850,6 +857,60 @@ export const getFilteredShops = async (
     } catch (error) {
         console.error("Get filtered shops error:", error);
         next(error);
+    }
+};
+
+// Get categories with product images for homepage display
+export const getCategoriesWithImages = async (req:Request, res:Response, next:NextFunction) => {
+    try {
+        const config = await prisma.site_config.findFirst({
+            include: {
+                images: true
+            }
+        });
+        if(!config){
+            return res.status(404).json({message:"Categories not found"});
+        }
+        
+        const categories = config.categories || [];
+        const images = config.images || [];
+        
+        // Map category images from stored images with type='category_{name}'
+        const categoriesWithImages = await Promise.all(
+            categories.map(async (category: string) => {
+                // Find category image from stored images
+                const categoryImage = images.find(
+                    (img: any) => img.type === `category_${category}`
+                );
+                
+                // Count products in category
+                const productCount = await prisma.products.count({
+                    where: {
+                        category,
+                        isDeleted: false,
+                        starting_date: null,
+                        ending_date: null,
+                    }
+                });
+                
+                return {
+                    name: category,
+                    image: categoryImage?.file_url || null,
+                    productCount
+                };
+            })
+        );
+        
+        // Filter out categories with no products
+        const filteredCategories = categoriesWithImages.filter(cat => cat.productCount > 0);
+        
+        return res.status(200).json({
+            categories: filteredCategories
+        });
+
+    } catch (error) {
+        console.error("Get categories with images error:", error);
+        return next(error);
     }
 };
 

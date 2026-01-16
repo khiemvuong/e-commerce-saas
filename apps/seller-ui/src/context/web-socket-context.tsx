@@ -8,7 +8,22 @@ import {
     useState,
 } from "react";
 
-const WebSocketContext = createContext<any>(null);
+type SeenUpdate = {
+    conversationId: string;
+    seenBy: string;
+    seenByType: "user" | "seller";
+    seenAt: string;
+};
+
+type WebSocketContextType = {
+    ws: WebSocket | null;
+    unreadCounts: Record<string, number>;
+    onlineUsers: Record<string, boolean>;
+    lastSeenUpdate: SeenUpdate | null;
+};
+
+const WebSocketContext = createContext<WebSocketContextType | null>(null);
+
 export const WebSocketProvider = ({
     children,
     seller,
@@ -19,6 +34,8 @@ export const WebSocketProvider = ({
     const [wsReady, setWsReady] = useState(false);
     const wsRef = useRef<WebSocket | null>(null);
     const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [onlineUsers, setOnlineUsers] = useState<Record<string, boolean>>({});
+    const [lastSeenUpdate, setLastSeenUpdate] = useState<SeenUpdate | null>(null);
 
     useEffect(() => {
         if (!seller?.id) return;
@@ -43,12 +60,27 @@ export const WebSocketProvider = ({
 
             ws.addEventListener("message", (event) => {
                 const data = JSON.parse(event.data);
+                
                 if (data.type === "UNSEEN_COUNT_UPDATE") {
                     const { conversationId, count } = data.payload;
                     setUnreadCounts((prev) => ({
                         ...prev,
                         [conversationId]: count,
                     }));
+                }
+                
+                // Handle online status changes
+                if (data.type === "ONLINE_STATUS_CHANGE") {
+                    const { id, isOnline } = data.payload;
+                    setOnlineUsers((prev) => ({
+                        ...prev,
+                        [id]: isOnline,
+                    }));
+                }
+                
+                // Handle message seen notifications
+                if (data.type === "MESSAGE_SEEN") {
+                    setLastSeenUpdate(data.payload);
                 }
             });
 
@@ -77,10 +109,11 @@ export const WebSocketProvider = ({
     }, [seller?.id]);
 
     return (
-        <WebSocketContext.Provider value={{ ws: wsRef.current, unreadCounts }}>
+        <WebSocketContext.Provider value={{ ws: wsRef.current, unreadCounts, onlineUsers, lastSeenUpdate }}>
             {children}
         </WebSocketContext.Provider>
     );
 };
 
 export const useWebSocket = () => useContext(WebSocketContext);
+

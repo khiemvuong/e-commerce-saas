@@ -3,8 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from 'apps/admin-ui/src/utils/axiosInstance';
 import BreadCrumbs from 'apps/admin-ui/src/shared/components/breadcrums';
-import { Image as ImageIcon, List, Layout, Trash2, Plus, Save } from 'lucide-react';
+import { Image as ImageIcon, List, Layout, Trash2, Plus, Save, Upload } from 'lucide-react';
 import ComponentLoader from 'apps/admin-ui/src/shared/components/loading/component-loader';
+import { compressImage, compressionPresets, formatFileSize } from 'apps/admin-ui/src/services/imageCompressionService';
 
 const Customization = () => {
     const queryClient = useQueryClient();
@@ -13,9 +14,11 @@ const Customization = () => {
     // Local state for editing
     const [categories, setCategories] = useState<string[]>([]);
     const [subCategories, setSubCategories] = useState<Record<string, string[]>>({});
+    const [categoryImages, setCategoryImages] = useState<Record<string, {file_url: string, fileId: string}>>({});
     const [images, setImages] = useState<any[]>([]);
     const [newCategory, setNewCategory] = useState('');
     const [newSubCategory, setNewSubCategory] = useState<Record<string, string>>({});
+    const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['customizations'],
@@ -30,6 +33,16 @@ const Customization = () => {
             setCategories(data.categories || []);
             setSubCategories(data.subCategories || {});
             setImages(data.images || []);
+            
+            // Extract category images from images array
+            const catImages: Record<string, {file_url: string, fileId: string}> = {};
+            (data.images || []).forEach((img: any) => {
+                if (img.type?.startsWith('category_')) {
+                    const catName = img.type.replace('category_', '');
+                    catImages[catName] = { file_url: img.file_url, fileId: img.fileId };
+                }
+            });
+            setCategoryImages(catImages);
         }
     }, [data]);
 
@@ -70,6 +83,12 @@ const Customization = () => {
         const newSubs = { ...subCategories };
         delete newSubs[cat];
         setSubCategories(newSubs);
+        // Also remove category image
+        const newImages = images.filter(img => img.type !== `category_${cat}`);
+        setImages(newImages);
+        const newCatImages = { ...categoryImages };
+        delete newCatImages[cat];
+        setCategoryImages(newCatImages);
     };
 
     // Subcategory Handlers
@@ -95,31 +114,107 @@ const Customization = () => {
         });
     };
 
+    // Category Image Upload with compression
+    const handleCategoryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, categoryName: string) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setUploadingCategory(categoryName);
+        try {
+            // Compress image first
+            const result = await compressImage(file, compressionPresets.balanced);
+            const compressedFile = result.compressedFile;
+            
+            if (result.wasCompressed) {
+                console.log(`Category image compressed: ${formatFileSize(result.originalSize)} -> ${formatFileSize(result.compressedSize)}`);
+            }
+
+            // Convert to base64
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64String = reader.result as string;
+                try {
+                    const res = await axiosInstance.post('/admin/api/upload-site-image', {
+                        fileName: base64String
+                    });
+                    if (res.data.success) {
+                        // Remove old category image if exists
+                        const filteredImages = images.filter(img => img.type !== `category_${categoryName}`);
+                        
+                        const newImage = {
+                            file_url: res.data.file_url,
+                            fileId: res.data.fileId,
+                            type: `category_${categoryName}`
+                        };
+                        setImages([...filteredImages, newImage]);
+                        setCategoryImages({
+                            ...categoryImages,
+                            [categoryName]: { file_url: res.data.file_url, fileId: res.data.fileId }
+                        });
+                    }
+                } catch (error) {
+                    console.error("Upload failed", error);
+                    alert("Upload failed");
+                } finally {
+                    setUploadingCategory(null);
+                }
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error("Compression failed", error);
+            setUploadingCategory(null);
+            alert("Image processing failed");
+        }
+    };
+
+    const removeCategoryImage = (categoryName: string) => {
+        const newImages = images.filter(img => img.type !== `category_${categoryName}`);
+        setImages(newImages);
+        const newCatImages = { ...categoryImages };
+        delete newCatImages[categoryName];
+        setCategoryImages(newCatImages);
+    };
+
+    // General image upload with compression
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            const base64String = reader.result as string;
-            try {
-                const res = await axiosInstance.post('/admin/api/upload-site-image', {
-                    fileName: base64String
-                });
-                if (res.data.success) {
-                    const newImage = {
-                        file_url: res.data.file_url,
-                        fileId: res.data.fileId,
-                        type: type
-                    };
-                    setImages([...images, newImage]);
-                }
-            } catch (error) {
-                console.error("Upload failed", error);
-                alert("Upload failed");
+        try {
+            // Use different presets based on type
+            const preset = type === 'banner' ? compressionPresets.high : compressionPresets.balanced;
+            const result = await compressImage(file, preset);
+            const compressedFile = result.compressedFile;
+            
+            if (result.wasCompressed) {
+                console.log(`${type} image compressed: ${formatFileSize(result.originalSize)} -> ${formatFileSize(result.compressedSize)}`);
             }
-        };
-        reader.readAsDataURL(file);
+
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64String = reader.result as string;
+                try {
+                    const res = await axiosInstance.post('/admin/api/upload-site-image', {
+                        fileName: base64String
+                    });
+                    if (res.data.success) {
+                        const newImage = {
+                            file_url: res.data.file_url,
+                            fileId: res.data.fileId,
+                            type: type
+                        };
+                        setImages([...images, newImage]);
+                    }
+                } catch (error) {
+                    console.error("Upload failed", error);
+                    alert("Upload failed");
+                }
+            };
+            reader.readAsDataURL(compressedFile);
+        } catch (error) {
+            console.error("Compression failed", error);
+            alert("Image processing failed");
+        }
     };
 
     const removeImage = (fileId: string) => {
@@ -200,8 +295,46 @@ const Customization = () => {
                                 {categories.length > 0 ? (
                                     categories.map((cat: string, index: number) => (
                                         <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <h4 className="font-medium text-blue-400">{cat}</h4>
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-4">
+                                                    {/* Category Image */}
+                                                    <div className="relative group">
+                                                        {categoryImages[cat] ? (
+                                                            <div className="w-16 h-16 rounded-lg overflow-hidden border border-gray-600 relative">
+                                                                <img 
+                                                                    src={categoryImages[cat].file_url} 
+                                                                    alt={cat}
+                                                                    className="w-full h-full object-cover"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => removeCategoryImage(cat)}
+                                                                    className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                >
+                                                                    <Trash2 size={16} className="text-red-400" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <label className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+                                                                {uploadingCategory === cat ? (
+                                                                    <span className="text-xs text-gray-400">...</span>
+                                                                ) : (
+                                                                    <>
+                                                                        <Upload size={16} className="text-gray-500" />
+                                                                        <span className="text-xs text-gray-500 mt-1">Image</span>
+                                                                    </>
+                                                                )}
+                                                                <input 
+                                                                    type="file" 
+                                                                    className="hidden" 
+                                                                    accept="image/*"
+                                                                    onChange={(e) => handleCategoryImageUpload(e, cat)}
+                                                                    disabled={uploadingCategory === cat}
+                                                                />
+                                                            </label>
+                                                        )}
+                                                    </div>
+                                                    <h4 className="font-medium text-blue-400">{cat}</h4>
+                                                </div>
                                                 <button onClick={() => removeCategory(cat)} className="text-red-400 hover:text-red-300">
                                                     <Trash2 size={16} />
                                                 </button>

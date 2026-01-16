@@ -229,8 +229,87 @@ const CartPage = () => {
                         </Link>
                     </div>
                 ) : (
-                    <div className="lg:flex items-start gap-10 ">
-                        <table className="w-full lg:w-[70%] border-collapse">
+                    <div className="lg:flex items-start gap-10">
+                        {/* Mobile Card Layout */}
+                        <div className="lg:hidden space-y-4 mb-6 w-full">
+                            {cart.map((item: any) => (
+                                item ? (
+                                    <div key={item.cartId || item.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                                        <div className="flex gap-4">
+                                            <Image
+                                                src={item?.images?.[0]?.file_url || '/placeholder.png'}
+                                                alt={item.title}
+                                                width={80}
+                                                height={80}
+                                                className="w-20 h-20 object-cover rounded-md flex-shrink-0"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-medium text-gray-800 truncate">{item.title}</h3>
+                                                {item?.selectedOptions && (
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {Object.entries(item.selectedOptions).map(
+                                                            ([key, value]) => (
+                                                                <span key={key} className="mr-2">
+                                                                    {key}: {value as string}
+                                                                </span>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {item.cash_on_delivery === "yes" && (
+                                                    <span className="mt-1 inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                                        <Truck size={12} />
+                                                        COD
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                                            <div className="font-semibold text-gray-800">
+                                                {item?.id === discountedProductId ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="line-through text-gray-400 text-sm">
+                                                            ${(item?.sale_price || 0).toFixed(2)}
+                                                        </span>
+                                                        <span className="text-green-600">
+                                                            ${(((item?.sale_price || 0) * (100 - discountPercent)) / 100).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span>${(item?.sale_price || 0).toFixed(2)}</span>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-2 border border-gray-200 rounded-full px-2 py-1">
+                                                    <button
+                                                        onClick={() => decreaseQuantity(item.cartId || item.id)}
+                                                        className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-black"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <span className="w-6 text-center font-medium">{item?.quantity}</span>
+                                                    <button
+                                                        onClick={() => increaseQuantity(item.cartId || item.id)}
+                                                        className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-black"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                                <button
+                                                    onClick={() => removeItem(item.cartId || item.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-600"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : null
+                            ))}
+                        </div>
+
+                        {/* Desktop Table Layout */}
+                        <table className="hidden lg:table w-full lg:w-[70%] border-collapse">
                             <thead className="bg-[#f1f3f4] rounded">
                                 <tr className="border-b border-gray-300">
                                     <th className="text-left p-4 text-gray-600 font-medium align-middle">
@@ -359,7 +438,7 @@ const CartPage = () => {
                                 ))}
                             </tbody>
                         </table>
-                        <div className="p-6 shadow-md w-full lg:w-[30%] bg-[#f9f9f9] rounded-lg">
+                        <div className="p-6 shadow-md w-full lg:w-[30%] bg-[#f9f9f9] rounded-lg mt-4 lg:mt-0">
                             {discountAmount > 0 && (
                                 <div className="flex justify-between items-center text-[#010f1c] text-base font-medium pb-1">
                                     <span className="font-poppins">

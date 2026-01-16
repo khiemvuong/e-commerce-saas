@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react'
 import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
 import ComponentLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
+import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
 
 const MIN=0;
 const MAX=1199;
@@ -38,10 +39,18 @@ const Page = () => {
     ];
 
     const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+    // Count active filters for badge
+    const activeFiltersCount = selectedCategories.length + selectedColors.length + selectedSizes.length + 
+        (priceRange[0] !== 0 || priceRange[1] !== 1199 ? 1 : 0);
 
     const updateURL = () => {
         const params = new URLSearchParams();
-        params.set("priceRange", priceRange.join(","));
+        // Only add priceRange if it's not default
+        if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
+            params.set("priceRange", priceRange.join(","));
+        }
         if (selectedCategories.length > 0) {
             params.set("categories", selectedCategories.join(","));
         }
@@ -51,9 +60,53 @@ const Page = () => {
         if (selectedSizes.length > 0) {
             params.set("sizes", selectedSizes.join(","));
         }
-        params.set("page", page.toString());
+        if (page > 1) {
+            params.set("page", page.toString());
+        }
         router.replace(`/products?${decodeURIComponent(params.toString())}`);
     }
+
+    // Initialize from URL params on mount
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            
+            const urlPriceRange = params.get('priceRange');
+            if (urlPriceRange) {
+                const range = urlPriceRange.split(',').map(Number);
+                if (range.length === 2) {
+                    setPriceRange(range);
+                    setTempPriceRange(range);
+                }
+            }
+            
+            const urlCategories = params.get('categories');
+            if (urlCategories) {
+                const cats = urlCategories.split(',');
+                setSelectedCategories(cats);
+                setTempCategories(cats);
+            }
+            
+            const urlColors = params.get('colors');
+            if (urlColors) {
+                const cols = urlColors.split(',');
+                setSelectedColors(cols);
+                setTempColors(cols);
+            }
+            
+            const urlSizes = params.get('sizes');
+            if (urlSizes) {
+                const szs = urlSizes.split(',');
+                setSelectedSizes(szs);
+                setTempSizes(szs);
+            }
+            
+            const urlPage = params.get('page');
+            if (urlPage) {
+                setPage(Number(urlPage));
+            }
+        }
+    }, []); // Only run on mount
 
 
     const fetchFilteredProducts = async (signal?: AbortSignal) => {
@@ -61,7 +114,10 @@ const Page = () => {
         try {
             const query = new URLSearchParams();
 
-            query.set("priceRange", priceRange.join(","));
+            // Only send priceRange if it's not default
+            if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
+                query.set("priceRange", priceRange.join(","));
+            }
             if (selectedCategories.length > 0) 
                 query.set("categories", selectedCategories.join(","));
             if (selectedColors.length > 0)
@@ -140,7 +196,7 @@ const Page = () => {
         
         <div className="w-full flex flex-col lg:flex-row gap-8 lg:gap-20 px-4 lg:px-0">
         {/*Side Bar for filters*/}
-        <aside className='w-full lg:w-[270px] space-y-6'>
+        <aside className='hidden lg:block w-[270px] space-y-6'>
             {/*Category Filter*/}
             <div className="bg-white border border-gray-200 rounded-sm p-6">
                 <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Categories</h3>
@@ -269,6 +325,127 @@ const Page = () => {
                 </button>
             </div>
         </aside>
+
+        {/* Mobile Filter Drawer */}
+        <MobileFilterDrawer 
+            isOpen={isFilterOpen} 
+            onClose={() => setIsFilterOpen(false)}
+            onApply={applyAllFilters}
+        >
+            {/* Categories */}
+            <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-800 mb-4">Danh mục</h3>
+                <div className='space-y-3'>
+                    {isLoading ? (
+                        <div className="text-gray-500">Loading...</div>
+                    ) : (
+                        data?.categories?.map((category: any) => (
+                            <label key={category} className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={tempCategories.includes(category)}
+                                    onChange={() => toggleCategory(category)}
+                                    className="form-checkbox h-4 w-4 text-gray-800 border-gray-300 rounded focus:ring-0"
+                                />
+                                <span className="ml-3 text-sm text-gray-700">{category}</span>
+                            </label>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Colors */}
+            <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-800 mb-4">Màu sắc</h3>
+                <div className='flex flex-wrap gap-3'>
+                    {colors.map((color) => (
+                        <button
+                            key={color.name}
+                            onClick={() => toggleColor(color.hex)}
+                            className={`w-8 h-8 rounded-full border-2 transition ${
+                                tempColors.includes(color.hex) 
+                                    ? 'border-black scale-110' 
+                                    : 'border-gray-200'
+                            }`}
+                            style={{backgroundColor: color.hex}}
+                            title={color.name}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Sizes */}
+            <div className="mb-6">
+                <h3 className="text-base font-medium text-gray-800 mb-4">Kích cỡ</h3>
+                <div className='flex flex-wrap gap-2'>
+                    {sizes.map((size) => (
+                        <button
+                            key={size}
+                            onClick={() => toggleSize(size)}
+                            className={`px-4 py-2 rounded-lg border transition ${
+                                tempSizes.includes(size)
+                                    ? 'bg-black text-white border-black'
+                                    : 'border-gray-200 text-gray-700 hover:border-gray-400'
+                            }`}
+                        >
+                            {size}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Price Range */}
+            <div className="mb-4">
+                <h3 className="text-base font-medium text-gray-800 mb-4">Giá</h3>
+                <div className='px-2'>
+                    <Range
+                        step={1}
+                        min={MIN}
+                        max={MAX}
+                        values={tempPriceRange}
+                        onChange={(values)=> setTempPriceRange(values)}
+                        renderTrack={({props,children})=>{
+                            const[min,max]=tempPriceRange;
+                            const percentageLeft = ((min - MIN) / (MAX - MIN)) * 100;
+                            const percentageRight = ((max - MIN) / (MAX - MIN)) * 100;
+                            return(
+                                <div {...props} className="mt-2 relative h-2 bg-gray-200 rounded-md">
+                                    <div
+                                        className="absolute h-2 bg-gray-700 rounded-md"
+                                        style={{
+                                            left: `${percentageLeft}%`,
+                                            width: `${percentageRight - percentageLeft}%`,
+                                        }}
+                                    />
+                                    {children}
+                                </div>
+                            )
+                        }}
+                        renderThumb ={({props})=>{
+                            const {key,...rest}=props;
+                            return(
+                                <div
+                                    key={key}
+                                    {...rest}
+                                    className='h-5 w-5 bg-white border border-gray-500 rounded-full shadow-md flex items-center justify-center'
+                                >
+                                    <div className='h-1 w-1 bg-gray-500 rounded-full' />
+                                </div>
+                            )
+                        }}
+                    />
+                </div>
+                <div className="text-center mt-4 text-sm text-gray-600">
+                    ${tempPriceRange[0]} - ${tempPriceRange[1]}
+                </div>
+            </div>
+        </MobileFilterDrawer>
+
+        {/* Floating Filter Button */}
+        <FloatingFilterButton 
+            onClick={() => setIsFilterOpen(true)} 
+            activeFiltersCount={activeFiltersCount}
+        />
         {/*Product Listing Section*/}
         <div className="flex-1 px-2 lg:px-3">
             <div className=" m-auto">

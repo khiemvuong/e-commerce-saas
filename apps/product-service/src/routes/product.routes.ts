@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { createDiscountCodes, createProduct, deleteDiscountCode, deleteProduct,restoreProduct, deleteProductImage, getCategories, getDiscountCodes, getMyProducts, getShopProducts, uploadProductImage,getAllProducts, getProductDetails, getFilteredProducts, getFilteredShops, getFilteredEvents, searchProducts, topShops, getAllEvents, editProduct, getMyEvents, getShopEvents, createEvents, editEvent } from "../controller/product.controller";
+import { createDiscountCodes, createProduct, deleteDiscountCode, deleteProduct,restoreProduct, deleteProductImage, getCategories, getCategoriesWithImages, getDiscountCodes, getMyProducts, getShopProducts, uploadProductImage,getAllProducts, getProductDetails, getFilteredProducts, getFilteredShops, getFilteredEvents, searchProducts, topShops, getAllEvents, editProduct, getMyEvents, getShopEvents, createEvents, editEvent } from "../controller/product.controller";
 import isAuthenticated from "@packages/middleware/isAuthenticated";
 
 const router: Router = Router();
 
 router.get("/get-categories", getCategories);
+router.get("/get-categories-with-images", getCategoriesWithImages);
 router.post("/create-discount-code",isAuthenticated,createDiscountCodes);
 router.get("/get-discount-codes",isAuthenticated,getDiscountCodes);
 router.delete("/delete-discount-code/:id",isAuthenticated,deleteDiscountCode);
