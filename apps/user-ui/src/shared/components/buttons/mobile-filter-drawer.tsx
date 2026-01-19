@@ -25,7 +25,7 @@ export default function MobileFilterDrawer({ isOpen, onClose, children, onApply 
                 <div className="flex justify-between items-center p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
                     <div className="flex items-center gap-2">
                         <Filter size={20} className="text-gray-600" />
-                        <h2 className="font-semibold text-lg text-gray-800">Bộ lọc</h2>
+                        <h2 className="font-semibold text-lg text-gray-800">Filter</h2>
                     </div>
                     <button
                         onClick={onClose}
@@ -47,7 +47,7 @@ export default function MobileFilterDrawer({ isOpen, onClose, children, onApply 
                             onClick={onClose}
                             className="flex-1 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition"
                         >
-                            Hủy
+                            Cancel
                         </button>
                         <button
                             onClick={() => {
@@ -56,7 +56,7 @@ export default function MobileFilterDrawer({ isOpen, onClose, children, onApply 
                             }}
                             className="flex-1 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition"
                         >
-                            Áp dụng
+                            Apply
                         </button>
                     </div>
                 </div>
@@ -73,7 +73,7 @@ export function FloatingFilterButton({ onClick, activeFiltersCount = 0 }: { onCl
             className="lg:hidden fixed bottom-6 right-6 z-40 bg-black text-white px-5 py-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-gray-800 transition active:scale-95"
         >
             <Filter size={18} />
-            <span className="font-medium">Bộ lọc</span>
+            <span className="font-medium">Filter</span>
             {activeFiltersCount > 0 && (
                 <span className="bg-white text-black text-xs font-bold px-2 py-0.5 rounded-full">
                     {activeFiltersCount}

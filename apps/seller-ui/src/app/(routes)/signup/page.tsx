@@ -6,7 +6,7 @@ import { useForm} from 'react-hook-form';
 import { Eye, EyeOff} from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
-import { countries } from 'apps/seller-ui/src/utils/countries';
+import { useSiteConfig } from 'apps/seller-ui/src/hooks/useSiteConfig';
 import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
 import StripeLogo from '../../../assets/svgs/stripe-logo';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
@@ -24,6 +24,9 @@ const Signup = () => {
     const {register, handleSubmit, formState: {errors}} = useForm();
     const [sellerId, setSellerId] = useState("");
     const [isStripeLoading, setIsStripeLoading] = useState(false);
+    
+    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
+    const countries = siteConfig?.countries || [];
     const startResendTimer = () => {
         const interval = setInterval(() => {
             setTimer((prev) => {

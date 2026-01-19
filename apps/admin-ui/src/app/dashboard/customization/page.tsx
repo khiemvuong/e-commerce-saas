@@ -19,6 +19,12 @@ const Customization = () => {
     const [newCategory, setNewCategory] = useState('');
     const [newSubCategory, setNewSubCategory] = useState<Record<string, string>>({});
     const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
+    
+    // Shop categories and countries state
+    const [shopCategories, setShopCategories] = useState<{value: string, label: string}[]>([]);
+    const [countries, setCountries] = useState<{code: string, name: string}[]>([]);
+    const [newShopCategory, setNewShopCategory] = useState({value: '', label: ''});
+    const [newCountry, setNewCountry] = useState({code: '', name: ''});
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['customizations'],
@@ -32,6 +38,8 @@ const Customization = () => {
         if (data) {
             setCategories(data.categories || []);
             setSubCategories(data.subCategories || {});
+            setShopCategories(data.shopCategories || []);
+            setCountries(data.countries || []);
             setImages(data.images || []);
             
             // Extract category images from images array
@@ -64,6 +72,8 @@ const Customization = () => {
         updateMutation.mutate({
             categories,
             subCategories,
+            shopCategories,
+            countries,
             images
         });
     };
@@ -226,7 +236,9 @@ const Customization = () => {
     };
 
     const tabs = [
-        { id: 'categories', label: 'Categories', icon: List },
+        { id: 'categories', label: 'Product Categories', icon: List },
+        { id: 'shopCategories', label: 'Shop Categories', icon: List },
+        { id: 'countries', label: 'Countries', icon: List },
         { id: 'logo', label: 'Logo', icon: ImageIcon },
         { id: 'banner', label: 'Banner', icon: Layout },
     ];
@@ -369,6 +381,119 @@ const Customization = () => {
                                     ))
                                 ) : (
                                     <p className="text-gray-500">No categories found.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'shopCategories' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-white">Shop Categories</h3>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={newShopCategory.value}
+                                        onChange={(e) => setNewShopCategory({...newShopCategory, value: e.target.value})}
+                                        placeholder="Value (e.g., electronics)"
+                                        className="bg-gray-800 border border-gray-700 text-white px-3 py-1 rounded text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                    <input 
+                                        type="text" 
+                                        value={newShopCategory.label}
+                                        onChange={(e) => setNewShopCategory({...newShopCategory, label: e.target.value})}
+                                        placeholder="Label (e.g., Electronics)"
+                                        className="bg-gray-800 border border-gray-700 text-white px-3 py-1 rounded text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            if (newShopCategory.value && newShopCategory.label) {
+                                                setShopCategories([...shopCategories, {...newShopCategory}]);
+                                                setNewShopCategory({value: '', label: ''});
+                                            }
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                                    >
+                                        <Plus size={16} /> Add
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="grid gap-3">
+                                {shopCategories.length > 0 ? (
+                                    shopCategories.map((cat, index) => (
+                                        <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                                            <div>
+                                                <span className="text-blue-400 font-medium">{cat.label}</span>
+                                                <span className="text-gray-500 ml-2 text-sm">({cat.value})</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setShopCategories(shopCategories.filter((_, i) => i !== index))}
+                                                className="text-red-400 hover:text-red-300"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500">No shop categories found.</p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === 'countries' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-white">Countries</h3>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={newCountry.code}
+                                        onChange={(e) => setNewCountry({...newCountry, code: e.target.value.toUpperCase()})}
+                                        placeholder="Code (e.g., VN)"
+                                        maxLength={2}
+                                        className="bg-gray-800 border border-gray-700 text-white px-3 py-1 rounded text-sm focus:outline-none focus:border-blue-500 w-24"
+                                    />
+                                    <input 
+                                        type="text" 
+                                        value={newCountry.name}
+                                        onChange={(e) => setNewCountry({...newCountry, name: e.target.value})}
+                                        placeholder="Name (e.g., Viet Nam)"
+                                        className="bg-gray-800 border border-gray-700 text-white px-3 py-1 rounded text-sm focus:outline-none focus:border-blue-500"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            if (newCountry.code && newCountry.name) {
+                                                setCountries([...countries, {...newCountry}]);
+                                                setNewCountry({code: '', name: ''});
+                                            }
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                                    >
+                                        <Plus size={16} /> Add
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="grid gap-3">
+                                {countries.length > 0 ? (
+                                    countries.map((country, index) => (
+                                        <div key={index} className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex justify-between items-center">
+                                            <div>
+                                                <span className="text-blue-400 font-medium">{country.name}</span>
+                                                <span className="text-gray-500 ml-2 text-sm">({country.code})</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => setCountries(countries.filter((_, i) => i !== index))}
+                                                className="text-red-400 hover:text-red-300"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-gray-500">No countries found.</p>
                                 )}
                             </div>
                         </div>

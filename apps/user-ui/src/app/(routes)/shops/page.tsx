@@ -3,11 +3,12 @@ import axiosInstance from 'apps/user-ui/src/utils/axiosInstance'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import ShopCard from 'apps/user-ui/src/shared/components/cards/shop.card'
-import { categories } from 'apps/user-ui/src/utils/categories'
-import { countries } from 'apps/user-ui/src/utils/countries'
+import { useSiteConfig } from 'apps/user-ui/src/hooks/useSiteConfig'
 import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 import { Search } from 'lucide-react'
 import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
+import FilterSection from 'apps/user-ui/src/shared/components/filters/FilterSection'
+
 const Page = () => {
     const router = useRouter();
     const [isShopLoading, setIsShopLoading] = useState(false);
@@ -18,6 +19,11 @@ const Page = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
     const [searchInput, setSearchInput] = useState("");
+    
+    // Fetch site config
+    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
+    const categories = siteConfig?.shopCategories || [];
+    const countries = siteConfig?.countries || [];
     
     // Temp states for filters (before Apply is clicked)
     const [tempCategories, setTempCategories] = useState<string[]>([]);
@@ -115,11 +121,11 @@ const Page = () => {
         >
             {/* Search */}
             <div className="mb-6">
-                <h3 className="text-base font-medium text-gray-800 mb-3">Tìm kiếm</h3>
+                <h3 className="text-base font-medium text-gray-800 mb-3">Search</h3>
                 <div className="relative">
                     <input
                         type="text"
-                        placeholder="Tìm cửa hàng..."
+                        placeholder="Search shops..."
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -131,7 +137,7 @@ const Page = () => {
 
             {/* Categories */}
             <div className="mb-6">
-                <h3 className="text-base font-medium text-gray-800 mb-3">Danh mục</h3>
+                <h3 className="text-base font-medium text-gray-800 mb-3">Categories</h3>
                 <div className='space-y-3 max-h-[200px] overflow-y-auto'>
                     {categories?.map((category: any) => (
                         <label key={category.value} className="flex items-center cursor-pointer">
@@ -149,7 +155,7 @@ const Page = () => {
 
             {/* Countries */}
             <div className="mb-4">
-                <h3 className="text-base font-medium text-gray-800 mb-3">Quốc gia</h3>
+                <h3 className="text-base font-medium text-gray-800 mb-3">Countries</h3>
                 <div className='space-y-3 max-h-[200px] overflow-y-auto'>
                     {[...countries].sort((a, b) => a.name.localeCompare(b.name)).map((country: any) => (
                         <label key={country.code} className="flex items-center cursor-pointer">
@@ -173,7 +179,7 @@ const Page = () => {
         />
 
         {/*Side Bar for filters*/}
-        <aside className='hidden lg:block w-[270px] space-y-6'>
+        <aside className='hidden lg:block w-[270px] space-y-4'>
             {/* Search Input */}
             <div className="relative">
                  <input
@@ -182,57 +188,62 @@ const Page = () => {
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-sm focus:outline-none focus:border-black transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-black transition-colors"
                 />
                 <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
             </div>
 
+            {/* Active Filters Summary */}
+            {activeFiltersCount > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-blue-900">{activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} active</span>
+                    </div>
+                    <button
+                        onClick={() => {
+                            setTempCategories([]);
+                            setTempCountries([]);
+                            setSelectedCategories([]);
+                            setSelectedCountries([]);
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                    >
+                        Clear All
+                    </button>
+                </div>
+            )}
+
             {/*Category Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Categories</h3>
-                <ul className='space-y-4 mb-4'>
-                        {categories?.map((category: any) => (
-                            <li key={category.value} className="flex items-center">
-                                <label className="inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={tempCategories.includes(category.value)}
-                                        onChange={() => toggleCategory(category.value)}
-                                        className="form-checkbox h-4 w-4 text-gray-800 border-gray-300 rounded focus:ring-0"
-                                    />
-                                    <span className="ml-3 text-[14px] text-gray-700">{category.label}</span>
-                                </label>
-                            </li>
-                        ))}
-                </ul>
-            </div>
+            <FilterSection
+                title="Categories"
+                count={tempCategories.length}
+                searchPlaceholder="Search categories..."
+                items={categories}
+                selectedItems={tempCategories}
+                onToggle={toggleCategory}
+                getItemKey={(item: any) => item.value}
+                getItemLabel={(item: any) => item.label}
+            />
+
             {/* Country Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Countries</h3>
-                <ul className='space-y-4 mb-4'>
-                    {[...countries].sort((a, b) => a.name.localeCompare(b.name)).map((country: any) => (
-                        <li key={country.code} className="flex items-center justify-between">
-                        <label className=''>
-                            <input
-                                type="checkbox"
-                                checked={tempCountries.includes(country.code)}
-                                onChange={() => toggleCountry(country.code)}
-                                className="form-checkbox h-4 w-4 text-gray-800 border-gray-300 rounded focus:ring-0 mr-2"
-                            />
-                            {country.name}
-                        </label>
-                        </li>
-                    ))}
-                </ul>
-            </div>
+            <FilterSection
+                title="Countries"
+                count={tempCountries.length}
+                searchPlaceholder="Search countries..."
+                items={[...countries].sort((a, b) => a.name.localeCompare(b.name))}
+                selectedItems={tempCountries}
+                onToggle={toggleCountry}
+                getItemKey={(item: any) => item.code}
+                getItemLabel={(item: any) => item.name}
+            />
 
             {/* Apply All Filters Button */}
             <div className="sticky bottom-4">
                 <button
-                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition shadow-lg"
+                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition shadow-lg"
                     onClick={applyAllFilters}
                 >
-                    Apply All Filters
+                    Apply Filters
                 </button>
             </div>
         </aside>

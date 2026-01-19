@@ -127,10 +127,10 @@ model orders {
   shippingAddressId String?      @db.ObjectId
   couponCode        String?
   discountAmount    Float        @default(0)
-  status            String?      // "Paid" | "COD" | "Pending"
+  status            String? // "Paid" | "COD" | "Pending"
   paymentMethod     String       @default("stripe") // "stripe" | "cod"
   deliveryStatus    String       @default("Ordered")
-  guestEmail        String?      // For guest COD orders
+  guestEmail        String? // For guest COD orders
   items             orderItems[] @relation("OrderItemsRelation")
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
@@ -168,10 +168,12 @@ model sellers {
 
 //Model site config
 model site_config {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  categories    String[]
-  subCategories Json
-  images        images[]
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  categories     String[]
+  subCategories  Json
+  shopCategories Json? // Array of shop categories {value, label}
+  countries      Json? // Array of countries {code, name}
+  images         images[]
 }
 
 model discount_codes {
@@ -330,35 +332,36 @@ model notifications {
 }
 
 model conversationGroup {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  isGroup     Boolean  @default(false)
-  name        String?
-  creatorId   String
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  isGroup        Boolean  @default(false)
+  name           String?
+  creatorId      String
   participantIds String[] @db.ObjectId
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
-model participant{
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  conversationId   String   @db.ObjectId
-  userId           String?   @db.ObjectId
-  sellerId         String?   @db.ObjectId
-  lastSeenAt      DateTime?
-  isOnline        Boolean  @default(false)
-  unreadCount      Int      @default(0)
-  muted          Boolean  @default(false)
-  joinedAt        DateTime @default(now())
+model participant {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId String    @db.ObjectId
+  userId         String?   @db.ObjectId
+  sellerId       String?   @db.ObjectId
+  lastSeenAt     DateTime?
+  isOnline       Boolean   @default(false)
+  unreadCount    Int       @default(0)
+  muted          Boolean   @default(false)
+  joinedAt       DateTime  @default(now())
 }
 
-model message{
-  id              String   @id @default(auto()) @map("_id") @db.ObjectId
-  conversationId  String   @db.ObjectId
-  senderId        String   @db.ObjectId
-  senderType      String
-  content         String?
-  attachments     String[]
-  status        String   @default("sent")
-  createdAt       DateTime @default(now())
-  @@unique([conversationId,senderId,content, createdAt])
+model message {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId String   @db.ObjectId
+  senderId       String   @db.ObjectId
+  senderType     String
+  content        String?
+  attachments    String[]
+  status         String   @default("sent")
+  createdAt      DateTime @default(now())
+
+  @@unique([conversationId, senderId, content, createdAt])
 }
