@@ -12,6 +12,6 @@
   "include": [
     "src/**/*.ts",
     "../../packages/**/*.ts"
-  ],
+, "../../packages/components/rich-text-editor/index.tsx", "../../packages/components/size-selector/index.tsx"  ],
   "exclude": []
 }

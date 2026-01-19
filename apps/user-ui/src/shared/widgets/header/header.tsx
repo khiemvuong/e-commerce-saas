@@ -1,12 +1,10 @@
 'use client';
 import Link from "next/link";
-import { Search, Heart, ShoppingCart, X, Menu } from "lucide-react";
-import { useState } from "react";
+import { Heart, ShoppingCart, Menu, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import useUser from "apps/user-ui/src/hooks/useUser";
 import { useStore } from "apps/user-ui/src/store";
 import IlanLogo3 from "apps/user-ui/src/assets/svgs/ilan-logo-3";
-import HeaderBottom from "./header-bottom";
-import React from "react";
 import { navItems } from "apps/user-ui/src/configs/constants";
 import { usePathname } from 'next/navigation';
 import { useQuery } from "@tanstack/react-query";
@@ -15,12 +13,30 @@ import UserMenu from "./user-menu";
 
 const Header = () => {
   const pathname = usePathname();
-  const { user, isLoading } = useUser();
+  const { user } = useUser();
   const wishlist = useStore((state: any) => state.wishlist);
   const cart = useStore((state: any) => state.cart);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [showNavMenu, setShowNavMenu] = React.useState(false);
-  const navMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close mobile menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    if (isMobileMenuOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
 
   const { data: customizationData } = useQuery({
     queryKey: ['customizations'],
@@ -32,130 +48,149 @@ const Header = () => {
     refetchOnWindowFocus: false,
   });
 
-  const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
-  const logoUrl = logos.length >= 2 ? logos[1].file_url : null;
+  const logos = (customizationData?.images?.filter((img: any) => img.type === 'logo') || [])
+    .sort((a: any, b: any) => a.id.localeCompare(b.id));
+  const logoUrl = logos.length >= 2 ? logos[0].file_url : logos[0]?.file_url || null;
 
   return (
-    <div className="w-full sticky top-0 left-0 z-50 transition-all duration-300">
-      <header className={`w-full bg-white/95 backdrop-blur-md border-b border-gray-200/50 shadow-sm transition-all duration-300 ${isSearchOpen ? 'pb-4' : ''}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20">
-            <div className="flex items-center gap-2 md:gap-4">
-              {/* Mobile Menu Button */}
-        <div ref={navMenuRef} className="relative md:hidden">
-          <button
-            className="p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 rounded-lg transition shadow-md hover:shadow-lg flex items-center gap-2"
-            onClick={() => setShowNavMenu(!showNavMenu)}
-          >
-            <Menu size={20} />
-          </button>
+    <header className={`w-full sticky top-0 z-50 transition-all duration-300 ${
+      isScrolled 
+        ? 'bg-white shadow-md' 
+        : 'bg-white'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className={`flex items-center justify-between transition-all ${
+          isScrolled ? 'h-16' : 'h-20'
+        }`}>
+          
+          {/* Left: Logo */}
+          <Link href="/" className="flex items-center shrink-0">
+            <div className={`overflow-hidden transition-all ${isScrolled ? 'w-[140px]' : 'w-[180px] md:w-[220px]'}`}>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo" 
+                  className={`object-contain transition-all ${isScrolled ? 'h-14' : 'h-16 md:h-20'}`}
+                />
+              ) : (
+                <IlanLogo3 
+                  size={isScrolled ? 140 : 200} 
+                  className="transition-transform"
+                />              
+              )}
+            </div>
+          </Link>
 
-          {/* Nav Menu Dropdown */}
-          {showNavMenu && (
-            <div className="absolute top-full left-0 w-64 bg-gradient-to-r from-blue-600 rounded-lg to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-2xl border border-gray-200 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-              {navItems.map((item: any, index: number) => (
+          {/* Center: Navigation - Desktop */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navItems.map((item: any, index: number) => {
+              const isActive = pathname === item.href || 
+                              (item.href !== '/' && pathname.startsWith(item.href));
+              
+              return (
                 <Link
                   key={index}
                   href={item.href}
-                  className="flex items-center justify-between px-4 py-3 text-sm font-medium transition group border border-white/20"
+                  className={`relative font-medium transition-colors ${
+                    isScrolled ? 'text-[15px]' : 'text-base'
+                  } ${
+                    isActive
+                      ? 'text-blue-600'
+                      : 'text-gray-700 hover:text-blue-600'
+                  }`}
+                  onClick={(e) => {
+                    if (item.href === pathname) {
+                      e.preventDefault();
+                      window.location.href = item.href;
+                    }
+                  }}
+                >
+                  {item.title}
+                  {isActive && (
+                    <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-3 md:gap-4">
+            {/* User Menu */}
+            <UserMenu user={user} />
+
+            {/* Wishlist */}
+            <Link 
+              href="/wishlist" 
+              className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-red-500 transition"
+            >
+              <Heart size={isScrolled ? 20 : 22} />
+              {wishlist?.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                  {wishlist.length > 99 ? '99+' : wishlist.length}
+                </span>
+              )}
+            </Link>
+
+            {/* Cart */}
+            <Link 
+              href="/cart" 
+              className="relative p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition"
+            >
+              <ShoppingCart size={isScrolled ? 20 : 22} />
+              {cart?.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-blue-600 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                  {cart.length > 99 ? '99+' : cart.length}
+                </span>
+              )}
+            </Link>
+
+            {/* Mobile Menu Button */}
+            <button
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-700 transition"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div 
+          ref={mobileMenuRef}
+          className="md:hidden absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-lg animate-in slide-in-from-top-2 duration-200"
+        >
+          <nav className="max-w-7xl mx-auto px-4 py-3">
+            {navItems.map((item: any, index: number) => {
+              const isActive = pathname === item.href || 
+                              (item.href !== '/' && pathname.startsWith(item.href));
+              
+              return (
+                <Link
+                  key={index}
+                  href={item.href}
+                  className={`block py-3 px-2 font-medium border-b border-gray-50 last:border-0 transition-colors ${
+                    isActive
+                      ? 'text-blue-600'
+                      : 'text-gray-700 hover:text-blue-600'
+                  }`}
                   onClick={() => {
-                    setShowNavMenu(false);
+                    setIsMobileMenuOpen(false);
                     if (item.href === pathname) {
                       window.location.href = item.href;
                     }
                   }}
                 >
-                  <span>{item.title}</span>
+                  {item.title}
                 </Link>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </nav>
         </div>
-
-              {/* Logo */}
-              <Link href="/" className="flex items-center shrink-0">
-                <div className="w-[130px] md:w-auto overflow-hidden">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="h-[220px] w-[220px]  object-contain" />
-                  ) : (
-                    <IlanLogo3 size={220} className="transform scale-75 origin-left md:scale-100 transition-transform"/>              
-                  )}
-                </div>
-              </Link>
-            </div>
-
-            {/* Right Section: Search + User Actions */}
-            <div className="flex items-center gap-3 md:gap-6">
-              {/* Search box (Desktop) */}
-              <div className="hidden md:flex items-center border border-gray-300 rounded-full bg-gray-50/50 overflow-hidden focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all flex-1 max-w-[400px]">
-                <input
-                  type="text"
-                  placeholder="What are you looking for?"
-                  className="px-4 py-2 text-sm w-[200px] sm:w-[300px] bg-transparent outline-none font-Roboto text-gray-700"
-                />
-                <button className="px-4 py-2 bg-gray-900 hover:bg-black transition text-white flex items-center justify-center">
-                  <Search size={18} />
-                </button>
-              </div>
-
-              {/* Mobile Search Toggle */}
-              <button 
-                className="md:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-full transition"
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-              >
-                {isSearchOpen ? <X size={22}/> : <Search size={22} />}
-              </button>
-
-              {/* User Actions */}
-              <div className="flex items-center gap-2 md:gap-4">
-                {/* Profile */}
-                <UserMenu user={user} />
-
-                {/* Wishlist */}
-                <Link href="/wishlist" className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700 hover:text-red-500 transition">
-                  <Heart size={22} className="md:w-6 md:h-6" />
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center border-2 border-white">
-                    {wishlist?.length || 0}
-                  </span>
-                </Link>
-
-                {/* Cart */}
-                <Link href="/cart" className="relative p-2 rounded-full hover:bg-gray-100 text-gray-700 hover:text-blue-600 transition">
-                  <ShoppingCart size={22} className="md:w-6 md:h-6" />
-                  <span className="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center border-2 border-white">
-                    {cart?.length || 0}
-                  </span>
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Search Bar (Expandable) */}
-          {isSearchOpen && (
-            <div className="md:hidden mt-2 pb-2 animate-in slide-in-from-top-2 fade-in duration-200">
-              <div className="flex items-center border border-gray-300 rounded-full bg-gray-50 overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="px-4 py-2 text-sm w-full bg-transparent outline-none font-Roboto"
-                  autoFocus
-                />
-                <button className="px-4 py-2 bg-gray-900 text-white">
-                  <Search size={18} />
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Header Bottom (Nav) - Desktop Only */}
-        <div className="hidden md:block w-full border-t border-gray-200/50">
-           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <HeaderBottom user={user} />
-           </div>
-        </div>
-      </header>
-    </div>
+      )}
+    </header>
   );
 };
 

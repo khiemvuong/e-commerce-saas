@@ -1,7 +1,7 @@
 "use client";
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { countries } from 'apps/user-ui/src/utils/countries';
+import { useSiteConfig } from 'apps/user-ui/src/hooks/useSiteConfig';
 import { X } from 'lucide-react';
 import React from 'react'
 import { useForm } from 'react-hook-form';
@@ -14,6 +14,8 @@ interface AddAddressModalProps {
 }
 
 const AddAddressModal = ({ isOpen, onClose }: AddAddressModalProps) => {
+    const { data: siteConfig } = useSiteConfig();
+    const countries = siteConfig?.countries || [];
     const queryClient = useQueryClient();
     const {
         register,

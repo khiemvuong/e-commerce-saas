@@ -27,7 +27,8 @@ const SellerInboxPage = () => {
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const conversationId = searchParams.get("conversationId");
-    const { ws } = useWebSocket(); // Giả định context WS của seller
+    const { ws, onlineUsers, lastSeenUpdate } = useWebSocket() || {};
+    const [isMessageSeen, setIsMessageSeen] = useState(false);
 
     // Fetch messages cho cuộc hội thoại đã chọn
     const { data: messages = [] } = useQuery({
@@ -97,6 +98,43 @@ const SellerInboxPage = () => {
         }
     }, [conversationId, chats]);
 
+    // Handle real-time online status updates
+    useEffect(() => {
+        if (!onlineUsers) return;
+        setChats((prev) =>
+            prev.map((chat) => {
+                const userId = chat.user?.id;
+                if (userId && onlineUsers[userId] !== undefined) {
+                    return {
+                        ...chat,
+                        user: { ...chat.user, isOnline: onlineUsers[userId] },
+                    };
+                }
+                return chat;
+            })
+        );
+        // Also update selectedChat
+        if (selectedChat?.user?.id && onlineUsers[selectedChat.user.id] !== undefined) {
+            setSelectedChat((prev: any) => prev ? ({
+                ...prev,
+                user: { ...prev.user, isOnline: onlineUsers[prev.user.id] },
+            }) : null);
+        }
+    }, [onlineUsers]);
+
+    // Handle message seen notifications
+    useEffect(() => {
+        if (lastSeenUpdate && lastSeenUpdate.conversationId === conversationId && lastSeenUpdate.seenByType === 'user') {
+            setIsMessageSeen(true);
+        }
+    }, [lastSeenUpdate, conversationId]);
+
+    // Reset seen status when sending new message
+    useEffect(() => {
+        if (isSending) {
+            setIsMessageSeen(false);
+        }
+    }, [isSending]);
 
     useEffect(() => {
         if (!ws) return;
@@ -303,6 +341,7 @@ const SellerInboxPage = () => {
                                 {messages.map((msg: any, index: number) => {
                                     // Kiểm tra tin nhắn có phải của Seller (mình) không
                                     const isMe = msg.senderType === "seller";
+                                    const isLastMyMessage = isMe && index === messages.length - 1;
                                     return (
                                         <div
                                             key={msg.id || index}
@@ -324,6 +363,12 @@ const SellerInboxPage = () => {
                                                         minute: "2-digit",
                                                     })}
                                                 </span>
+                                                {/* Show seen indicator for last message from seller */}
+                                                {isLastMyMessage && isMessageSeen && (
+                                                    <span className="text-[10px] text-gray-500 flex items-center gap-1">
+                                                        ✓✓ Đã xem
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     );

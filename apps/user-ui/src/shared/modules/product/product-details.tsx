@@ -15,6 +15,7 @@ import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { useRouter } from 'next/navigation';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
 import { optimizeImageUrl, IMAGE_PRESETS } from 'apps/user-ui/src/utils/imageOptimizer';
+import toast from 'react-hot-toast';
 
 // Skeleton component for product cards
 const ProductCardSkeleton = () => (
@@ -142,6 +143,22 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
     }, [productDetails?.id, location, deviceInfo, user?.id, isLoadingUser]);
 
     const handleChat = async () => {
+        // Kiểm tra đăng nhập
+        if (!user) {
+            toast.error('Vui lòng đăng nhập để chat với người bán', {
+                duration: 4000,
+            });
+            
+            // Hỏi người dùng có muốn chuyển đến trang đăng nhập không
+            setTimeout(() => {
+                const shouldRedirect = window.confirm('Bạn có muốn chuyển đến trang đăng nhập không?');
+                if (shouldRedirect) {
+                    router.push('/login');
+                }
+            }, 500);
+            return;
+        }
+
         if (isChatLoading) return;
         setIsChatLoading(true);
         try {
@@ -151,10 +168,12 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
             router.push(`/inbox?conversationId=${res.data.conversation.id}`);
         } catch (error) {
             console.error('Error starting chat with seller:', error);
+            toast.error('Không thể bắt đầu chat. Vui lòng thử lại sau.');
         } finally {
             setIsChatLoading(false);
         }
     };
+
     
 
   return (

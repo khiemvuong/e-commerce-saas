@@ -236,6 +236,8 @@ export const getAllCustomizations = async (
         return res.status(200).json({
             categories: config?.categories || [],
             subCategories: config?.subCategories || {},
+            shopCategories: config?.shopCategories || [],
+            countries: config?.countries || [],
             images: config?.images || [],
         });
     } catch (error) {
@@ -251,7 +253,7 @@ export const updateSiteConfig = async (
     next: NextFunction
 ) => {
     try {
-        const { categories, subCategories, images } = req.body;
+        const { categories, subCategories, shopCategories, countries, images } = req.body;
 
         const config = await prisma.site_config.findFirst();
 
@@ -261,6 +263,8 @@ export const updateSiteConfig = async (
                 data: {
                     categories: categories || [],
                     subCategories: subCategories || {},
+                    shopCategories: shopCategories || [],
+                    countries: countries || [],
                     images: {
                         create: images?.map((img: any) => ({
                             file_url: img.file_url,
@@ -283,6 +287,8 @@ export const updateSiteConfig = async (
             data: {
                 categories,
                 subCategories,
+                shopCategories,
+                countries,
                 images: {
                     create: images?.map((img: any) => ({
                         file_url: img.file_url,

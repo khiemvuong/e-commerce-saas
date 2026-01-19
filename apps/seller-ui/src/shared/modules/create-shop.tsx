@@ -2,7 +2,8 @@ import React from 'react'
 import {useForm} from "react-hook-form"
 import  {useMutation} from "@tanstack/react-query"
 import axios from 'axios';
-import { shopCategories } from '../../utils/categories';
+import { useSiteConfig } from '../../hooks/useSiteConfig';
+
 const CreateShop = ({
     sellerId,
     setActiveStep
@@ -15,6 +16,9 @@ const CreateShop = ({
         handleSubmit,
         formState: { errors },
     } = useForm();
+
+    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
+    const shopCategories = siteConfig?.shopCategories || [];
 
     const shopCreateMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -112,8 +116,9 @@ const CreateShop = ({
                 <select
                     {...register("category", { required: "Category is required" })}
                     className={`w-full p-2 border ${errors.category ? 'border-red-500' : 'border-gray-300'} rounded-[4px] outline-0 mb-1`}
+                    disabled={isConfigLoading}
                 >
-                    <option value="">Select a category</option>
+                    <option value="">{isConfigLoading ? 'Loading...' : 'Select a category'}</option>
                     {shopCategories.map((category) => (
                         <option key={category.value} value={category.value}>{category.label}</option>
                     ))}
@@ -122,7 +127,7 @@ const CreateShop = ({
                 <button
                     type="submit"
                     className="w-full bg-black text-white p-2 rounded-[4px] hover:bg-gray-700 transition-colors mt-4"
-                    disabled={shopCreateMutation.isPending}
+                    disabled={shopCreateMutation.isPending || isConfigLoading}
                 >
                     {shopCreateMutation.isPending ? 'Creating Shop...' : 'Create Shop'}
                 </button>

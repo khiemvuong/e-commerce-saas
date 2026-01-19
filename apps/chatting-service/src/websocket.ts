@@ -1,5 +1,6 @@
 import { kafka } from "@packages/utils/kafka";
 import redis from "@packages/libs/redis";
+import prisma from "@packages/libs/prisma";
 import { Server as HttpServer } from "http";
 import WebSocket, { WebSocketServer } from "ws";
 const producer = kafka.producer();
@@ -14,6 +15,96 @@ type IncomingMessage = {
     conversationId?: string;
     senderType: string;
 };
+
+// Helper: Broadcast online status to all conversations of a user
+async function broadcastOnlineStatus(registeredUserId: string, isOnline: boolean) {
+    try {
+        const isSeller = registeredUserId.startsWith("seller_");
+        const rawId = isSeller 
+            ? registeredUserId.replace("seller_", "") 
+            : registeredUserId.replace("user_", "");
+
+        // Find all conversations where this user/seller is a participant
+        const conversations = await prisma.conversationGroup.findMany({
+            where: {
+                participantIds: {
+                    has: rawId,
+                },
+            },
+        });
+
+        for (const conversation of conversations) {
+            // Find the other participant
+            const otherParticipantIds = conversation.participantIds.filter(id => id !== rawId);
+            
+            for (const otherId of otherParticipantIds) {
+                // Determine the socket key for the other participant
+                // We need to check both user and seller keys
+                const userKey = `user_${otherId}`;
+                const sellerKey = `seller_${otherId}`;
+                
+                const otherSocket = connectedUsers.get(userKey) || connectedUsers.get(sellerKey);
+                
+                if (otherSocket && otherSocket.readyState === WebSocket.OPEN) {
+                    otherSocket.send(JSON.stringify({
+                        type: "ONLINE_STATUS_CHANGE",
+                        payload: {
+                            id: rawId,
+                            isOnline,
+                            userType: isSeller ? "seller" : "user",
+                        },
+                    }));
+                    console.log(`Broadcasted online status (${isOnline}) to ${otherId}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error broadcasting online status:", error);
+    }
+}
+
+// Helper: Notify sender that their messages were seen
+async function notifyMessageSeen(conversationId: string, seenByUserId: string, senderType: string) {
+    try {
+        const isSeller = seenByUserId.startsWith("seller_");
+        const rawId = isSeller 
+            ? seenByUserId.replace("seller_", "") 
+            : seenByUserId.replace("user_", "");
+
+        // Find the conversation
+        const conversation = await prisma.conversationGroup.findUnique({
+            where: { id: conversationId },
+        });
+
+        if (!conversation) return;
+
+        // Find the other participant who sent the messages
+        const otherParticipantIds = conversation.participantIds.filter(id => id !== rawId);
+
+        for (const otherId of otherParticipantIds) {
+            // The other party could be either user or seller
+            const userKey = `user_${otherId}`;
+            const sellerKey = `seller_${otherId}`;
+            
+            const otherSocket = connectedUsers.get(userKey) || connectedUsers.get(sellerKey);
+
+            if (otherSocket && otherSocket.readyState === WebSocket.OPEN) {
+                otherSocket.send(JSON.stringify({
+                    type: "MESSAGE_SEEN",
+                    payload: {
+                        conversationId,
+                        seenBy: rawId,
+                        seenByType: isSeller ? "seller" : "user",
+                        seenAt: new Date().toISOString(),
+                    },
+                }));
+                console.log(`Notified ${otherId} that messages were seen by ${rawId}`);
+            }
+        }
+    } catch (error) {
+        console.error("Error notifying message seen:", error);
+    }
+}
 
 export async function createWebsocketServer(server: HttpServer) {
     const wss = new WebSocketServer({ server });
@@ -38,6 +129,9 @@ export async function createWebsocketServer(server: HttpServer) {
                         : `online:user:${registeredUserId.replace("user_", "")}`;
                     await redis.set(redisKey, "1");
                     await redis.expire(redisKey, 60 * 5); // expire in 5 minutes
+
+                    // Broadcast online status to all conversations
+                    await broadcastOnlineStatus(registeredUserId, true);
                     return;
                 }
 
@@ -48,6 +142,9 @@ export async function createWebsocketServer(server: HttpServer) {
                 if (data.type === "MARK_AS_SEEN" && registeredUserId) {
                     const seenKey = `${registeredUserId}_${data.conversationId}`;
                     unseenCounts.set(seenKey, 0);
+                    
+                    // Notify the other party that messages were seen
+                    await notifyMessageSeen(data.conversationId!, registeredUserId, data.senderType);
                     return;
                 }
 
@@ -140,12 +237,15 @@ export async function createWebsocketServer(server: HttpServer) {
         });
         ws.on("close", async () => {
             if(registeredUserId){
+                // Broadcast offline status before removing from map
+                await broadcastOnlineStatus(registeredUserId, false);
+                
                 connectedUsers.delete(registeredUserId);
                 console.log(`Client disconnected: ${registeredUserId}`);
                 const isSeller = registeredUserId.startsWith("seller_");
                 const redisKey = isSeller
                     ? `online:seller:${registeredUserId.replace("seller_", "")}`
-                    : `online:user:${registeredUserId}`;
+                    : `online:user:${registeredUserId.replace("user_", "")}`;
                 await redis.del(redisKey);
             }
         });
@@ -155,3 +255,4 @@ export async function createWebsocketServer(server: HttpServer) {
     });
     console.log("WebSocket server setup complete");
 }
+

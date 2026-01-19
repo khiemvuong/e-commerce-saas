@@ -64,13 +64,13 @@ export const useImageCompression = (
     async (file: File): Promise<CompressionResult | null> => {
       if (!file.type.startsWith('image/')) {
         if (showToasts) {
-          toast.error('File không phải là ảnh');
+          toast.error('File is not an image');
         }
         return null;
       }
 
       setIsCompressing(true);
-      const toastId = showToasts ? toast.loading('Đang nén ảnh...') : undefined;
+      const toastId = showToasts ? toast.loading('Compressing image...') : undefined;
 
       try {
         const result = await compressImage(file, getCompressionOptions());
@@ -91,7 +91,7 @@ export const useImageCompression = (
           }
         } else {
           if (showToasts) {
-            toast.success('Ảnh đã tối ưu, không cần nén thêm', { id: toastId });
+            toast.success('Image is already optimized, no further compression needed', { id: toastId });
           }
         }
 
@@ -99,7 +99,7 @@ export const useImageCompression = (
       } catch (error) {
         console.error('Image compression failed:', error);
         if (showToasts) {
-          toast.error('Nén ảnh thất bại', { id: toastId });
+          toast.error('Image compression failed', { id: toastId });
         }
         return null;
       } finally {
@@ -116,14 +116,14 @@ export const useImageCompression = (
       
       if (imageFiles.length === 0) {
         if (showToasts) {
-          toast.error('Không tìm thấy file ảnh hợp lệ');
+          toast.error('No valid image files found');
         }
         return [];
       }
 
       setIsCompressing(true);
       const toastId = showToasts
-        ? toast.loading(`Đang nén ${imageFiles.length} ảnh...`)
+        ? toast.loading(`Compressing ${imageFiles.length} images...`)
         : undefined;
 
       try {
@@ -147,7 +147,7 @@ export const useImageCompression = (
         if (showToasts) {
           const compressedCount = batchResults.filter((r) => r.wasCompressed).length;
           toast.success(
-            `Đã nén ${compressedCount}/${imageFiles.length} ảnh, tiết kiệm ${formatFileSize(totalSaved)}`,
+            `Compressed ${compressedCount}/${imageFiles.length} images, saved ${formatFileSize(totalSaved)}`,
             { id: toastId }
           );
         }
@@ -156,7 +156,7 @@ export const useImageCompression = (
       } catch (error) {
         console.error('Batch compression failed:', error);
         if (showToasts) {
-          toast.error('Nén ảnh thất bại', { id: toastId });
+          toast.error('Image compression failed', { id: toastId });
         }
         return [];
       } finally {

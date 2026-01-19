@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import ProductCard from "../shared/components/cards/product-card";
 import { useRouter } from "next/navigation";
-import PageLoader from "../shared/components/loading/page-loader";
+import AuthGuard from "../shared/components/guards/auth-guard";
 
 
 const SellerShop = () => {
@@ -32,7 +32,7 @@ const SellerShop = () => {
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading: isShopLoading } = useQuery({
     queryKey: ["seller-shop"],
     queryFn: async () => {
       const res = await axiosInstance.get("/seller/api/get-shop-details");
@@ -126,15 +126,20 @@ const SellerShop = () => {
   const getAvatar = () => images.find((img) => img.type === "avatar");
   const getCover = () => images.find((img) => img.type === "cover");
 
-  if (isLoading) return <PageLoader />;
-  
-  if (error) {
-    route.push("/login");
-    return null;
+  // Loading state
+  if (isShopLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-600">Loading shop...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <>
+    <AuthGuard>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-800 font-sans selection:bg-purple-300 pb-20">
       {/* Cover Image Section */}
       <div className="relative h-[250px] w-full group overflow-hidden">
@@ -404,7 +409,7 @@ const SellerShop = () => {
         )}
       </div>
       </div>
-    </>
+    </AuthGuard>
   );
 };
 

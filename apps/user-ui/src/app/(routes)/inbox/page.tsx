@@ -5,7 +5,7 @@ import useRequiredAuth from "apps/user-ui/src/hooks/useRequiredAuth";
 import ChatInput from "apps/user-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/user-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
-import { Send } from "lucide-react";
+import { Send, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -26,7 +26,8 @@ const Page = () => {
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
     const conversationId = searchParams.get("conversationId");
-    const { ws } = useWebSocket();
+    const { ws, onlineUsers, lastSeenUpdate } = useWebSocket() || {};
+    const [isMessageSeen, setIsMessageSeen] = useState(false);
     const { data: messages = [] } = useQuery({
         queryKey: ["messages", conversationId],
         queryFn: async () => {
@@ -92,6 +93,44 @@ const Page = () => {
             if (chat) setSelectedChat(chat);
         }
     }, [conversationId, chats]);
+
+    // Handle real-time online status updates
+    useEffect(() => {
+        if (!onlineUsers) return;
+        setChats((prev) =>
+            prev.map((chat) => {
+                const sellerId = chat.seller?.id;
+                if (sellerId && onlineUsers[sellerId] !== undefined) {
+                    return {
+                        ...chat,
+                        seller: { ...chat.seller, isOnline: onlineUsers[sellerId] },
+                    };
+                }
+                return chat;
+            })
+        );
+        // Also update selectedChat
+        if (selectedChat?.seller?.id && onlineUsers[selectedChat.seller.id] !== undefined) {
+            setSelectedChat((prev: any) => prev ? ({
+                ...prev,
+                seller: { ...prev.seller, isOnline: onlineUsers[prev.seller.id] },
+            }) : null);
+        }
+    }, [onlineUsers]);
+
+    // Handle message seen notifications
+    useEffect(() => {
+        if (lastSeenUpdate && lastSeenUpdate.conversationId === conversationId && lastSeenUpdate.seenByType === 'seller') {
+            setIsMessageSeen(true);
+        }
+    }, [lastSeenUpdate, conversationId]);
+
+    // Reset seen status when sending new message
+    useEffect(() => {
+        if (isSending) {
+            setIsMessageSeen(false);
+        }
+    }, [isSending]);
 
     useEffect(() => {
         if (!ws) return;
@@ -185,12 +224,12 @@ const Page = () => {
 
     return (
         <div className="w-full">
-            <div className="md:w-[80%] mx-auto pt-5">
-                <div className="flex h-[80vh] shadow-sm overflow-hidden border border-gray-200 rounded-lg bg-white">
-                    {/* Sidebar */}
-                    <div className="w-[320px] border-r border-r-gray-200 bg-gray-50 flex flex-col">
+            <div className="md:w-[80%] mx-auto pt-5 px-2 md:px-0">
+                <div className="flex h-[85vh] md:h-[80vh] shadow-sm overflow-hidden border border-gray-200 rounded-lg bg-white">
+                    {/* Sidebar - Hidden on mobile when chat selected */}
+                    <div className={`${selectedChat ? 'hidden md:flex' : 'flex'} w-full md:w-[320px] border-r border-r-gray-200 bg-gray-50 flex-col`}>
                         <div className="p-4 border-b border-b-gray-200 text-lg font-semibold text-gray-800">
-                            Messages
+                            Tin nhắn
                         </div>
                         <div className="flex-1 overflow-y-auto divide-y divide-gray-200">
                             {isLoading ? (
@@ -240,12 +279,19 @@ const Page = () => {
                         </div>
                     </div>
 
-                    {/* Chat Area */}
-                    <div className="flex-1 flex flex-col bg-white">
+                    {/* Chat Area - Hidden on mobile when no chat selected */}
+                    <div className={`${!selectedChat ? 'hidden md:flex' : 'flex'} flex-1 flex-col bg-white`}>
                         {selectedChat ? (
                             <>
-                                {/* Chat Header */}
+                                {/* Chat Header with Back Button */}
                                 <div className="p-4 border-b border-gray-200 flex items-center gap-3 bg-white">
+                                    {/* Mobile Back Button */}
+                                    <button 
+                                        onClick={() => setSelectedChat(null)}
+                                        className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full transition"
+                                    >
+                                        <ArrowLeft size={20} className="text-gray-600" />
+                                    </button>
                                     <Image
                                         src={selectedChat.seller.avatar || "/default-avatar.png"}
                                         alt={selectedChat.seller.name}
@@ -279,10 +325,11 @@ const Page = () => {
                                 >
                                     {messages.map((msg: any, index: number) => {
                                         const isMe = msg.senderType === "user";
+                                        const isLastMyMessage = isMe && index === messages.length - 1;
                                         return (
                                             <div
                                                 key={msg.id || index}
-                                                className={`flex ${isMe ? "justify-end" : "justify-start"
+                                                className={`flex flex-col ${isMe ? "items-end" : "items-start"
                                                     }`}
                                             >
                                                 <div
@@ -302,6 +349,12 @@ const Page = () => {
                                                         })}
                                                     </span>
                                                 </div>
+                                                {/* Show seen indicator for last message from user */}
+                                                {isLastMyMessage && isMessageSeen && (
+                                                    <span className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
+                                                        ✓✓ Đã xem
+                                                    </span>
+                                                )}
                                             </div>
                                         );
                                     })}

@@ -11,6 +11,7 @@ import useLocationTracking from 'apps/user-ui/src/hooks/useLocationTracking';
 import useDeviceTracking from 'apps/user-ui/src/hooks/useDeviceTracking';
 import AddToCartButton from '../buttons/add-to-cart-button';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
+import toast from 'react-hot-toast';
 
 const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: boolean) => void }) => {
     const [activeImage, setActiveImage] = useState(0);
@@ -70,6 +71,22 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
 
     if (!mounted) return null;
     const handleChat = async () => {
+        // Kiểm tra đăng nhập
+        if (!user) {
+            toast.error('Vui lòng đăng nhập để chat với người bán', {
+                duration: 4000,
+            });
+            
+            // Hỏi người dùng có muốn chuyển đến trang đăng nhập không
+            setTimeout(() => {
+                const shouldRedirect = window.confirm('Bạn có muốn chuyển đến trang đăng nhập không?');
+                if (shouldRedirect) {
+                    router.push('/login');
+                }
+            }, 500);
+            return;
+        }
+
         if (isLoading) return;
         setIsLoading(true);
         try {
@@ -79,6 +96,7 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
             router.push(`/inbox?conversationId=${res.data.conversation.id}`);
         } catch (error) {
             console.error('Error starting chat with seller:', error);
+            toast.error('Không thể bắt đầu chat. Vui lòng thử lại sau.');
         } finally {
             setIsLoading(false);
         }

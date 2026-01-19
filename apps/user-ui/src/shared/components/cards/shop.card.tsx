@@ -1,6 +1,5 @@
 "use client";
-import { categories } from 'apps/user-ui/src/utils/categories';
-import { countries } from 'apps/user-ui/src/utils/countries';
+import { useSiteConfig } from 'apps/user-ui/src/hooks/useSiteConfig';
 import { ArrowUpRight, MapPin, StarIcon, Store } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,8 +27,12 @@ interface ShopCardProps {
   }
 }
 const ShopCard:React.FC<ShopCardProps> = ({ shop }) => {
+  const { data: siteConfig } = useSiteConfig();
+  const shopCategories = siteConfig?.shopCategories || [];
+  const countries = siteConfig?.countries || [];
+  
   // Tìm label của category từ value trong database
-  const categoryLabel = categories.find(cat => cat.value === shop?.category)?.label || shop?.category;
+  const categoryLabel = shopCategories.find(cat => cat.value === shop?.category)?.label || shop?.category;
   
   // Tìm tên country từ country code của seller
   const countryName = countries.find(country => country.code === shop?.sellers?.country)?.name;

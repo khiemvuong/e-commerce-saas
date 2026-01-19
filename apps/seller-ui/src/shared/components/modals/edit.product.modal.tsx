@@ -15,7 +15,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 import { useImageCompression } from 'apps/seller-ui/src/hooks/useImageCompression';
 import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
+
 import RichTextEditor from 'packages/components/rich-text-editor';
+import ImageCropModal from 'apps/seller-ui/src/shared/components/modals/ImageCropModal';
 
 interface UploadedImage {
     file_url: string;
@@ -58,8 +60,11 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
     });
 
     const [openImageModal, setOpenImageModal] = useState(false);
+    const [openCropModal, setOpenCropModal] = useState(false);
+    const [pendingImageFile, setPendingImageFile] = useState<{ file: File; index: number } | null>(null);
     const [activeEffect, setActiveEffect] = useState<string | null>(null);
     const [images, setImages] = useState<(UploadedImage | null)[]>([]);
+    const [imagesToDelete, setImagesToDelete] = useState<string[]>([]); // Track fileIds to delete on submit
     const [uploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
     const [selectedImage, setSelectedImage] = useState('');
@@ -146,52 +151,69 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
             return;
         }
 
-        // Compress image before storing
-        const compressionResult = await compress(file);
-        const fileToUse = compressionResult?.compressedFile || file;
-
-        const objectUrl = URL.createObjectURL(fileToUse);
-        setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
-        
-        // Store compressed file locally, do not upload yet
-        const newImage: UploadedImage = {
-            file_url: objectUrl,
-            fileId: '', // Empty until upload
-            file: fileToUse,
-        };
-
-        const updated = [...images];
-        updated[index] = newImage;
-
-        if (index === images.length - 1 && images.length < 8) {
-            updated.push(null);
-        }
-
-        setImages(updated);
-        // We don't sync to form 'images' field yet because they lack fileId
+        // Open crop modal
+        setPendingImageFile({ file, index });
+        setOpenCropModal(true);
     };
 
-    const handleRemoveImage = async (index: number) => {
-        if (uploadingIndexes.has(index)) return;
-        const img = images[index];
+    const handleCropComplete = async (croppedFile: File) => {
+        if (!pendingImageFile) return;
+        const { index } = pendingImageFile;
+
         try {
-            if (img?.fileId) {
-                await axiosInstance.delete('/product/api/delete-product-image', {
-                    data: { fileId: img.fileId },
-                });
-            }
+            // Compress
+            const compressionResult = await compress(croppedFile);
+            const fileToUse = compressionResult?.compressedFile || croppedFile;
+
+            const objectUrl = URL.createObjectURL(fileToUse);
+            setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
+            
+            const newImage: UploadedImage = {
+                file_url: objectUrl,
+                fileId: '',
+                file: fileToUse,
+            };
+
             const updated = [...images];
-            updated.splice(index, 1);
-            if (updated.length === 0) updated.push(null);
-            if (updated[updated.length - 1] !== null && updated.length < 8) updated.push(null);
+            updated[index] = newImage;
+
+            if (index === images.length - 1 && images.length < 8) {
+                updated.push(null);
+            }
 
             setImages(updated);
-            syncImagesField(updated);
-            toast.success('Image removed');
-        } catch (err: any) {
-            console.error(err);
-            toast.error('Failed to remove image');
+            setPendingImageFile(null);
+            setOpenCropModal(false);
+            toast.success('Image cropped successfully');
+        } catch (error) {
+            console.error('Error processing image:', error);
+            toast.error('Failed to process image');
         }
+    };
+
+    const handleRemoveImage = (index: number) => {
+        if (uploadingIndexes.has(index)) return;
+        
+        const img = images[index];
+        
+        // Mark image for deletion on submit (only if it has fileId - already uploaded)
+        if (img?.fileId) {
+            setImagesToDelete(prev => [...prev, img.fileId]);
+        }
+
+        // Revoke object URL if exists
+        if (previews[index]) {
+            URL.revokeObjectURL(previews[index]);
+        }
+
+        const updated = [...images];
+        updated.splice(index, 1);
+        if (updated.length === 0) updated.push(null);
+        if (updated[updated.length - 1] !== null && updated.length < 8) updated.push(null);
+
+        setImages(updated);
+        syncImagesField(updated);
+        toast.success('Image marked for removal');
     };
 
     const applyTransformation = async (transformation: string) => {
@@ -234,6 +256,17 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
     const onSubmit = async (data: any) => {
         setIsSubmitting(true);
         try {
+            // Delete marked images first
+            if (imagesToDelete.length > 0) {
+                await Promise.all(
+                    imagesToDelete.map((fileId) =>
+                        axiosInstance.delete('/product/api/delete-product-image', {
+                            data: { fileId },
+                        }).catch(err => console.error('Failed to delete image:', err))
+                    )
+                );
+            }
+
             // Upload images that haven't been uploaded yet
             const finalImages = await Promise.all(
                 images.map(async (img) => {
@@ -498,6 +531,18 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Crop Modal */}
+            {openCropModal && pendingImageFile && (
+                <ImageCropModal
+                    imageFile={pendingImageFile.file}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => {
+                        setOpenCropModal(false);
+                        setPendingImageFile(null);
+                    }}
+                />
             )}
         </div>
     );

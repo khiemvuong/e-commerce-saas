@@ -12,7 +12,7 @@ import EditEventModal from 'apps/seller-ui/src/shared/components/modals/edit.eve
 import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 const fetchEvents = async () => {
-  const res = await axiosInstance.get('/product/api/get-my-events');
+  const res = await axiosInstance.get('/product/api/get-shop-events');
   return res?.data?.events;
 };
 

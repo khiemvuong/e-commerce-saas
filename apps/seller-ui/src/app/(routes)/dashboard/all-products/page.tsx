@@ -26,7 +26,7 @@ import { API_CONFIG, queryKeys } from 'apps/seller-ui/src/utils/apiConfig';
 
 
 const fetchProducts = async () => {
-    const res=await axiosInstance.get('/product/api/get-my-products');
+    const res=await axiosInstance.get('/product/api/get-shop-products');
     return res?.data?.products;
 }
 const deleteProduct = async (productId:string) => {

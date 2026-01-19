@@ -19,8 +19,9 @@ const Footer = () => {
 
   if(pathname==='/inbox') return null;
 
-  const logos = customizationData?.images?.filter((img: any) => img.type === 'logo') || [];
-  const logoUrl = logos.length >= 2 ? logos[0].file_url : null;
+  const logos = (customizationData?.images?.filter((img: any) => img.type === 'logo') || [])
+    .sort((a: any, b: any) => a.id.localeCompare(b.id));
+  const logoUrl = logos[1]?.file_url || null;
 
   return (
     <footer className="bg-[#3D3D3D] text-white">
@@ -59,114 +60,78 @@ const Footer = () => {
       {/* Links Section */}
       <div className="bg-[#3A3A3A] border-t border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 text-center md:text-left">
-            {/* Products Column 1 */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center md:text-left">
+            {/* Shop */}
             <div>
               <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
-                Products
+                Shop
               </h3>
               <nav className="flex flex-col space-y-3">
-                <Link href="/category/electronics" className="text-sm text-gray-400 hover:text-white transition">
-                  Electronics
+                <Link href="/products" className="text-sm text-gray-400 hover:text-white transition">
+                  All Products
                 </Link>
-                <Link href="/category/fashion" className="text-sm text-gray-400 hover:text-white transition">
-                  Fashion
+                <Link href="/shops" className="text-sm text-gray-400 hover:text-white transition">
+                  Stores
                 </Link>
-                <Link href="/category/home" className="text-sm text-gray-400 hover:text-white transition">
-                  Home & Garden
+                <Link href="/offers" className="text-sm text-gray-400 hover:text-white transition">
+                  Offers
                 </Link>
               </nav>
             </div>
 
-            {/* Legal Pages Column */}
+            {/* Account */}
             <div>
               <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
-                Legal Pages
+                Account
               </h3>
               <nav className="flex flex-col space-y-3">
+                <Link href="/profile" className="text-sm text-gray-400 hover:text-white transition">
+                  My Account
+                </Link>
+                <Link href="/cart" className="text-sm text-gray-400 hover:text-white transition">
+                  Cart
+                </Link>
+                <Link href="/wishlist" className="text-sm text-gray-400 hover:text-white transition">
+                  Wishlist
+                </Link>
+                <Link href="/track-order" className="text-sm text-gray-400 hover:text-white transition">
+                  Track Order
+                </Link>
+              </nav>
+            </div>
+
+            {/* Support */}
+            <div>
+              <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
+                Support
+              </h3>
+              <nav className="flex flex-col space-y-3">
+                <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition">
+                  FAQ
+                </Link>
+                <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition">
+                  Contact Us
+                </Link>
+                <Link href="/inbox" className="text-sm text-gray-400 hover:text-white transition">
+                  Message Seller
+                </Link>
+              </nav>
+            </div>
+
+            {/* About Us */}
+            <div>
+              <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
+                About Us
+              </h3>
+              <nav className="flex flex-col space-y-3">
+                <Link href="/about" className="text-sm text-gray-400 hover:text-white transition">
+                  About
+                </Link>
                 <Link href="/terms" className="text-sm text-gray-400 hover:text-white transition">
                   Terms of Service
                 </Link>
                 <Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition">
                   Privacy Policy
-                </Link>
-                <Link href="/returns" className="text-sm text-gray-400 hover:text-white transition">
-                  Return Policy
-                </Link>
-                <Link href="/shipping" className="text-sm text-gray-400 hover:text-white transition">
-                  Shipping Info
-                </Link>
-                <Link href="/cookies" className="text-sm text-gray-400 hover:text-white transition">
-                  Cookie Policy
-                </Link>
-              </nav>
-            </div>
-
-            {/* Products Column 2 */}
-            <div>
-              <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
-                Products
-              </h3>
-              <nav className="flex flex-col space-y-3">
-                <Link href="/deals" className="text-sm text-gray-400 hover:text-white transition">
-                  Special Deals
-                </Link>
-                <Link href="/new-arrivals" className="text-sm text-gray-400 hover:text-white transition">
-                  New Arrivals
-                </Link>
-                <Link href="/bestsellers" className="text-sm text-gray-400 hover:text-white transition">
-                  Bestsellers
-                </Link>
-                <Link href="/trending" className="text-sm text-gray-400 hover:text-white transition">
-                  Trending
-                </Link>
-                <Link href="/clearance" className="text-sm text-gray-400 hover:text-white transition">
-                  Clearance
-                </Link>
-              </nav>
-            </div>
-
-            {/* Products Column 3 */}
-            <div>
-              <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
-                Products
-              </h3>
-              <nav className="flex flex-col space-y-3">
-                <Link href="/brands" className="text-sm text-gray-400 hover:text-white transition">
-                  Top Brands
-                </Link>
-                <Link href="/gift-cards" className="text-sm text-gray-400 hover:text-white transition">
-                  Gift Cards
-                </Link>
-                <Link href="/bundles" className="text-sm text-gray-400 hover:text-white transition">
-                  Bundle Offers
-                </Link>
-                <Link href="/seasonal" className="text-sm text-gray-400 hover:text-white transition">
-                  Seasonal
-                </Link>
-                <Link href="/limited" className="text-sm text-gray-400 hover:text-white transition">
-                  Limited Edition
-                </Link>
-              </nav>
-            </div>
-
-            {/* Legal Pages Column 2 */}
-            <div>
-              <h3 className="text-sm font-semibold mb-4 text-gray-300 uppercase tracking-wider">
-                Legal Pages
-              </h3>
-              <nav className="flex flex-col space-y-3">
-                <Link href="/accessibility" className="text-sm text-gray-400 hover:text-white transition">
-                  Accessibility
-                </Link>
-                <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition">
-                  Contact Us
-                </Link>
-                <Link href="/faq" className="text-sm text-gray-400 hover:text-white transition">
-                  FAQ
-                </Link>
-                <Link href="/sitemap" className="text-sm text-gray-400 hover:text-white transition">
-                  Sitemap
                 </Link>
               </nav>
             </div>
