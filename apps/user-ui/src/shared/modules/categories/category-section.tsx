@@ -47,8 +47,16 @@ const CategorySection = () => {
 
     if (displayCategories.length === 0) return null;
 
-    // Layout pattern for asymmetric grid
-    const getCardClasses = (index: number) => {
+    // Layout pattern for asymmetric grid - only apply special layouts when we have enough items
+    const getCardClasses = (index: number, totalCount: number) => {
+        // If we have less than 6 items, use simpler layout
+        if (totalCount <= 4) {
+            // For 4 or less items, only make first one featured
+            if (index === 0) return 'md:col-span-2'; // Wide featured
+            return ''; // All others regular
+        }
+        
+        // Full asymmetric layout for 5+ items
         switch(index) {
             case 0: return 'md:col-span-2 md:row-span-2'; // Large featured
             case 3: return 'md:row-span-2'; // Tall
@@ -73,7 +81,7 @@ const CategorySection = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 auto-rows-[200px] md:auto-rows-[240px]">
                 {displayCategories.map((category, index) => {
                     const categoryUrl = `/products?categories=${encodeURIComponent(category.name)}`;
-                    const cardClasses = getCardClasses(index);
+                    const cardClasses = getCardClasses(index, displayCategories.length);
                     
                     return (
                         <Link

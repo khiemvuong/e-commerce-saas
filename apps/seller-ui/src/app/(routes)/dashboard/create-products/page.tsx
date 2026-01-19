@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import BreadCrumbs from 'apps/seller-ui/src/shared/components/breadcrums';
 import ImagePlaceHolder from 'apps/seller-ui/src/shared/components/image-placeholder';
+import ImageCropModal from 'apps/seller-ui/src/shared/components/modals/ImageCropModal';
 import { enhancements } from 'apps/seller-ui/src/utils/AI.enhancements';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 import {  Wand, X } from 'lucide-react';
@@ -30,9 +31,12 @@ interface UploadedImage {
 const Page = () => {
     const {register,control,watch,setValue,handleSubmit,formState:{errors}} = useForm();
     const [openImageModal, setOpenImageModal] = useState(false);
+    const [openCropModal, setOpenCropModal] = useState(false);
+    const [pendingImageFile, setPendingImageFile] = useState<{ file: File; index: number } | null>(null);
     const [activeEffect, setActiveEffect] = useState<string | null>(null);
     const [isChanged, setIsChanged] = useState(true);
     const [images, setImages] = useState<(UploadedImage | null)[]>([null]);
+    const [imagesToDelete, setImagesToDelete] = useState<string[]>([]); // Track fileIds to delete on submit
     const [uploadingIndexes] = useState<Set<number>>(new Set());
     const [previews, setPreviews] = useState<Record<number, string>>({});
     const [selectedImage, setSelectedImage] = useState('');
@@ -85,6 +89,17 @@ const Page = () => {
     const onSubmit = async(data:any) => {
       setIsSubmitting(true);
       try {
+        // Delete marked images first
+        if (imagesToDelete.length > 0) {
+          await Promise.all(
+            imagesToDelete.map((fileId) =>
+              axiosInstance.delete('/product/api/delete-product-image', {
+                data: { fileId },
+              }).catch(err => console.error('Failed to delete image:', err))
+            )
+          );
+        }
+
         // Upload images that haven't been uploaded yet
         const finalImages = await Promise.all(
           images.map(async (img) => {
@@ -167,85 +182,98 @@ const handleImageChange = async (file: File | null, index: number) => {
     return;
   }
 
-  // Compress image before storing
-  const compressionResult = await compress(file);
-  const fileToUse = compressionResult?.compressedFile || file;
-
-  const objectUrl = URL.createObjectURL(fileToUse);
-  setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
-
-  // Store compressed file locally, do not upload yet
-  const newImage: UploadedImage = {
-    file_url: objectUrl,
-    fileId: '', // Empty until upload
-    file: fileToUse,
-  };
-
-  const updated = [...images];
-  updated[index] = newImage;
-
-  if (index === images.length - 1 && images.length < 8) {
-    updated.push(null);
-  }
-
-  setImages(updated);
-  // We don't sync to form 'images' field yet because they lack fileId, 
-  // but onSubmit handles the merge.
-  setIsChanged(true);
+  // Open crop modal
+  setPendingImageFile({ file, index });
+  setOpenCropModal(true);
 };
 
-  const handleRemoveImage = async (index: number) => {
+const handleCropComplete = async (croppedFile: File) => {
+  if (!pendingImageFile) return;
+  const { index } = pendingImageFile;
+
+  try {
+    // Compress the cropped image
+    const compressionResult = await compress(croppedFile);
+    const fileToUse = compressionResult?.compressedFile || croppedFile;
+
+    const objectUrl = URL.createObjectURL(fileToUse);
+    setPreviews((prev) => ({ ...prev, [index]: objectUrl }));
+
+    const newImage: UploadedImage = {
+      file_url: objectUrl,
+      fileId: '',
+      file: fileToUse,
+    };
+
+    const updated = [...images];
+    updated[index] = newImage;
+
+    if (index === images.length - 1 && images.length < 8) {
+      updated.push(null);
+    }
+
+    setImages(updated);
+    setPendingImageFile(null);
+    setOpenCropModal(false);
+    setIsChanged(true);
+    toast.success('Image cropped successfully!');
+  } catch (error) {
+    console.error('Error processing image:', error);
+    toast.error('Failed to process image');
+  }
+};
+
+
+
+  const handleRemoveImage = (index: number) => {
     // Nếu đang upload thì không cho xóa tại thời điểm đó
     if (uploadingIndexes.has(index)) return;
 
     const img = images[index];
 
-    try {
-      if (img?.fileId) {
-        await axiosInstance.delete('/product/api/delete-product-image', {
-          data: { fileId: img.fileId },
-        });
-      }
-
-      // Xóa phần tử và dồn index
-      const updated = [...images];
-      updated.splice(index, 1);
-
-      // Nếu rỗng thì thêm lại placeholder
-      if (updated.length === 0) {
-        updated.push(null);
-      }
-
-      // Nếu phần tử cuối cùng không phải placeholder và chưa đủ 8 ảnh -> thêm placeholder
-      if (updated[updated.length - 1] !== null && updated.length < 8) {
-        updated.push(null);
-      }
-
-      setImages(updated);
-      setValue(
-        'images',
-        updated.filter(Boolean).map((i) => (i as UploadedImage).fileId)
-      );
-      setIsChanged(true);
-
-      // Clear preview của index vừa xóa
-      setPreviews((prev) => {
-        const next: Record<number, string> = {};
-        // Do đã shift index, ta dựng lại mapping preview theo index mới (chỉ giữ preview còn tồn tại)
-        Object.keys(prev).forEach((k) => {
-          const oldIdx = Number(k);
-          const newIdx = oldIdx > index ? oldIdx - 1 : oldIdx;
-          if (oldIdx !== index) next[newIdx] = prev[oldIdx];
-          if (oldIdx === index) URL.revokeObjectURL(prev[oldIdx]);
-        });
-        return next;
-      });
-
-      toast.success('Image removed');
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.response?.data?.error || 'Failed to remove image');
+    // Mark image for deletion on submit (only if it has fileId - already uploaded)
+    if (img?.fileId) {
+      setImagesToDelete(prev => [...prev, img.fileId]);
     }
+
+    // Revoke object URL if exists
+    if (previews[index]) {
+      URL.revokeObjectURL(previews[index]);
+    }
+
+    // Xóa phần tử và dồn index
+    const updated = [...images];
+    updated.splice(index, 1);
+
+    // Nếu rỗng thì thêm lại placeholder
+    if (updated.length === 0) {
+      updated.push(null);
+    }
+
+    // Nếu phần tử cuối cùng không phải placeholder và chưa đủ 8 ảnh -> thêm placeholder
+    if (updated[updated.length - 1] !== null && updated.length < 8) {
+      updated.push(null);
+    }
+
+    setImages(updated);
+    setValue(
+      'images',
+      updated.filter(Boolean).map((i) => (i as UploadedImage).fileId)
+    );
+    setIsChanged(true);
+    toast.success('Image marked for removal');
+
+    // Clear preview của index vừa xóa và shift các preview khác
+    setPreviews((prev) => {
+      const next: Record<number, string> = {};
+      // Do đã shift index, ta dựng lại mapping preview theo index mới (chỉ giữ preview còn tồn tại)
+      Object.keys(prev).forEach((k) => {
+        const oldIdx = Number(k);
+        const newIdx = oldIdx > index ? oldIdx - 1 : oldIdx;
+        if (oldIdx !== index) next[newIdx] = prev[oldIdx];
+      });
+      return next;
+    });
   };
 
   const applyTransformation = async (transformation: string) => {
@@ -787,6 +815,18 @@ const handleImageChange = async (file: File | null, index: number) => {
             }
           </div>
         </div>
+      )}
+      
+      {/* Crop Modal */}
+      {openCropModal && pendingImageFile && (
+        <ImageCropModal
+          imageFile={pendingImageFile.file}
+          onCropComplete={handleCropComplete}
+          onCancel={() => {
+            setOpenCropModal(false);
+            setPendingImageFile(null);
+          }}
+        />
       )}
       {/* Save Draft Buttons */}
       <div className="mt-6 flex justify-end gap-3">

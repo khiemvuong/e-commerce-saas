@@ -208,6 +208,8 @@ const ForgotPassword = () => {
               </p>
 
               <form
+                method="post"
+                action=""
                 noValidate
                 onSubmit={handleSubmitEmail(onSubmitEmail)}
               >
@@ -310,6 +312,8 @@ const ForgotPassword = () => {
                 Reset Your Password
               </h3>
               <form
+                method="post"
+                action=""
                 noValidate
                 onSubmit={handleSubmitReset(onSubmitPassword)}
               >

@@ -151,7 +151,7 @@ return (
             {activeStep === 1 && (
                 <>
                 {!showOtp ? (
-                    <form onSubmit={handleSubmit(onSubmit)}>
+                    <form method="post" action="" onSubmit={handleSubmit(onSubmit)}>
                         <h3 className ="text-2xl font-semibold text-center mb-4">
                             Create your account
                         </h3>

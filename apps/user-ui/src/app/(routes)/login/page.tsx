@@ -69,7 +69,7 @@ return (
                     <span className="px-3">or Sign in with Email</span>
                     <div className="flex-1 border-t border-gray-300"> </div>
                 </div>
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form method="post" action="" onSubmit={handleSubmit(onSubmit)}>
                     <label className="block text-gray-700 mb-1">
                         Email
                     </label>
