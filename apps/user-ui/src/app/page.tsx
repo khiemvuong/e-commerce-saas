@@ -11,97 +11,128 @@ import {
     TopShopsSection,
     FlashSaleSection
 } from '../shared/modules/home'
+import { motion } from 'framer-motion'
+import { ArrowRight, Sparkles } from 'lucide-react'
 
 /**
- * Home Page - Main landing page for the e-commerce platform
+ * Home Page - Luxury E-commerce Landing Page
  * 
- * Page Structure (following UI-UX Pro Max guidelines):
- * 1. Hero - Compelling headline with CTA and banner carousel
- * 2. Categories - Bento-style grid with hover effects
- * 3. Flash Sales - Time-limited offers with countdown
- * 4. Best Sellers - Top selling products
- * 5. Deals of the Day - Highest discounts with dark theme
- * 6. Featured Products - Top-rated products
- * 7. Latest Products - New arrivals
- * 8. Top Shops - Trusted seller showcase
+ * Design System:
+ * - Primary Gold: #C9A86C (luxury accent)
+ * - Dark Background: #070707 (premium dark)
+ * - Typography: Clean, elegant, high contrast
+ * - Effects: Subtle gradients, glassmorphism, smooth animations
  */
 const HomePage = () => {
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
-            {/* Hero Section - Full width */}
+        <div className="min-h-screen bg-white">
+            {/* Hero Section - Full width dark */}
             <Hero />
 
             {/* Main Content Container */}
             <main className="relative">
-                {/* Categories Section */}
+                {/* Categories Section - Light */}
                 <section className="md:w-[85%] w-[95%] mx-auto">
                     <CategorySection />
                 </section>
 
-                {/* Flash Sale Section */}
-                <section className="md:w-[85%] w-[95%] mx-auto">
+                {/* Flash Sale Section - Dark with gold accents */}
+                <section className="md:w-[95%] w-[95%] mx-auto px-2 md:px-8">
                     <FlashSaleSection />
                 </section>
 
-                {/* Best Sellers Section */}
+                {/* Best Sellers Section - Light */}
                 <section className="md:w-[85%] w-[95%] mx-auto">
                     <BestSellersSection />
                 </section>
 
-                {/* Deals of the Day - Full width dark section */}
+                {/* Deals of the Day - Dark luxury section */}
                 <section className="w-full md:px-[7.5%] px-[2.5%]">
                     <DealsOfTheDaySection />
                 </section>
 
-                {/* Featured Products Section */}
+                {/* Featured Products Section - Light with gold accents */}
                 <section className="md:w-[85%] w-[95%] mx-auto">
                     <FeaturedSection />
                 </section>
 
-                {/* Latest Products Section */}
+                {/* Latest Products Section - Light with emerald accents */}
                 <section className="md:w-[85%] w-[95%] mx-auto">
                     <LatestProductsSection />
                 </section>
 
-                {/* Top Shops Section */}
-                <section className="md:w-[85%] w-[95%] mx-auto">
+                {/* Top Shops Section - Dark luxury */}
+                <section className="md:w-[85%] w-[95%] mx-auto px-4 md:px-8">
                     <TopShopsSection />
                 </section>
 
-                {/* Newsletter / Footer CTA Section */}
+                {/* Newsletter Section - Luxury Gold Theme */}
                 <section className="md:w-[85%] w-[95%] mx-auto py-16 md:py-24">
-                    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl px-6 py-12 md:px-16 md:py-16 text-center">
-                        {/* Decorative elements */}
-                        <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-                        <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="relative overflow-hidden bg-[#070707] rounded-3xl"
+                    >
+                        {/* Background effects */}
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(201,168,108,0.15),transparent_70%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(201,168,108,0.10),transparent_70%)]" />
                         
-                        <div className="relative z-10 max-w-2xl mx-auto">
-                            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-                                Join Our Community
-                            </h2>
-                            <p className="text-white/80 text-lg mb-8">
-                                Subscribe to get special offers, free giveaways, and exclusive deals.
-                            </p>
-                            
-                            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    className="flex-1 px-6 py-4 rounded-full bg-white/20 backdrop-blur-sm text-white placeholder:text-white/60 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
-                                />
-                                <button
-                                    type="submit"
-                                    className="px-8 py-4 bg-white text-indigo-600 font-bold rounded-full hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
+                        {/* Decorative elements */}
+                        <div className="absolute top-0 right-0 w-64 h-64 border border-[#C9A86C]/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 border border-[#C9A86C]/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+                        
+                        {/* Border accent */}
+                        <div className="absolute inset-0 border border-[#C9A86C]/20 rounded-3xl pointer-events-none" />
+
+                        <div className="relative z-10 px-6 py-12 md:px-16 md:py-20">
+                            <div className="max-w-3xl mx-auto text-center">
+                                {/* Badge */}
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: 0.2 }}
+                                    className="inline-flex items-center gap-2 px-4 py-2 mb-6 rounded-full border border-[#C9A86C]/30 bg-[#C9A86C]/5"
                                 >
-                                    Subscribe
-                                </button>
-                            </form>
-                            
-                            <p className="text-white/60 text-sm mt-4">
-                                No spam, unsubscribe at any time.
-                            </p>
+                                    <Sparkles className="w-4 h-4 text-[#C9A86C]" />
+                                    <span className="text-[#C9A86C] text-sm font-medium tracking-wider uppercase">
+                                        Exclusive Access
+                                    </span>
+                                </motion.div>
+
+                                <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight">
+                                    Join Our{' '}
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#C9A86C] via-[#E8D5B5] to-[#C9A86C]">
+                                        Inner Circle
+                                    </span>
+                                </h2>
+                                <p className="text-gray-400 text-lg mb-10 max-w-xl mx-auto">
+                                    Subscribe for early access to new collections, exclusive offers, and member-only deals.
+                                </p>
+
+                                <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+                                    <input
+                                        type="email"
+                                        placeholder="Enter your email"
+                                        className="flex-1 px-6 py-4 rounded-full bg-white/5 backdrop-blur-sm text-white placeholder:text-gray-500 border border-white/10 focus:outline-none focus:border-[#C9A86C]/50 focus:ring-1 focus:ring-[#C9A86C]/50 transition-all"
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="group px-8 py-4 bg-gradient-to-r from-[#C9A86C] to-[#B8956A] text-black font-semibold rounded-full hover:from-[#E8D5B5] hover:to-[#C9A86C] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                                    >
+                                        <span>Subscribe</span>
+                                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                                    </button>
+                                </form>
+
+                                <p className="text-gray-600 text-sm mt-6">
+                                    By subscribing, you agree to our Privacy Policy. Unsubscribe anytime.
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </section>
             </main>
 

@@ -2,10 +2,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Star, CheckCircle } from 'lucide-react';
+import { Store, ArrowUpRight } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import Image from 'next/image';
+import ShopCard from '../../components/cards/shop.card';
 
 interface ShopImage {
     file_url: string;
@@ -25,6 +25,11 @@ interface Shop {
         products: number;
     };
     totalSales: number;
+    sellers?: {
+        id: string;
+        name: string;
+        country?: string;
+    };
 }
 
 const TopShopsSection = () => {
@@ -39,50 +44,49 @@ const TopShopsSection = () => {
 
     const shops: Shop[] = data || [];
 
-    // Helper function to get avatar from images array
-    const getAvatar = (images: ShopImage[]) => {
-        const avatar = images?.find(img => img.type === 'avatar');
-        return avatar?.file_url || null;
-    };
-
     if (!isLoading && shops.length === 0) return null;
 
     return (
-        <section className="py-12 md:py-16 relative overflow-hidden">
-            {/* Background - Neutral warm gradient that works with any avatar color */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-slate-50 to-zinc-100 -z-10" />
-            <div className="absolute top-10 left-10 w-72 h-72 bg-gray-200/30 rounded-full blur-3xl -z-10" />
-            <div className="absolute bottom-10 right-10 w-96 h-96 bg-slate-200/30 rounded-full blur-3xl -z-10" />
+        <section className="py-16 md:py-20 px-6 md:px-12 relative overflow-hidden rounded-3xl">
+            {/* Luxury Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-[#0f0f0f] to-gray-900 rounded-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(201,168,108,0.08),transparent_70%)]" />
+            
+            {/* Decorative elements */}
+            <div className="absolute top-10 left-10 w-32 h-32 border border-[#C9A86C]/10 rounded-full" />
+            <div className="absolute bottom-10 right-10 w-48 h-48 border border-[#C9A86C]/10 rounded-full" />
 
             <div className="relative z-10">
                 {/* Section Header */}
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-8 md:mb-12"
+                    transition={{ duration: 0.6 }}
+                    className="mb-10 md:mb-14"
                 >
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                <ShoppingBag className="w-7 h-7 text-white" />
+                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#C9A86C] to-[#8B6914] rounded-xl flex items-center justify-center shadow-lg shadow-[#C9A86C]/20">
+                                    <Store className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="w-12 h-[2px] bg-gradient-to-r from-[#C9A86C] to-transparent" />
                             </div>
-                            <div>
-                                <h2 className="text-2xl md:text-4xl font-bold text-gray-900 tracking-tight">
-                                    Top Shops
-                                </h2>
-                                <p className="text-gray-500 text-sm md:text-base mt-1">
-                                    Trusted sellers with quality products
-                                </p>
-                            </div>
+                            <h2 className="text-3xl md:text-5xl font-bold text-white tracking-tight">
+                                Top Shops
+                            </h2>
+                            <p className="text-gray-400 text-base md:text-lg mt-3 max-w-lg">
+                                Verified sellers with exceptional products and service
+                            </p>
                         </div>
-                        <Link 
+
+                        <Link
                             href="/shops"
-                            className="group flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-full shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/40 transition-all duration-300 hover:scale-105"
+                            className="group inline-flex items-center gap-2 px-6 py-3 bg-[#C9A86C] text-black font-semibold rounded-full hover:bg-[#E8D5B5] transition-all duration-300 cursor-pointer"
                         >
-                            <span>All Shops</span>
-                            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                            <span>View All Shops</span>
+                            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                         </Link>
                     </div>
                 </motion.div>
@@ -93,92 +97,21 @@ const TopShopsSection = () => {
                         {Array.from({ length: 4 }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-[280px] bg-white/80 backdrop-blur-sm rounded-3xl animate-pulse border border-white shadow-lg"
+                                className="h-[380px] bg-white/5 backdrop-blur-sm rounded-2xl animate-pulse border border-white/10"
                             />
                         ))}
                     </div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: 0.2 }}
-                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 auto-rows-fr"
                     >
-                        {shops.map((shop, index) => {
-                            const avatarUrl = getAvatar(shop.images);
-                            
-                            return (
-                                <motion.div
-                                    key={shop.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ duration: 0.3, delay: index * 0.1 }}
-                                >
-                                    <Link href={`/shop/${shop.id}`}>
-                                        <div className="group relative bg-white/80 backdrop-blur-xl rounded-3xl p-6 border border-white/80 shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden">
-                                            {/* Glass effect overlay on hover */}
-                                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                                            
-                                            {/* Avatar */}
-                                            <div className="relative flex justify-center mb-4">
-                                                <div className="relative">
-                                                    {/* White frame with subtle shadow - works with any avatar color */}
-                                                    <div className="w-24 h-24 rounded-full bg-white p-1.5 shadow-lg ring-1 ring-gray-100">
-                                                        {avatarUrl ? (
-                                                            <Image
-                                                                src={avatarUrl}
-                                                                alt={shop.name}
-                                                                width={96}
-                                                                height={96}
-                                                                className="w-full h-full rounded-full object-cover"
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                                                                <ShoppingBag className="w-10 h-10 text-gray-400" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {/* Verified badge */}
-                                                    <div className="absolute -bottom-0.5 -right-0.5 w-7 h-7 bg-white rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
-                                                        <CheckCircle className="w-5 h-5 text-blue-500" />
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Shop Info */}
-                                            <div className="text-center relative z-10">
-                                                <h3 className="font-bold text-lg text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
-                                                    {shop.name}
-                                                </h3>
-                                                
-                                                {/* Rating */}
-                                                <div className="flex items-center justify-center gap-1 mt-2">
-                                                    <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />
-                                                    <span className="text-sm font-semibold text-gray-700">
-                                                        {shop.rating?.toFixed(1) || '5.0'}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400">
-                                                        • {shop._count?.products || 0} products
-                                                    </span>
-                                                </div>
-
-                                                {/* Description (bio) */}
-                                                <p className="text-sm text-gray-500 mt-3 line-clamp-2 min-h-[40px]">
-                                                    {shop.bio || 'Quality products and excellent service'}
-                                                </p>
-
-                                                {/* Visit Button */}
-                                                <button className="mt-4 w-full py-2.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 font-semibold rounded-xl group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all duration-300 shadow-sm group-hover:shadow-md">
-                                                    Visit Store
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </Link>
-                                </motion.div>
-                            );
-                        })}
+                        {shops.map((shop, index) => (
+                            <ShopCard key={shop.id} shop={shop} variant="dark" />
+                        ))}
                     </motion.div>
                 )}
             </div>

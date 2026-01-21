@@ -32,6 +32,12 @@ const nextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "bunchobagels.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
   // Suppress HMR WebSocket connection warnings

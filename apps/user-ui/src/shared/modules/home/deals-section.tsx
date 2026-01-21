@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, ArrowRight, Timer, Percent } from 'lucide-react';
+import { Zap, ArrowUpRight, Timer } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import ProductCard from '../../components/cards/product-card';
 
 const DealsOfTheDaySection = () => {
     const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
-    
+
     const { data, isLoading } = useQuery({
         queryKey: ['deals-of-the-day'],
         queryFn: async () => {
@@ -28,7 +28,7 @@ const DealsOfTheDaySection = () => {
             const midnight = new Date(now);
             midnight.setHours(24, 0, 0, 0);
             const diff = midnight.getTime() - now.getTime();
-            
+
             return {
                 hours: Math.floor(diff / (1000 * 60 * 60)),
                 minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
@@ -47,46 +47,52 @@ const DealsOfTheDaySection = () => {
     if (!isLoading && products.length === 0) return null;
 
     return (
-        <section className="py-12 md:py-16 relative overflow-hidden">
-            {/* Dark gradient background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 -z-10" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(147,51,234,0.3),transparent_50%)] -z-10" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(236,72,153,0.2),transparent_50%)] -z-10" />
+        <section className="py-16 md:py-20 relative overflow-hidden rounded-3xl">
+            {/* Premium Dark Background */}
+            <div className="absolute inset-0 bg-[#070707] -z-10" />
+            
+            {/* Subtle patterns */}
+            <div className="absolute inset-0 -z-10">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(201,168,108,0.08),transparent_70%)]" />
+                <div className="absolute top-0 right-0 w-96 h-96 bg-[#C9A86C]/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#C9A86C]/5 rounded-full blur-3xl" />
+            </div>
 
-            <div className="relative z-10">
+            {/* Decorative border */}
+            <div className="absolute inset-0 border border-[#C9A86C]/10 rounded-3xl pointer-events-none" />
+
+            <div className="relative z-10 px-6 md:px-10">
                 {/* Section Header */}
-                <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
+                <motion.div
+                    initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{ duration: 0.5 }}
-                    className="mb-8 md:mb-12"
+                    transition={{ duration: 0.6 }}
+                    className="mb-10 md:mb-14"
                 >
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                        <div className="flex items-center gap-4">
-                            <motion.div 
-                                animate={{ rotate: [0, 10, -10, 0] }}
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                        <div className="flex items-center gap-5">
+                            <motion.div
+                                animate={{ rotate: [0, 5, -5, 0] }}
                                 transition={{ duration: 2, repeat: Infinity }}
-                                className="w-14 h-14 bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/50"
+                                className="w-16 h-16 bg-gradient-to-br from-[#C9A86C] to-[#8B6914] rounded-2xl flex items-center justify-center shadow-lg shadow-[#C9A86C]/30"
                             >
                                 <Zap className="w-8 h-8 text-white" fill="currentColor" />
                             </motion.div>
                             <div>
-                                <h2 className="text-2xl md:text-4xl font-bold text-black tracking-tight flex items-center gap-3">
+                                <h2 className="text-3xl md:text-5xl font-bold text-black tracking-tight">
                                     Deals of the Day
-                                    <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full animate-pulse">
-                                        <Percent className="w-3 h-3 mr-1" /> HOT
-                                    </span>
                                 </h2>
-                                <p className="text-gray-300 text-sm md:text-base mt-1">
-                                    Limited time offers - Don&apos;t miss out!
+                                <p className="text-gray-400 text-base md:text-lg mt-2">
+                                    Exclusive discounts that refresh daily
                                 </p>
                             </div>
                         </div>
 
                         {/* Countdown Timer */}
-                        <div className="flex items-center gap-3">
-                            <Timer className="w-5 h-5 text-yellow-400" />
+                        <div className="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-2xl px-6 py-4 border border-white/10">
+                            <Timer className="w-5 h-5 text-[#C9A86C]" />
+                            <span className="text-gray-400 text-sm font-medium">Ends in</span>
                             <div className="flex gap-2">
                                 {[
                                     { value: timeLeft.hours, label: 'HRS' },
@@ -94,22 +100,22 @@ const DealsOfTheDaySection = () => {
                                     { value: timeLeft.seconds, label: 'SEC' },
                                 ].map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-2">
-                                        <div className="bg-gradient-to-b from-gray-700 to-gray-800 rounded-xl px-4 py-2 min-w-[60px] text-center border border-gray-600/50 shadow-lg">
+                                        <div className="bg-[#C9A86C]/10 rounded-xl px-3 py-2 min-w-[56px] text-center border border-[#C9A86C]/20">
                                             <AnimatePresence mode="wait">
                                                 <motion.span
                                                     key={item.value}
-                                                    initial={{ y: -10, opacity: 0 }}
+                                                    initial={{ y: -8, opacity: 0 }}
                                                     animate={{ y: 0, opacity: 1 }}
-                                                    exit={{ y: 10, opacity: 0 }}
+                                                    exit={{ y: 8, opacity: 0 }}
                                                     transition={{ duration: 0.2 }}
-                                                    className="text-2xl font-bold text-white tabular-nums"
+                                                    className="text-xl font-bold text-[#C9A86C] tabular-nums block"
                                                 >
                                                     {String(item.value).padStart(2, '0')}
                                                 </motion.span>
                                             </AnimatePresence>
-                                            <p className="text-[10px] text-gray-400 mt-0.5">{item.label}</p>
+                                            <p className="text-[10px] text-gray-500 mt-0.5">{item.label}</p>
                                         </div>
-                                        {idx < 2 && <span className="text-2xl font-bold text-gray-500">:</span>}
+                                        {idx < 2 && <span className="text-xl font-bold text-[#C9A86C]/50">:</span>}
                                     </div>
                                 ))}
                             </div>
@@ -123,12 +129,12 @@ const DealsOfTheDaySection = () => {
                         {Array.from({ length: 6 }).map((_, index) => (
                             <div
                                 key={index}
-                                className="h-[320px] bg-gradient-to-br from-gray-800/50 to-gray-700/30 backdrop-blur-sm rounded-2xl animate-pulse border border-gray-700/50"
+                                className="h-[350px] bg-white/5 backdrop-blur-sm rounded-2xl animate-pulse border border-white/10"
                             />
                         ))}
                     </div>
                 ) : (
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
@@ -138,15 +144,15 @@ const DealsOfTheDaySection = () => {
                         {products.map((product: any, index: number) => (
                             <motion.div
                                 key={product.id}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 30 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.3, delay: index * 0.05 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
                                 className="relative"
                             >
                                 {/* Discount Badge */}
                                 {product.discountPercentage > 0 && (
-                                    <div className="absolute -top-2 -left-2 z-20 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                                    <div className="absolute -top-2 -left-2 z-20 bg-gradient-to-r from-[#C9A86C] to-[#8B6914] text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
                                         -{product.discountPercentage}% OFF
                                     </div>
                                 )}
@@ -157,19 +163,19 @@ const DealsOfTheDaySection = () => {
                 )}
 
                 {/* View All Button */}
-                <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.4, delay: 0.3 }}
-                    className="mt-8 text-center"
+                    className="mt-10 text-center"
                 >
-                    <Link 
+                    <Link
                         href="/products?sort=discount"
-                        className="group inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white font-bold rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/50 transition-all duration-300 hover:scale-105"
+                        className="group inline-flex items-center gap-2 px-8 py-4 bg-[#C9A86C] text-black font-semibold rounded-full hover:bg-[#E8D5B5] transition-all duration-300 shadow-lg shadow-[#C9A86C]/20 cursor-pointer"
                     >
                         <span>View All Deals</span>
-                        <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                        <ArrowUpRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </Link>
                 </motion.div>
             </div>

@@ -53,3 +53,5 @@ out
 
 # .gitignore
 .env
+.agent
+.gemini

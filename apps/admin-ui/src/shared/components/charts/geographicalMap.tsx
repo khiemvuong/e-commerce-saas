@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     ComposableMap,
     Geographies,
@@ -12,32 +12,28 @@ import 'react-tooltip/dist/react-tooltip.css';
 // URL to the world map topology data
 const geoUrl = '/countries-110m.json';
 
-// Updated data with ISO A3 codes to map with geography data
-const geographicalData = [
-    { id: '840', name: 'USA', users: 4500, sellers: 120 }, // United States of America
-    { id: '826', name: 'United Kingdom', users: 2800, sellers: 85 },
-    { id: '276', name: 'Germany', users: 2200, sellers: 68 },
-    { id: '250', name: 'France', users: 1900, sellers: 52 },
-    { id: '124', name: 'Canada', users: 1600, sellers: 45 },
-    { id: '036', name: 'Australia', users: 1400, sellers: 38 },
-    { id: '392', name: 'Japan', users: 1200, sellers: 32 },
-    // The 'Others' category cannot be represented on a specific country and has been omitted.
-];
-
 // Color constants for easier maintenance
 const COLOR_DATA = '#6366f1'; // Color for countries with data
 const COLOR_NO_DATA = '#374151'; // Color for countries without data
 const COLOR_HOVER = '#f59e0b'; // Color on hover
 const COLOR_STROKE = '#1f2937'; // Country border color
 
-const GeographicalMap = () => {
+interface GeographicalMapProps {
+    geographicalData?: Array<{
+        id: string;
+        name: string;
+        users: number;
+        sellers: number;
+    }>;
+}
+
+const GeographicalMap = ({ geographicalData = [] }: GeographicalMapProps) => {
     const [geoData, setGeoData] = useState(null);
 
     // Tối ưu hiệu năng: Chuyển mảng dữ liệu thành Map để tra cứu nhanh (O(1))
-    // React.useMemo đảm bảo việc này chỉ chạy một lần.
-    const dataMap = React.useMemo(
+    const dataMap = useMemo(
         () => new Map(geographicalData.map((item) => [item.id, item])),
-        []
+        [geographicalData]
     );
 
     useEffect(() => {
@@ -49,7 +45,7 @@ const GeographicalMap = () => {
 
     // Render a loading state while the map data is being fetched on the client.
     if (!geoData) {
-        return <div>Loading map...</div>;
+        return <div className="text-gray-400">Loading map...</div>;
     }
 
     return (

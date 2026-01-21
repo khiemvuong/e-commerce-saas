@@ -19,17 +19,16 @@ import SalesChart from "../../shared/components/charts/sale-chart";
 import GeographicalMap from "../../shared/components/charts/geographicalMap";
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "apps/admin-ui/src/utils/axiosInstance";
-
-// Device data
-const deviceData = [
-    { name: "Mobile", value: 45, color: "#4ade80" },
-    { name: "Desktop", value: 35, color: "#60a5fa" },
-    { name: "Tablet", value: 20, color: "#f59e0b" },
-];
+import { Users, ShoppingBag, Store, DollarSign, TrendingUp } from "lucide-react";
 
 const fetchRecentOrders = async () => {
     const res = await axiosInstance.get('/order/api/get-admin-orders');
     return res.data.orders;
+};
+
+const fetchDashboardStats = async () => {
+    const res = await axiosInstance.get('/admin/api/get-dashboard-stats');
+    return res.data.data;
 };
 
 const Dashboard = () => {
@@ -38,7 +37,30 @@ const Dashboard = () => {
         queryFn: fetchRecentOrders,
     });
 
+    const { data: dashboardStats, isLoading: isLoadingStats } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: fetchDashboardStats,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+    });
+
     const recentOrders = React.useMemo(() => orders.slice(0, 8), [orders]);
+
+    // Use API data or fallback to defaults
+    const deviceData = dashboardStats?.deviceStats || [
+        { name: "Mobile", value: 0, color: "#4ade80" },
+        { name: "Desktop", value: 0, color: "#60a5fa" },
+        { name: "Tablet", value: 0, color: "#f59e0b" },
+    ];
+
+    const revenueData = dashboardStats?.revenueData || [];
+    const geographicalData = dashboardStats?.geographicalData || [];
+    const summary = dashboardStats?.summary || {
+        totalUsers: 0,
+        totalSellers: 0,
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+    };
 
     const columns: ColumnDef<any>[] = [
         {
@@ -70,6 +92,8 @@ const Dashboard = () => {
                     Pending: "bg-yellow-500/20 text-yellow-400",
                     Failed: "bg-red-500/20 text-red-400",
                     Refunded: "bg-purple-500/20 text-purple-400",
+                    COD: "bg-blue-500/20 text-blue-400",
+                    Delivered: "bg-emerald-500/20 text-emerald-400",
                 };
                 return (
                     <span
@@ -92,7 +116,76 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-[#0a0a0a] p-6">
             <div className="max-w-[1400px] mx-auto space-y-6">
-                {/* Top Row: Revenue Chart and Recent Orders */}
+                {/* Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-500/20 rounded-lg">
+                                <Users className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Total Users</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {isLoadingStats ? '...' : summary.totalUsers.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-500/20 rounded-lg">
+                                <Store className="w-5 h-5 text-purple-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Total Sellers</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {isLoadingStats ? '...' : summary.totalSellers.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-orange-500/20 rounded-lg">
+                                <ShoppingBag className="w-5 h-5 text-orange-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Products</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {isLoadingStats ? '...' : summary.totalProducts.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-green-500/20 rounded-lg">
+                                <TrendingUp className="w-5 h-5 text-green-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Total Orders</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {isLoadingStats ? '...' : summary.totalOrders.toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-500/20 rounded-lg">
+                                <DollarSign className="w-5 h-5 text-emerald-400" />
+                            </div>
+                            <div>
+                                <p className="text-gray-400 text-sm">Revenue</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {isLoadingStats ? '...' : `$${summary.totalRevenue.toLocaleString()}`}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top Row: Revenue Chart and Device Usage */}
                 <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                     {/* Revenue Chart */}
                     <div className="lg:col-span-4 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
@@ -102,7 +195,7 @@ const Dashboard = () => {
                                 Monthly revenue trends
                             </p>
                         </div>
-                        <SalesChart />
+                        <SalesChart revenueData={revenueData} />
                     </div>
                     {/* Device Usage */}
                     <div className="lg:col-span-3 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
@@ -123,7 +216,7 @@ const Dashboard = () => {
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
-                                    {deviceData.map((entry, index) => (
+                                    {deviceData.map((entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
@@ -149,7 +242,7 @@ const Dashboard = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                {/* Bottom Row: Map and Device Usage */}
+                {/* Bottom Row: Map and Recent Orders */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     {/* Geographical Map */}
                     <div className="lg:col-span-3 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
@@ -161,7 +254,7 @@ const Dashboard = () => {
                                 Geographic distribution of users and sellers
                             </p>
                         </div>
-                        <GeographicalMap />
+                        <GeographicalMap geographicalData={geographicalData} />
                     </div>
                     {/* Recent Orders */}
                     <div className="lg:col-span-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
