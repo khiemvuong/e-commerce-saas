@@ -1,198 +1,114 @@
 "use client"
 import React from 'react'
 import Hero from '../shared/modules/hero'
-import SectionTitle from '../shared/components/section/section-title'
-import { useQuery } from '@tanstack/react-query'
-import axiosInstance from '../utils/axiosInstance'
-import ProductCard from '../shared/components/cards/product-card'
-import ScrollToTop from '../shared/components/scroll-to-top'
-import ShopCard from '../shared/components/cards/shop.card'
 import CategorySection from '../shared/modules/categories/category-section'
+import ScrollToTop from '../shared/components/scroll-to-top'
+import {
+    BestSellersSection,
+    FeaturedSection,
+    DealsOfTheDaySection,
+    LatestProductsSection,
+    TopShopsSection,
+    FlashSaleSection
+} from '../shared/modules/home'
 
-const page = () => {
-  const {
-    data:products,
-    isLoading,
-    isError,
-  }= useQuery({
-    queryKey: ['products'],
-    queryFn: async()=>{
-      const res= await axiosInstance.get('/product/api/get-all-products?page=1&limit=10')
-      return res.data.products;
-    },
-    staleTime:2*60*1000,
-  });
+/**
+ * Home Page - Main landing page for the e-commerce platform
+ * 
+ * Page Structure (following UI-UX Pro Max guidelines):
+ * 1. Hero - Compelling headline with CTA and banner carousel
+ * 2. Categories - Bento-style grid with hover effects
+ * 3. Flash Sales - Time-limited offers with countdown
+ * 4. Best Sellers - Top selling products
+ * 5. Deals of the Day - Highest discounts with dark theme
+ * 6. Featured Products - Top-rated products
+ * 7. Latest Products - New arrivals
+ * 8. Top Shops - Trusted seller showcase
+ */
+const HomePage = () => {
+    return (
+        <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
+            {/* Hero Section - Full width */}
+            <Hero />
 
-  const {data:latestProducts,isLoading:latestProductsLoading}=useQuery({
-    queryKey:['latest-products'],
-    queryFn: async()=>{
-      const res= await axiosInstance.get('/product/api/get-all-products?page=1&limit=10&type=latest')
-      return res.data.products;
-    },
-    staleTime:2*60*1000,
-  });
+            {/* Main Content Container */}
+            <main className="relative">
+                {/* Categories Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <CategorySection />
+                </section>
 
-  const {data:shops, isLoading:shopLoading} = useQuery({
-    queryKey:["shops"],
-    queryFn:async()=>{
-      const res = await axiosInstance.get("/product/api/top-shops");
-      return res.data.shops;
-    },
-    staleTime:1000*60*2,
-  });
+                {/* Flash Sale Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <FlashSaleSection />
+                </section>
 
+                {/* Best Sellers Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <BestSellersSection />
+                </section>
 
-  {/*Offers*/}
-  const {data: offers, isLoading: offersLoading} = useQuery({
-    queryKey:["offers"],
-    queryFn:async()=>{
-      const res = await axiosInstance.get("/product/api/get-all-events?page=1&limit=10");
-      return res.data.events;
-    },
-    staleTime:1000*60*2,
-  });
+                {/* Deals of the Day - Full width dark section */}
+                <section className="w-full md:px-[7.5%] px-[2.5%]">
+                    <DealsOfTheDaySection />
+                </section>
 
+                {/* Featured Products Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <FeaturedSection />
+                </section>
 
-  return (
-    <div className="min-h-screen pb-10">
-      <Hero/>
-      <div className='md:w-[80%] w-[95%] my-6 md:my-10 m-auto'>
-        {/* Category Section */}
-        <CategorySection />
-        
-        {/*Suggested Product Seciton*/}
-        <div>
-          <div className="mb-4 md:mb-8">
-            <SectionTitle
-              title="Suggested Products"
-            />
-          </div>
-          {isLoading &&(
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {/* Product Cards */}
-              {Array.from({ length: 10 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-[250px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
-                >
-                </div>
-              ))}
-            </div>
-          )}
-          {!isLoading && !isError &&(
-            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {products?.map((product:any)=>(
-                  <ProductCard key={product.id} product={product}/>
-              ))}
-            </div>
-          )}
+                {/* Latest Products Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <LatestProductsSection />
+                </section>
 
-          {products?.length === 0 &&(
-            <div className="text-center text-gray-500">No products available.</div>
-          )}
+                {/* Top Shops Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <TopShopsSection />
+                </section>
+
+                {/* Newsletter / Footer CTA Section */}
+                <section className="md:w-[85%] w-[95%] mx-auto py-16 md:py-24">
+                    <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 rounded-3xl px-6 py-12 md:px-16 md:py-16 text-center">
+                        {/* Decorative elements */}
+                        <div className="absolute top-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+                        <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-500/20 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+                        
+                        <div className="relative z-10 max-w-2xl mx-auto">
+                            <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                                Join Our Community
+                            </h2>
+                            <p className="text-white/80 text-lg mb-8">
+                                Subscribe to get special offers, free giveaways, and exclusive deals.
+                            </p>
+                            
+                            <form className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                                <input
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    className="flex-1 px-6 py-4 rounded-full bg-white/20 backdrop-blur-sm text-white placeholder:text-white/60 border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
+                                />
+                                <button
+                                    type="submit"
+                                    className="px-8 py-4 bg-white text-indigo-600 font-bold rounded-full hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl"
+                                >
+                                    Subscribe
+                                </button>
+                            </form>
+                            
+                            <p className="text-white/60 text-sm mt-4">
+                                No spam, unsubscribe at any time.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            {/* Scroll to Top Button */}
+            <ScrollToTop />
         </div>
-
-        {/*Latest Product Section*/}
-        <div>
-          <div className="my-4 md:my-8 block">
-            <SectionTitle
-              title="Latest Products"
-            />
-          </div>
-          {isLoading &&(
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {/* Product Cards */}
-              {Array.from({ length: 10 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-[250px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
-                >
-                </div>
-              ))}
-            </div>
-          )}
-          {!latestProductsLoading && !isError &&(
-            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {latestProducts?.map((product:any)=>(
-                  <ProductCard key={product.id} product={product}/>
-              ))}
-            </div>
-          )}
-          {latestProducts?.length === 0 &&(
-            <div className="text-center text-gray-500">No products available.</div>
-          )}
-        </div>
-
-        {/*Top Shops Section*/}
-        <div className="div">
-          <div className="my-8 block">
-            <SectionTitle title="Top Shops"/>
-          </div>
-
-          {!shopLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {shops?.map((shop:any)=>(
-                <ShopCard key={shop.id} shop={shop}/>
-              ))}
-            </div>
-          )}
-          
-          {shopLoading &&(
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="p-6 flex flex-col items-center space-y-3 border border-gray-200 rounded-2xl bg-white shadow-sm"
-                >
-                  <div className="w-24 h-24 rounded-full bg-gray-200 animate-pulse" />
-                  <div className="h-6 w-3/4 bg-gray-200 rounded animate-pulse" />
-                  <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse" />
-                  <div className="h-10 w-full bg-gray-200 rounded animate-pulse" />
-                  <div className="h-10 w-2/3 bg-gray-200 rounded animate-pulse" />
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {!shopLoading && shops?.length === 0 &&(
-            <div className="text-center text-gray-500 py-12">No shops available.</div>
-          )}
-        </div>
-
-        {/*Top offers Section*/}
-        <div className="div">
-          <div className="my-4 md:my-8 block">
-            <SectionTitle title="Top Offers"/>
-          </div>
-          {!offersLoading && !isError &&(
-            <div className="m-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {offers?.map((product:any)=>(
-                <ProductCard key={product.id} product={product} isEvent={true}/>
-              ))}
-            </div>
-          )}
-          {offersLoading &&(
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-5">
-              {/* Product Cards */}
-              {Array.from({ length: 10 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-[250px] animated-pulse bg-gray-300 rounded-xl shadow-md overflow-hidden hover:scale-105 transition-transform duration-300"
-                >
-                </div>
-              ))}
-            </div>
-          )}
-          {offers?.length === 0 &&(
-            <div className="text-center text-gray-500">No offers available.</div>
-          )}
-        </div>
-      </div>
-      {/* Scroll to Top Button */}
-      <ScrollToTop />
-    </div>
-  )
+    )
 }
 
-
-export default page
+export default HomePage

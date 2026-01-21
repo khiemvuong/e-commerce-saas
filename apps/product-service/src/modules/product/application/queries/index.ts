@@ -9,3 +9,6 @@ export { getAllProducts, type GetAllProductsInput, type GetAllProductsOutput } f
 export { getFilteredProducts, type GetFilteredProductsInput, type GetFilteredProductsOutput } from './getFilteredProducts';
 export { getMyProducts, type GetMyProductsInput } from './getMyProducts';
 export { searchProducts, type SearchProductsInput, type SearchProductsOutput } from './searchProducts';
+export { getBestSellers, type GetBestSellersInput } from './getBestSellers';
+export { getFeaturedProducts, type GetFeaturedProductsInput } from './getFeaturedProducts';
+export { getDealsOfTheDay, type GetDealsOfTheDayInput } from './getDealsOfTheDay';

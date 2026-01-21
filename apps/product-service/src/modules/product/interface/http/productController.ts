@@ -16,13 +16,15 @@ import {
     makeRestoreProduct,
 } from '../../application/useCases';
 
-// Queries
 import {
     getProductDetails,
     getAllProducts,
     getFilteredProducts,
     getMyProducts,
     searchProducts,
+    getBestSellers,
+    getFeaturedProducts,
+    getDealsOfTheDay,
 } from '../../application/queries';
 
 // Infrastructure
@@ -236,6 +238,48 @@ export const productController = {
             const result = await searchProducts({ keyword, page, limit });
 
             return res.json(result);
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    /**
+     * Get best sellers
+     * GET /api/best-sellers
+     */
+    async getBestSellers(req: Request, res: Response, next: NextFunction) {
+        try {
+            const limit = parseInt((req.query.limit as string) || '8', 10);
+            const result = await getBestSellers({ limit });
+            return res.status(200).json(result);
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    /**
+     * Get featured products (highest rated)
+     * GET /api/featured-products
+     */
+    async getFeaturedProducts(req: Request, res: Response, next: NextFunction) {
+        try {
+            const limit = parseInt((req.query.limit as string) || '8', 10);
+            const result = await getFeaturedProducts({ limit });
+            return res.status(200).json(result);
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    /**
+     * Get deals of the day
+     * GET /api/deals-of-the-day
+     */
+    async getDealsOfTheDay(req: Request, res: Response, next: NextFunction) {
+        try {
+            const limit = parseInt((req.query.limit as string) || '6', 10);
+            const result = await getDealsOfTheDay({ limit });
+            return res.status(200).json(result);
         } catch (error) {
             return next(error);
         }

@@ -31,6 +31,7 @@ export const getTopShops = async () => {
         select: {
             id: true,
             name: true,
+            bio: true,
             address: true,
             rating: true,
             followers: true,
@@ -42,6 +43,11 @@ export const getTopShops = async () => {
                 select: {
                     file_url: true,
                     type: true
+                }
+            },
+            _count: {
+                select: {
+                    products: true
                 }
             }
         },
