@@ -42,6 +42,27 @@ router.get('/get-filtered-products', productController.getFiltered);
  */
 router.get('/search-products', productController.search);
 
+/**
+ * @route GET /api/best-sellers
+ * @desc Get best selling products
+ * @access Public
+ */
+router.get('/best-sellers', productController.getBestSellers);
+
+/**
+ * @route GET /api/featured-products
+ * @desc Get featured products (highest rated)
+ * @access Public
+ */
+router.get('/featured-products', productController.getFeaturedProducts);
+
+/**
+ * @route GET /api/deals-of-the-day
+ * @desc Get deals of the day (highest discounts)
+ * @access Public
+ */
+router.get('/deals-of-the-day', productController.getDealsOfTheDay);
+
 // ==========================================
 // Protected Routes (seller authentication required)
 // ==========================================

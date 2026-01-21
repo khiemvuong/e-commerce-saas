@@ -100,45 +100,44 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            whileHover={{ y: -8 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            whileHover={{ y: -6 }}
             className="relative group"
         >
-            <div className="w-full bg-white rounded-2xl border-2 border-purple-200 relative hover:border-purple-400 hover:shadow-2xl hover:shadow-purple-200/50 transition-all duration-300">
+            <div className="w-full rounded-2xl border border-gray-200 relative hover:border-[#C9A86C]/40 hover:shadow-xl hover:shadow-[#C9A86C]/10 transition-all duration-300">
 
                 {/* Badges Container - Top Corners */}
                 {isEvent && (
-                    <div className="absolute top-2.5 left-2.5 z-10 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-lg flex items-center gap-1">
+                    <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-[#C9A86C] to-[#8B6914] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-lg flex items-center gap-1.5">
                         <Star size={12} fill='white' />
                         <span>Flash Sale</span>
                     </div>
                 )}
 
                 {product?.stock > 0 && product?.stock <= 5 && (
-                    <div className="absolute top-2.5 right-2.5 z-10 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg shadow-lg">
+                    <div className="absolute top-3 right-3 z-10 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg shadow-lg">
                         {product?.stock} left
                     </div>
                 )}
 
                 {/* Out of Stock Overlay */}
                 {product?.stock === 0 && (
-                    <div className="absolute inset-0 bg-gradient-to-b from-gray-800/70 to-gray-900/80 rounded-2xl z-20 flex items-center justify-center backdrop-blur-sm">
-                        <span className="text-white font-bold text-lg tracking-wide bg-red-500/90 px-4 py-2 rounded-xl">OUT OF STOCK</span>
+                    <div className="absolute inset-0 bg-gradient-to-b from-gray-900/70 to-gray-900/80 rounded-2xl z-20 flex items-center justify-center backdrop-blur-sm">
+                        <span className="text-white font-bold text-lg tracking-wide bg-gray-900/90 px-5 py-2.5 rounded-xl border border-gray-700">OUT OF STOCK</span>
                     </div>
                 )}
 
                 {/* Image Section */}
-                <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
-                    <Link href={`/product/${product?.slug}`} onClick={handleProductClick}>
+                <div className="relative overflow-hidden rounded-t-2xl bg-gradient-to-br from-gray-50 to-gray-100 aspect-[765/850]">
+                    <Link href={`/product/${product?.slug}`} onClick={handleProductClick} className="block w-full h-full cursor-pointer">
                         <Image
                             src={optimizeImageUrl(product?.images?.[0]?.file_url, IMAGE_PRESETS.cardThumbnail) || "https://bunchobagels.com/wp-content/uploads/2024/09/placeholder.jpg"}
                             alt={product?.title || 'Product image'}
-                            width={400}
-                            height={400}
+                            fill
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                             placeholder="blur"
-                            blurDataURL={getBlurPlaceholder(product?.images?.[0]?.file_url) || "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEERAA=="}
-                            className="w-full h-auto object-scale-down group-hover:scale-110 transition-transform duration-500"
+                            blurDataURL={getBlurPlaceholder(product?.images?.[0]?.file_url) || "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEERAA="}
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
                         />
                     </Link>
                     <AddToCartButton
@@ -149,31 +148,31 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                 </div>
 
                 {/* Action Buttons - Below Low Stock Badge or Top Right */}
-                <div className={`absolute z-10 flex flex-col gap-2 right-3 ${product?.stock > 0 && product?.stock <= 5 ? 'top-12' : 'top-3'}`}>
+                <div className={`absolute z-10 flex flex-col gap-2 right-3 ${product?.stock > 0 && product?.stock <= 5 ? 'top-14' : 'top-3'}`}>
                     <motion.button
-                        whileHover={{ scale: 1.15 }}
+                        whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             isWishlisted
                                 ? removeFromWishlist(product.id, user, location, deviceInfo)
                                 : addToWishlist({ ...product, quantity: 1 }, user, location, deviceInfo);
                         }}
-                        className="bg-white rounded-full p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 ring-2 ring-purple-200 hover:ring-purple-400"
+                        className="bg-white rounded-full p-2.5 shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-[#C9A86C]/30 cursor-pointer"
                     >
                         <Heart
-                            fill={isWishlisted ? "#ec4899" : "transparent"}
+                            fill={isWishlisted ? "#C9A86C" : "transparent"}
                             size={18}
-                            stroke={isWishlisted ? "#ec4899" : "#a855f7"}
+                            stroke={isWishlisted ? "#C9A86C" : "#9ca3af"}
                             className="transition-colors"
                         />
                     </motion.button>
                     <motion.button
-                        whileHover={{ scale: 1.15 }}
+                        whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={handleOpenDetails}
-                        className="bg-white rounded-full p-2.5 shadow-lg hover:shadow-xl transition-all duration-200 ring-2 ring-purple-200 hover:ring-purple-400"
+                        className="bg-white rounded-full p-2.5 shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100 hover:border-[#C9A86C]/30 cursor-pointer"
                     >
-                        <Eye size={18} className="text-purple-600" />
+                        <Eye size={18} className="text-gray-400 hover:text-[#C9A86C] transition-colors" />
                     </motion.button>
                 </div>
 
@@ -182,7 +181,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <Link
                         href={`/product/${product?.slug}`}
                         onClick={handleProductClick}
-                        className="text-base font-bold text-gray-900 line-clamp-2 hover:text-transparent hover:bg-clip-text hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600 transition-all mb-3 leading-snug"
+                        className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-[#C9A86C] transition-colors mb-3 leading-snug cursor-pointer block truncate"
                     >
                         {product?.title}
                     </Link>
@@ -190,7 +189,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     {/* Price & Sales Row */}
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
+                            <span className="text-xl font-bold text-[#C9A86C]">
                                 ${product?.sale_price ? product?.sale_price.toFixed(2) : product?.regular_price.toFixed(2)}
                             </span>
                             {product?.sale_price && (
@@ -199,7 +198,7 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                                 </span>
                             )}
                         </div>
-                        <span className="text-xs text-gray-600 font-semibold bg-gray-100 px-2 py-1 rounded-full">
+                        <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-full">
                             {formatSales(product?.totalSales || 0)} sold
                         </span>
                     </div>
@@ -211,20 +210,23 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
 
                     {/* COD Badge */}
                     {product?.cash_on_delivery === 'yes' && (
-                        <div className="flex items-center gap-1 text-green-600 text-xs font-medium mb-3">
-                            <span>💵 COD</span>
+                        <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-medium mb-3">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span>COD Available</span>
                         </div>
                     )}
 
                     {/* Event Timer */}
                     {isEvent && timeLeft && (
-                        <div className="mt-3 pt-3 border-t border-purple-200">
+                        <div className="mt-3 pt-3 border-t border-gray-100">
                             <motion.div
-                                animate={{ scale: [1, 1.02, 1] }}
+                                animate={{ scale: [1, 1.01, 1] }}
                                 transition={{ duration: 2, repeat: Infinity }}
-                                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-2 px-3 rounded-xl shadow-lg"
+                                className="bg-gradient-to-r from-[#C9A86C] to-[#8B6914] text-white text-center py-2.5 px-3 rounded-xl shadow-md"
                             >
-                                <div className="text-sm font-bold tracking-wide">
+                                <div className="flex items-center justify-center gap-2 text-sm font-semibold">
                                     {timeLeft === "Event ended" ? (
                                         <span>Event Ended</span>
                                     ) : (

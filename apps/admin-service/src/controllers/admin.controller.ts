@@ -595,3 +595,158 @@ export const getUserNotifications = async (req: any, res: Response, next: NextFu
         next(error);
     }
 };
+
+// Get Dashboard Statistics
+export const getDashboardStats = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        // 1. Sellers by Country
+        const sellersRaw = await prisma.sellers.findMany({
+            select: { country: true },
+        });
+        const sellersByCountry: Record<string, number> = {};
+        sellersRaw.forEach((s) => {
+            const country = s.country || "Unknown";
+            sellersByCountry[country] = (sellersByCountry[country] || 0) + 1;
+        });
+        const sellersByCountryArray = Object.entries(sellersByCountry).map(
+            ([country, count]) => ({ country, count })
+        );
+
+        // 2. Users by Country (from userAnalytics)
+        const userAnalyticsRaw = await prisma.userAnalytics.findMany({
+            select: { country: true, device: true },
+        });
+        const usersByCountry: Record<string, number> = {};
+        const deviceStats: Record<string, number> = { Mobile: 0, Desktop: 0, Tablet: 0 };
+
+        userAnalyticsRaw.forEach((ua) => {
+            // Count by country
+            const country = ua.country || "Unknown";
+            usersByCountry[country] = (usersByCountry[country] || 0) + 1;
+
+            // Count by device type
+            const deviceStr = (ua.device || "").toLowerCase();
+            if (deviceStr.includes("mobile") || deviceStr.includes("iphone") || deviceStr.includes("android")) {
+                deviceStats["Mobile"]++;
+            } else if (deviceStr.includes("tablet") || deviceStr.includes("ipad")) {
+                deviceStats["Tablet"]++;
+            } else {
+                deviceStats["Desktop"]++;
+            }
+        });
+
+        const usersByCountryArray = Object.entries(usersByCountry).map(
+            ([country, count]) => ({ country, count })
+        );
+
+        const deviceStatsArray = [
+            { name: "Mobile", value: deviceStats["Mobile"], color: "#4ade80" },
+            { name: "Desktop", value: deviceStats["Desktop"], color: "#60a5fa" },
+            { name: "Tablet", value: deviceStats["Tablet"], color: "#f59e0b" },
+        ];
+
+        // 3. Revenue by Month (from orders)
+        const orders = await prisma.orders.findMany({
+            where: { status: { in: ["Paid", "COD", "Delivered"] } },
+            select: { total: true, createdAt: true },
+        });
+
+        const revenueByMonth: Record<string, { revenue: number; orders: number }> = {};
+        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+        // Initialize all months
+        months.forEach((m) => {
+            revenueByMonth[m] = { revenue: 0, orders: 0 };
+        });
+
+        orders.forEach((order) => {
+            const monthIndex = new Date(order.createdAt).getMonth();
+            const monthName = months[monthIndex];
+            revenueByMonth[monthName].revenue += order.total || 0;
+            revenueByMonth[monthName].orders += 1;
+        });
+
+        const revenueData = months.map((month) => ({
+            month,
+            revenue: Math.round(revenueByMonth[month].revenue * 100) / 100,
+            orders: revenueByMonth[month].orders,
+        }));
+
+        // 4. Summary counts
+        const [totalUsers, totalSellers, totalProducts, totalOrders] = await Promise.all([
+            prisma.users.count(),
+            prisma.sellers.count(),
+            prisma.products.count({ where: { isDeleted: false } }),
+            prisma.orders.count(),
+        ]);
+
+        // 5. Total Revenue
+        const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+        // 6. Geographical data for map (combine users + sellers by country)
+        // Map country names to ISO numeric codes for the map
+        const countryCodeMap: Record<string, string> = {
+            "United States": "840", "USA": "840", "US": "840",
+            "United Kingdom": "826", "UK": "826", "GB": "826",
+            "Germany": "276", "DE": "276",
+            "France": "250", "FR": "250",
+            "Canada": "124", "CA": "124",
+            "Australia": "036", "AU": "036",
+            "Japan": "392", "JP": "392",
+            "Vietnam": "704", "Viet Nam": "704", "VN": "704",
+            "China": "156", "CN": "156",
+            "Korea": "410", "KR": "410",
+            "Singapore": "702", "SG": "702",
+            "Thailand": "764", "TH": "764",
+            "Malaysia": "458", "MY": "458",
+            "Indonesia": "360", "ID": "360",
+            "India": "356", "IN": "356",
+            "Spain": "724", "ES": "724",
+        };
+
+        const geoData: Record<string, { users: number; sellers: number }> = {};
+        
+        usersByCountryArray.forEach(({ country, count }) => {
+            const code = countryCodeMap[country] || country;
+            if (!geoData[code]) geoData[code] = { users: 0, sellers: 0 };
+            geoData[code].users += count;
+        });
+
+        sellersByCountryArray.forEach(({ country, count }) => {
+            const code = countryCodeMap[country] || country;
+            if (!geoData[code]) geoData[code] = { users: 0, sellers: 0 };
+            geoData[code].sellers += count;
+        });
+
+        const geographicalData = Object.entries(geoData).map(([id, data]) => ({
+            id,
+            name: Object.keys(countryCodeMap).find(k => countryCodeMap[k] === id) || id,
+            users: data.users,
+            sellers: data.sellers,
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                summary: {
+                    totalUsers,
+                    totalSellers,
+                    totalProducts,
+                    totalOrders,
+                    totalRevenue: Math.round(totalRevenue * 100) / 100,
+                },
+                sellersByCountry: sellersByCountryArray,
+                usersByCountry: usersByCountryArray,
+                deviceStats: deviceStatsArray,
+                revenueData,
+                geographicalData,
+            },
+        });
+    } catch (error) {
+        next(error);
+    }
+};

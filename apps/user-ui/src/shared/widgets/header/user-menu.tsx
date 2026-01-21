@@ -5,14 +5,20 @@ interface UserMenuProps {
     user: any;
 }
 
-const UserMenu = ({ user }: UserMenuProps) => {
+const UserMenu = ({ user, isTransparent = false }: { user: any, isTransparent?: boolean }) => {
     if (user) {
         return (
             <Link
                 href={"/profile?active=profile"}
-                className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition"
+                className={`flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full transition ${
+                    isTransparent ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+                }`}
             >
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100 hover:border-blue-500 transition overflow-hidden">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center transition overflow-hidden ${
+                    isTransparent 
+                        ? 'bg-white/10 border-white/20 hover:border-white' 
+                        : 'bg-gray-100 border-gray-200 hover:border-[#C9A86C]'
+                }`}>
                     {user?.avatar ? (
                         <img
                             src={user.avatar}
@@ -20,14 +26,18 @@ const UserMenu = ({ user }: UserMenuProps) => {
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <ProfileIcon size={18} className="text-gray-600" />
+                        <ProfileIcon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
                     )}
                 </div>
-                <div className="hidden lg:flex flex-col">
-                    <span className="text-xs text-gray-500 font-medium leading-tight">
+                <div className="hidden md:flex flex-col">
+                    <span className={`text-xs font-medium leading-tight ${
+                        isTransparent ? 'text-gray-300' : 'text-gray-500'
+                    }`}>
                         Hello,
                     </span>
-                    <span className="text-sm text-gray-800 font-Roboto font-bold leading-tight truncate max-w-[100px]">
+                    <span className={`text-sm font-Roboto font-bold leading-tight truncate max-w-[100px] ${
+                        isTransparent ? 'text-white' : 'text-gray-800'
+                    }`}>
                         {user?.name ? ` ${user.name}` : ","}
                     </span>
                 </div>
@@ -36,17 +46,27 @@ const UserMenu = ({ user }: UserMenuProps) => {
     }
 
     return (
-        <div className="flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full hover:bg-gray-100 transition">
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-gray-300 flex items-center justify-center bg-gray-100">
-                <ProfileIcon size={18} className="text-gray-600" />
+        <div className={`flex items-center gap-2 md:gap-3 p-1 md:px-3 md:py-2 rounded-full transition ${
+            isTransparent ? 'hover:bg-white/10' : 'hover:bg-gray-100'
+        }`}>
+            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full border flex items-center justify-center ${
+                isTransparent 
+                    ? 'bg-white/10 border-white/20' 
+                    : 'bg-gray-100 border-gray-200'
+            }`}>
+                <ProfileIcon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
             </div>
-            <div className="hidden lg:flex flex-col">
-                <span className="text-xs text-gray-500 font-medium leading-tight">
+            <div className="hidden md:flex flex-col">
+                <span className={`text-xs font-medium leading-tight ${
+                    isTransparent ? 'text-gray-300' : 'text-gray-500'
+                }`}>
                     Hello,
                 </span>
                 <Link
                     href="/login"
-                    className="text-sm text-blue-600 hover:text-blue-800 font-bold transition"
+                    className={`text-sm font-bold transition hover:underline ${
+                        isTransparent ? 'text-white' : 'text-[#C9A86C] hover:text-[#B8956A]'
+                    }`}
                 >
                     Sign in
                 </Link>

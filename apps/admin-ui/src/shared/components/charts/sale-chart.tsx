@@ -5,22 +5,33 @@ import { ApexOptions } from 'apexcharts';
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-const salesData = [
-    { month: 'Jan', revenue: 12500, orders: 145 },
-    { month: 'Feb', revenue: 15800, orders: 178 },
-    { month: 'Mar', revenue: 18200, orders: 210 },
-    { month: 'Apr', revenue: 22100, orders: 245 },
-    { month: 'May', revenue: 25600, orders: 298 },
-    { month: 'Jun', revenue: 28900, orders: 325 },
-    { month: 'Jul', revenue: 32400, orders: 368 },
-    { month: 'Aug', revenue: 35700, orders: 412 },
-    { month: 'Sep', revenue: 38200, orders: 445 },
-    { month: 'Oct', revenue: 41500, orders: 478 },
-    { month: 'Nov', revenue: 43800, orders: 502 },
-    { month: 'Dec', revenue: 45231, orders: 524 },
+interface SalesChartProps {
+    revenueData?: Array<{
+        month: string;
+        revenue: number;
+        orders: number;
+    }>;
+}
+
+// Default mock data for fallback
+const defaultSalesData = [
+    { month: 'Jan', revenue: 0, orders: 0 },
+    { month: 'Feb', revenue: 0, orders: 0 },
+    { month: 'Mar', revenue: 0, orders: 0 },
+    { month: 'Apr', revenue: 0, orders: 0 },
+    { month: 'May', revenue: 0, orders: 0 },
+    { month: 'Jun', revenue: 0, orders: 0 },
+    { month: 'Jul', revenue: 0, orders: 0 },
+    { month: 'Aug', revenue: 0, orders: 0 },
+    { month: 'Sep', revenue: 0, orders: 0 },
+    { month: 'Oct', revenue: 0, orders: 0 },
+    { month: 'Nov', revenue: 0, orders: 0 },
+    { month: 'Dec', revenue: 0, orders: 0 },
 ];
 
-const SalesChart = () => {
+const SalesChart = ({ revenueData = defaultSalesData }: SalesChartProps) => {
+    const salesData = revenueData.length > 0 ? revenueData : defaultSalesData;
+
     const series = [
         {
             name: 'Revenue',
@@ -77,7 +88,7 @@ const SalesChart = () => {
                         colors: '#9ca3af',
                         fontSize: '12px',
                     },
-                    formatter: (value) => `$${value / 1000}k`,
+                    formatter: (value) => `$${value >= 1000 ? (value / 1000).toFixed(1) + 'k' : value}`,
                 },
             },
             {
