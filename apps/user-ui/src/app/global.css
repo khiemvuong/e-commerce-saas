@@ -263,6 +263,22 @@ svg {
   .animate-fade-up {
     animation: fade-up 0.6s ease forwards;
   }
+
+  /* Scrollbar hide utility */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Dot separator */
+  .dot-before::before {
+    content: "•";
+    margin-right: 0.375rem; /* 1.5 of tailwind gap */
+    color: #d1d5db; /* gray-300 */
+  }
 }
 
 @keyframes appear {

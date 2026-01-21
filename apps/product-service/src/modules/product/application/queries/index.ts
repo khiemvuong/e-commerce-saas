@@ -12,3 +12,26 @@ export { searchProducts, type SearchProductsInput, type SearchProductsOutput } f
 export { getBestSellers, type GetBestSellersInput } from './getBestSellers';
 export { getFeaturedProducts, type GetFeaturedProductsInput } from './getFeaturedProducts';
 export { getDealsOfTheDay, type GetDealsOfTheDayInput } from './getDealsOfTheDay';
+
+// Cached versions of queries (with Redis caching)
+export {
+    getAllProductsCached,
+    getFilteredProductsCached,
+    searchProductsCached,
+    getProductDetailsCached,
+    getBestSellersCached,
+    getFeaturedProductsCached,
+    getDealsOfTheDayCached,
+    invalidateProductCaches,
+    invalidateProductCache,
+} from './cachedQueries';
+
+// Enhanced search with fuzzy matching
+export {
+    enhancedSearchProducts,
+    getSearchSuggestions,
+    type EnhancedSearchInput,
+    type EnhancedSearchOutput,
+} from './enhancedSearch';
+
+

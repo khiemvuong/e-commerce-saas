@@ -1,17 +1,19 @@
 "use client"
 import { useQuery } from '@tanstack/react-query'
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance'
-import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState, Suspense } from 'react'
 import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
 import ComponentLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
+import { Search, X } from 'lucide-react'
 
 const MIN=0;
 const MAX=1199;
-const Page = () => {
+const ProductsContent = () => {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isProductLoading, setIsProductLoading] = useState(true);
     const [priceRange, setPriceRange] = useState([0,1199]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -20,6 +22,10 @@ const Page = () => {
     const [page, setPage] = useState(1);
     const [products, setProducts] = useState<any[]>([]);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalProducts, setTotalProducts] = useState(0);
+    
+    // Search keyword state
+    const [searchKeyword, setSearchKeyword] = useState('');
     
     // Temp states for filters (before Apply is clicked)
     const [tempPriceRange, setTempPriceRange] = useState([0, 1199]);
@@ -43,10 +49,15 @@ const Page = () => {
 
     // Count active filters for badge
     const activeFiltersCount = selectedCategories.length + selectedColors.length + selectedSizes.length + 
-        (priceRange[0] !== 0 || priceRange[1] !== 1199 ? 1 : 0);
+        (priceRange[0] !== 0 || priceRange[1] !== 1199 ? 1 : 0) +
+        (searchKeyword ? 1 : 0);
 
     const updateURL = () => {
         const params = new URLSearchParams();
+        // Preserve search keyword
+        if (searchKeyword) {
+            params.set("search", searchKeyword);
+        }
         // Only add priceRange if it's not default
         if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
             params.set("priceRange", priceRange.join(","));
@@ -68,51 +79,58 @@ const Page = () => {
 
     // Initialize from URL params on mount
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            
-            const urlPriceRange = params.get('priceRange');
-            if (urlPriceRange) {
-                const range = urlPriceRange.split(',').map(Number);
-                if (range.length === 2) {
-                    setPriceRange(range);
-                    setTempPriceRange(range);
-                }
-            }
-            
-            const urlCategories = params.get('categories');
-            if (urlCategories) {
-                const cats = urlCategories.split(',');
-                setSelectedCategories(cats);
-                setTempCategories(cats);
-            }
-            
-            const urlColors = params.get('colors');
-            if (urlColors) {
-                const cols = urlColors.split(',');
-                setSelectedColors(cols);
-                setTempColors(cols);
-            }
-            
-            const urlSizes = params.get('sizes');
-            if (urlSizes) {
-                const szs = urlSizes.split(',');
-                setSelectedSizes(szs);
-                setTempSizes(szs);
-            }
-            
-            const urlPage = params.get('page');
-            if (urlPage) {
-                setPage(Number(urlPage));
+        // Get search keyword from URL
+        const urlSearch = searchParams.get('search');
+        if (urlSearch) {
+            setSearchKeyword(urlSearch);
+        }
+        
+        const urlPriceRange = searchParams.get('priceRange');
+        if (urlPriceRange) {
+            const range = urlPriceRange.split(',').map(Number);
+            if (range.length === 2) {
+                setPriceRange(range);
+                setTempPriceRange(range);
             }
         }
-    }, []); // Only run on mount
+        
+        const urlCategories = searchParams.get('categories');
+        if (urlCategories) {
+            const cats = urlCategories.split(',');
+            setSelectedCategories(cats);
+            setTempCategories(cats);
+        }
+        
+        const urlColors = searchParams.get('colors');
+        if (urlColors) {
+            const cols = urlColors.split(',');
+            setSelectedColors(cols);
+            setTempColors(cols);
+        }
+        
+        const urlSizes = searchParams.get('sizes');
+        if (urlSizes) {
+            const szs = urlSizes.split(',');
+            setSelectedSizes(szs);
+            setTempSizes(szs);
+        }
+        
+        const urlPage = searchParams.get('page');
+        if (urlPage) {
+            setPage(Number(urlPage));
+        }
+    }, [searchParams]); // Re-run when URL changes
 
 
     const fetchFilteredProducts = async (signal?: AbortSignal) => {
         setIsProductLoading(true);
         try {
             const query = new URLSearchParams();
+
+            // Add search keyword
+            if (searchKeyword) {
+                query.set("search", searchKeyword);
+            }
 
             // Only send priceRange if it's not default
             if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
@@ -133,6 +151,7 @@ const Page = () => {
             );
             setProducts(res.data.products);
             setTotalPages(res.data.pagination.totalPages);
+            setTotalProducts(res.data.pagination.total);
             setIsProductLoading(false);
         } catch (error) {
             if ((error as any).name !== 'CanceledError') {
@@ -149,7 +168,13 @@ const Page = () => {
         return () => {
             controller.abort();
         };
-    },[priceRange,selectedCategories,selectedColors,selectedSizes,page]);
+    },[priceRange,selectedCategories,selectedColors,selectedSizes,page,searchKeyword]);
+
+    // Clear search keyword
+    const clearSearch = () => {
+        setSearchKeyword('');
+        setPage(1);
+    };
     const {data,isLoading} = useQuery({
         queryKey: ["categories"],
         queryFn: async () => {
@@ -448,8 +473,36 @@ const Page = () => {
         />
         {/*Product Listing Section*/}
         <div className="flex-1 px-2 lg:px-3">
-            <div className=" m-auto">
+            <div className="m-auto">
+                {/* Search Results Header */}
+                {searchKeyword ? (
+                    <div className="mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Search size={24} className="text-[#C9A86C]" />
+                            <h1 className="font-medium text-[28px] lg:text-[40px] leading-tight">
+                                Kết quả tìm kiếm
+                            </h1>
+                        </div>
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <p className="text-gray-600">
+                                Tìm thấy <span className="font-semibold text-[#C9A86C]">{totalProducts}</span> sản phẩm cho từ khóa:
+                            </p>
+                            <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#C9A86C]/10 text-[#C9A86C] rounded-full font-medium">
+                                <Search size={14} />
+                                "{searchKeyword}"
+                                <button 
+                                    onClick={clearSearch}
+                                    className="ml-1 p-0.5 hover:bg-[#C9A86C]/20 rounded-full transition-colors"
+                                    title="Xóa tìm kiếm"
+                                >
+                                    <X size={14} />
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                ) : (
                     <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Collection Of Products</h1>
+                )}
             </div>
             {isProductLoading ? (
                 <ComponentLoader text="Loading products..." />
@@ -463,7 +516,23 @@ const Page = () => {
                     ))}
                 </div>
             ) : (
-                <div className="text-center text-gray-500">No products found.</div>
+                <div className="flex flex-col items-center justify-center py-16">
+                    <Search size={48} className="text-gray-300 mb-4" />
+                    <p className="text-lg text-gray-500 mb-2">Không tìm thấy sản phẩm nào</p>
+                    {searchKeyword && (
+                        <p className="text-sm text-gray-400 mb-4">
+                            Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc
+                        </p>
+                    )}
+                    {searchKeyword && (
+                        <button
+                            onClick={clearSearch}
+                            className="px-4 py-2 bg-[#C9A86C] text-white rounded-lg hover:bg-[#b89a5c] transition-colors"
+                        >
+                            Xóa tìm kiếm
+                        </button>
+                    )}
+                </div>
             )}
             {totalPages > 1 && (
                 <div className="flex justify-center mt-8 gap-2">
@@ -483,5 +552,14 @@ const Page = () => {
     </div>
   )
 }
+
+// Main Page component with Suspense boundary
+const Page = () => {
+    return (
+        <Suspense fallback={<ComponentLoader text="Loading..." />}>
+            <ProductsContent />
+        </Suspense>
+    );
+};
 
 export default Page

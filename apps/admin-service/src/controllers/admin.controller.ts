@@ -603,14 +603,83 @@ export const getDashboardStats = async (
     next: NextFunction
 ) => {
     try {
+        // Fetch site config for country mapping
+        const siteConfig = await prisma.site_config.findFirst({
+            select: { countries: true }
+        });
+        
+        // Create a map of Name -> Code and Code -> Name for flexibility
+        // If countries is not set, we fall back to a basic map or empty
+        const countryList = (siteConfig?.countries as any[]) || [];
+        const nameToCodeMap: Record<string, string> = {};
+        const codeToNameMap: Record<string, string> = {};
+
+        countryList.forEach((c: {name: string, code: string}) => {
+            nameToCodeMap[c.name] = c.code;
+            nameToCodeMap[c.name.toLowerCase()] = c.code; // Case insensitive lookup
+            codeToNameMap[c.code] = c.name;
+        });
+
+        // Helper to get Code from Name (or handle if input is already a code)
+        // Standard ISO 3166-1 alpha-2 to numeric mapping
+        const isoAlpha2ToNumeric: Record<string, string> = {
+            'AF': '004', 'AL': '008', 'DZ': '012', 'AS': '016', 'AD': '020', 'AO': '024', 'AI': '660', 'AQ': '010', 'AG': '028', 'AR': '032',
+            'AM': '051', 'AW': '533', 'AU': '036', 'AT': '040', 'AZ': '031', 'BS': '044', 'BH': '048', 'BD': '050', 'BB': '052', 'BY': '112',
+            'BE': '056', 'BZ': '084', 'BJ': '204', 'BM': '060', 'BT': '064', 'BO': '068', 'BA': '070', 'BW': '072', 'BV': '074', 'BR': '076',
+            'IO': '086', 'BN': '096', 'BG': '100', 'BF': '854', 'BI': '108', 'KH': '116', 'CM': '120', 'CA': '124', 'CV': '132', 'KY': '136',
+            'CF': '140', 'TD': '148', 'CL': '152', 'CN': '156', 'CX': '162', 'CC': '166', 'CO': '170', 'KM': '174', 'CG': '178', 'CD': '180',
+            'CK': '184', 'CR': '188', 'CI': '384', 'HR': '191', 'CU': '192', 'CY': '196', 'CZ': '203', 'DK': '208', 'DJ': '262', 'DM': '212',
+            'DO': '214', 'EC': '218', 'EG': '818', 'SV': '222', 'GQ': '226', 'ER': '232', 'EE': '233', 'ET': '231', 'FK': '238', 'FO': '234',
+            'FJ': '242', 'FI': '246', 'FR': '250', 'GF': '254', 'PF': '258', 'TF': '260', 'GA': '266', 'GM': '270', 'GE': '268', 'DE': '276',
+            'GH': '288', 'GI': '292', 'GR': '300', 'GL': '304', 'GD': '308', 'GP': '312', 'GU': '316', 'GT': '320', 'GN': '324', 'GW': '624',
+            'GY': '328', 'HT': '332', 'HM': '334', 'VA': '336', 'HN': '340', 'HK': '344', 'HU': '348', 'IS': '352', 'IN': '356', 'ID': '360',
+            'IR': '364', 'IQ': '368', 'IE': '372', 'IL': '376', 'IT': '380', 'JM': '388', 'JP': '392', 'JO': '400', 'KZ': '398', 'KE': '404',
+            'KI': '296', 'KP': '408', 'KR': '410', 'KW': '414', 'KG': '417', 'LA': '418', 'LV': '428', 'LB': '422', 'LS': '426', 'LR': '430',
+            'LY': '434', 'LI': '438', 'LT': '440', 'LU': '442', 'MO': '446', 'MK': '807', 'MG': '450', 'MW': '454', 'MY': '458', 'MV': '462',
+            'ML': '466', 'MT': '470', 'MH': '474', 'MQ': '478', 'MR': '478', 'MU': '480', 'YT': '175', 'MX': '484', 'FM': '583', 'MD': '498',
+            'MC': '492', 'MN': '496', 'ME': '499', 'MS': '500', 'MA': '504', 'MZ': '508', 'MM': '104', 'NA': '516', 'NR': '520', 'NP': '524',
+            'NL': '528', 'NC': '540', 'NZ': '554', 'NI': '558', 'NE': '562', 'NG': '566', 'NU': '570', 'NF': '574', 'MP': '580', 'NO': '578',
+            'OM': '512', 'PK': '586', 'PW': '585', 'PS': '275', 'PA': '591', 'PG': '598', 'PY': '600', 'PE': '604', 'PH': '608', 'PN': '612',
+            'PL': '616', 'PT': '620', 'PR': '630', 'QA': '634', 'RE': '638', 'RO': '642', 'RU': '643', 'RW': '646', 'SH': '654', 'KN': '659',
+            'LC': '662', 'PM': '666', 'VC': '670', 'WS': '882', 'SM': '674', 'ST': '678', 'SA': '682', 'SN': '686', 'RS': '688', 'SC': '690',
+            'SL': '694', 'SG': '702', 'SK': '703', 'SI': '705', 'SB': '090', 'SO': '706', 'ZA': '710', 'GS': '239', 'ES': '724', 'LK': '144',
+            'SD': '729', 'SR': '740', 'SJ': '744', 'SZ': '748', 'SE': '752', 'CH': '756', 'SY': '760', 'TW': '158', 'TJ': '762', 'TZ': '834',
+            'TH': '764', 'TL': '626', 'TG': '768', 'TK': '772', 'TO': '776', 'TT': '780', 'TN': '788', 'TR': '792', 'TM': '795', 'TC': '796',
+            'TV': '798', 'UG': '800', 'UA': '804', 'AE': '784', 'GB': '826', 'UK': '826', 'US': '840', 'UM': '581', 'UY': '858', 'UZ': '860',
+            'VU': '548', 'VE': '862', 'VN': '704', 'VG': '092', 'VI': '850', 'WF': '876', 'EH': '732', 'YE': '887', 'ZM': '894', 'ZW': '716'
+        };
+
+        const getCountryCode = (input: string | null) => {
+            if (!input) return "Unknown";
+            const cleanInput = input.trim();
+            const upperInput = cleanInput.toUpperCase();
+            
+            // Check if it matches a 2-letter code directly
+            if (isoAlpha2ToNumeric[upperInput]) return isoAlpha2ToNumeric[upperInput];
+
+            // Check if it matches a name from our DB config
+            if (nameToCodeMap[cleanInput]) return nameToCodeMap[cleanInput];
+            if (nameToCodeMap[cleanInput.toLowerCase()]) return nameToCodeMap[cleanInput.toLowerCase()];
+            
+            // Check if it is already a valid numeric code
+            if (codeToNameMap[cleanInput]) return cleanInput;
+            
+            // Manual fallbacks for common mismatched names
+            if (upperInput === 'USA') return '840';
+            if (upperInput === 'VIETNAM') return '704';
+            
+            return cleanInput; // Return as is if no match found
+        };
+
         // 1. Sellers by Country
         const sellersRaw = await prisma.sellers.findMany({
             select: { country: true },
         });
         const sellersByCountry: Record<string, number> = {};
         sellersRaw.forEach((s) => {
-            const country = s.country || "Unknown";
-            sellersByCountry[country] = (sellersByCountry[country] || 0) + 1;
+            const countryName = s.country || "Unknown";
+            // We count by Name for the list, but use Code for the map later
+            sellersByCountry[countryName] = (sellersByCountry[countryName] || 0) + 1;
         });
         const sellersByCountryArray = Object.entries(sellersByCountry).map(
             ([country, count]) => ({ country, count })
@@ -625,8 +694,8 @@ export const getDashboardStats = async (
 
         userAnalyticsRaw.forEach((ua) => {
             // Count by country
-            const country = ua.country || "Unknown";
-            usersByCountry[country] = (usersByCountry[country] || 0) + 1;
+            const countryName = ua.country || "Unknown";
+            usersByCountry[countryName] = (usersByCountry[countryName] || 0) + 1;
 
             // Count by device type
             const deviceStr = (ua.device || "").toLowerCase();
@@ -688,43 +757,23 @@ export const getDashboardStats = async (
         const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
 
         // 6. Geographical data for map (combine users + sellers by country)
-        // Map country names to ISO numeric codes for the map
-        const countryCodeMap: Record<string, string> = {
-            "United States": "840", "USA": "840", "US": "840",
-            "United Kingdom": "826", "UK": "826", "GB": "826",
-            "Germany": "276", "DE": "276",
-            "France": "250", "FR": "250",
-            "Canada": "124", "CA": "124",
-            "Australia": "036", "AU": "036",
-            "Japan": "392", "JP": "392",
-            "Vietnam": "704", "Viet Nam": "704", "VN": "704",
-            "China": "156", "CN": "156",
-            "Korea": "410", "KR": "410",
-            "Singapore": "702", "SG": "702",
-            "Thailand": "764", "TH": "764",
-            "Malaysia": "458", "MY": "458",
-            "Indonesia": "360", "ID": "360",
-            "India": "356", "IN": "356",
-            "Spain": "724", "ES": "724",
-        };
-
         const geoData: Record<string, { users: number; sellers: number }> = {};
         
         usersByCountryArray.forEach(({ country, count }) => {
-            const code = countryCodeMap[country] || country;
+            const code = getCountryCode(country);
             if (!geoData[code]) geoData[code] = { users: 0, sellers: 0 };
             geoData[code].users += count;
         });
 
         sellersByCountryArray.forEach(({ country, count }) => {
-            const code = countryCodeMap[country] || country;
+            const code = getCountryCode(country);
             if (!geoData[code]) geoData[code] = { users: 0, sellers: 0 };
             geoData[code].sellers += count;
         });
 
         const geographicalData = Object.entries(geoData).map(([id, data]) => ({
             id,
-            name: Object.keys(countryCodeMap).find(k => countryCodeMap[k] === id) || id,
+            name: codeToNameMap[id] || id, // Try to provide clean name from config if available
             users: data.users,
             sellers: data.sellers,
         }));

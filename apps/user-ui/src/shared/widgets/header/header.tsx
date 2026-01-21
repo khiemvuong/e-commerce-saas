@@ -4,12 +4,13 @@ import { Heart, ShoppingCart, Menu, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import useUser from "apps/user-ui/src/hooks/useUser";
 import { useStore } from "apps/user-ui/src/store";
-import IlanLogo3 from "apps/user-ui/src/assets/svgs/ilan-logo-3";
+// import IlanLogo3 from "apps/user-ui/src/assets/svgs/ilan-logo-3";
 import { navItems } from "apps/user-ui/src/configs/constants";
 import { usePathname } from 'next/navigation';
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 import UserMenu from "./user-menu";
+import SearchBar from "../../components/search/SearchBar";
 
 const Header = () => {
   const pathname = usePathname();
@@ -70,15 +71,20 @@ const Header = () => {
                   className={`object-contain transition-all duration-300 ${!isTransparent ? 'h-16' : 'h-20'}`}
                 />
               ) : (
-                <IlanLogo3 
-                  size={!isTransparent ? 140 : 200} 
-                  className={`transition-colors duration-300 ${isTransparent ? 'text-white' : 'text-[#C9A86C]'}`}
-                />              
+                /* Skeleton Logo Placeholder */
+                <div className={`animate-pulse rounded-lg ${
+                    !isTransparent 
+                        ? 'bg-gray-200 h-10 w-32' 
+                        : 'bg-white/20 h-14 w-40'
+                }`} />             
               )}
             </div>
           </Link>
 
-          {/* Center: Navigation - Desktop */}
+          {/* Center: Search Bar - Desktop */}
+          <div className="hidden md:block flex-1 max-w-md mx-8">
+            <SearchBar isTransparent={isTransparent} />
+          </div>
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item: any, index: number) => {
               const isActive = pathname === item.href || 

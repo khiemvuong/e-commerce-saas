@@ -16,6 +16,11 @@ const Page = () => {
   const {register, handleSubmit} = useForm<FormData>();
   const [serverError,setServerError] = useState<string | null>(null);
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const loginMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -43,7 +48,7 @@ const Page = () => {
   return (
     <div className='w-full h-screen flex items-center justify-center'>
       <div className="md:w-[450px] w-full pb-8 bg-slate-800 rounded-md shadow">
-        <form className='p-5' onSubmit={handleSubmit(onSubmit)}>
+        <form className='p-5' onSubmit={handleSubmit(onSubmit)} method="POST">
           <h1 className='text-3xl pb-3 pt-4 font-semibold text-center text-white font-Poppins'>
             Welcome, <br/> Admin
           </h1>
@@ -76,7 +81,7 @@ const Page = () => {
           </div>
           <button
             type="submit"
-            disabled={loginMutation.isPending}
+            disabled={!isMounted || loginMutation.isPending}
             className="w-full mt-4 text-xl flex justify-center font-semibold font-Poppins cursor-pointer bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg"
           >
             {loginMutation.isPending ? (

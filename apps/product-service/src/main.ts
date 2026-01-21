@@ -3,6 +3,7 @@ import "./jobs/product-crone.job";
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { errorMiddleware } from '@packages/error-handler/error-middleware';
+import { performanceTracker } from '@packages/middleware/performanceTracker';
 import swaggerUi from 'swagger-ui-express';
 const swaggerDocument = require('./swagger-output.json');
 
@@ -28,6 +29,10 @@ credentials: true,
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
+
+// Performance tracking middleware - records API response times to Redis
+app.use(performanceTracker());
+
 app.get('/', (req, res) => {
     res.send({ 'message': 'Product Service is running' });
 });
@@ -47,13 +52,17 @@ app.use("/api", categoryRoutes);  // Categories
 app.use("/api", shopRoutes);      // Shops
 app.use("/api", imageRoutes);     // Image upload/delete
 
+// Performance Metrics API (for monitoring dashboard)
+import { metricsRoutes } from './modules/metrics/metricsRoutes';
+app.use("/api", metricsRoutes);   // Performance metrics
+
 app.use(errorMiddleware)
 
 
 const port = 6002;
 const server = app.listen(port, () => {
     console.log(`Product service is running at http://localhost:${port}/api`);
-    console.log(`Active modules: Product, Event, Discount, Category, Shop, Image`);
+    console.log(`Active modules: Product, Event, Discount, Category, Shop, Image, Metrics`);
 });
 server.on("error", (err) => {
 console.error("Server erros:",err);

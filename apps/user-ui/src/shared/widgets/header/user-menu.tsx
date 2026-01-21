@@ -1,5 +1,5 @@
 import Link from "next/link";
-import ProfileIcon from "../../../assets/svgs/profile-icon";
+import { User2Icon } from "lucide-react";
 
 interface UserMenuProps {
     user: any;
@@ -26,7 +26,7 @@ const UserMenu = ({ user, isTransparent = false }: { user: any, isTransparent?: 
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <ProfileIcon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
+                        <User2Icon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
                     )}
                 </div>
                 <div className="hidden md:flex flex-col">
@@ -54,7 +54,7 @@ const UserMenu = ({ user, isTransparent = false }: { user: any, isTransparent?: 
                     ? 'bg-white/10 border-white/20' 
                     : 'bg-gray-100 border-gray-200'
             }`}>
-                <ProfileIcon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
+                <User2Icon size={18} className={isTransparent ? "text-white" : "text-gray-600"} />
             </div>
             <div className="hidden md:flex flex-col">
                 <span className={`text-xs font-medium leading-tight ${

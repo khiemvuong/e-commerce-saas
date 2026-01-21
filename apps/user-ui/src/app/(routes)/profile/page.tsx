@@ -1,16 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import ProfileIcon from 'apps/user-ui/src/assets/svgs/profile-icon'
 import useRequiredAuth from 'apps/user-ui/src/hooks/useRequiredAuth';
 import QuickActionCard from 'apps/user-ui/src/shared/components/cards/quick-action.card';
 import StatCard from 'apps/user-ui/src/shared/components/cards/stat.card';
 import ChangePassword from 'apps/user-ui/src/shared/components/change-password';
-import ComponentLoader from 'apps/user-ui/src/shared/components/loading/component-loader';
 import ShippingAdressSection from 'apps/user-ui/src/shared/components/shippingAdress';
 import OrderTable from 'apps/user-ui/src/shared/components/tables/orders.table';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User, X, Camera } from 'lucide-react';
+import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User, X, Camera, User2Icon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, {useEffect, useState } from 'react'
@@ -141,7 +139,7 @@ const Page = () => {
                                     />
                                 ) : (
                                     <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center border-4 border-white">
-                                        <ProfileIcon size={48} className="text-gray-400"/>
+                                        <User2Icon size={48} className="text-gray-400"/>
                                     </div>
                                 )}
                             </div>

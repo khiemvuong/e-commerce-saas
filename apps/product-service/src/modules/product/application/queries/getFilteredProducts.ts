@@ -15,6 +15,7 @@ export interface GetFilteredProductsInput {
     categories?: string | string[];
     colors?: string | string[];
     sizes?: string | string[];
+    search?: string; // Search keyword
     page?: number;
     limit?: number;
 }
@@ -51,6 +52,7 @@ export const getFilteredProducts = async (
         categories,
         colors,
         sizes,
+        search,
         page = 1,
         limit = 12,
     } = input;
@@ -60,12 +62,35 @@ export const getFilteredProducts = async (
     const skip = (parsedPage - 1) * parsedLimit;
 
     // Build filters
-    const filters: Record<string, any> = {
-        AND: [
-            { isDeleted: false },
+    const andConditions: Record<string, any>[] = [
+        { isDeleted: false },
+    ];
+
+    // When searching, include both products and events
+    // When browsing without search, only show regular products (not events)
+    if (!search || search.trim().length === 0) {
+        andConditions.push(
             { starting_date: null },
             { ending_date: null },
-        ],
+        );
+    }
+
+    // Search keyword filter - search in title, description, tags, brand
+    if (search && search.trim().length > 0) {
+        const searchTerm = search.trim();
+        andConditions.push({
+            OR: [
+                { title: { contains: searchTerm, mode: 'insensitive' } },
+                { short_description: { contains: searchTerm, mode: 'insensitive' } },
+                { tags: { has: searchTerm } },
+                { brand: { contains: searchTerm, mode: 'insensitive' } },
+                { category: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+        });
+    }
+
+    const filters: Record<string, any> = {
+        AND: andConditions,
     };
 
     // Price range filter
