@@ -215,6 +215,13 @@ return (
                     className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-600 transition mt-5">
                         {signupMutation.isPending ? "Signing Up..." : "Sign Up"}
                     </button>
+                    
+                    {/* Server Error Display */}
+                    {serverError && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm text-center">{serverError}</p>
+                        </div>
+                    )}
 
                 </form>
                 ):(

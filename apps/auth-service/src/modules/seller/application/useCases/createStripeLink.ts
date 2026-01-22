@@ -6,6 +6,7 @@ import { Stripe } from 'stripe';
 import { SellerRepository } from '../../domain/SellerRepository';
 import { ValidationError } from '../../../../_lib/errors/AuthErrors';
 import { sendLog } from '@packages/utils/kafka';
+import { numericToAlpha2 } from '../../../../_lib/utils/countryMapping';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -31,11 +32,14 @@ export const makeCreateStripeLink = ({ sellerRepository }: CreateStripeLinkDeps)
         }
 
         try {
+            // Convert numeric country code to alpha-2 for Stripe
+            const countryCode = numericToAlpha2(seller.country);
+            
             // Create Stripe Express account
             const account = await stripe.accounts.create({
                 type: 'express',
                 email: seller.email,
-                country: seller.country || 'US',
+                country: countryCode,
                 capabilities: {
                     card_payments: { requested: true },
                     transfers: { requested: true },

@@ -26,6 +26,9 @@ export const makePrismaSellerRepository = (): SellerRepository => {
                     phone_number: true,
                     country: true,
                     stripeId: true,
+                    twoFactorEnabled: true,
+                    twoFactorSecret: true,
+                    backupCodes: true,
                     createdAt: true,
                     updatedAt: true,
                     shop: {
@@ -43,6 +46,13 @@ export const makePrismaSellerRepository = (): SellerRepository => {
             return prisma.sellers.update({
                 where: { id },
                 data: { stripeId },
+            });
+        },
+
+        async update(id: string, data) {
+            return prisma.sellers.update({
+                where: { id },
+                data,
             });
         },
     };

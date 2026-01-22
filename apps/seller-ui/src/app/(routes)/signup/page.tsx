@@ -5,11 +5,12 @@ import React, {useState} from 'react'
 import { useForm} from 'react-hook-form';
 import { Eye, EyeOff} from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { useSiteConfig } from 'apps/seller-ui/src/hooks/useSiteConfig';
 import CreateShop from 'apps/seller-ui/src/shared/modules/create-shop';
 import StripeLogo from '../../../assets/svgs/stripe-logo';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
+import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 
 const Signup = () => {
     const [activeStep, setActiveStep] = useState(1);
@@ -41,7 +42,7 @@ const Signup = () => {
     };
     const signupMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/seller-registration`, data);
+            const response = await axiosInstance.post(`/api/seller-registration`, data);
             return response.data;
         },
         onSuccess: (_, formData) => {
@@ -62,7 +63,7 @@ const Signup = () => {
     const verifyOtpMutation = useMutation({
         mutationFn: async () => {
             if (!sellerData) throw new Error("Seller data is missing");
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-seller`, {
+            const response = await axiosInstance.post(`/api/verify-seller`, {
                 ...sellerData,
                 otp: otp.join(""),
             });
@@ -250,8 +251,8 @@ return (
                     defaultValue="US"
                     >
                         <option value="">Select your country</option>
-                        {countries.map((country) => (
-                            <option key={country.code} value={country.code}>{country.name}</option>
+                        {countries.map((country: any, index: number) => (
+                            <option key={`${country.code}-${index}`} value={country.code}>{country.name}</option>
                         ))}
                     </select>
                     {errors.country && (
@@ -266,12 +267,14 @@ return (
                     className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-600 transition mt-5">
                         {signupMutation.isPending ? <PageLoader text="Signing up..." /> : "Sign Up"}
                     </button>
-                    {signupMutation.isError && 
-                        signupMutation.error instanceof AxiosError && (
-                            <p className="text-red-500 text-sm mt-2 text-center">
-                                {signupMutation.error?.response?.data?.message || signupMutation.error.message}
-                            </p>
+                    
+                    {/* Server Error Display */}
+                    {serverError && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm text-center">{serverError}</p>
+                        </div>
                     )}
+                    
                     <p className="pt-3 text-center">
                         Already have an account?{" "}
                         <Link href="/login" className="text-blue-500 font-semibold hover:underline">
@@ -324,13 +327,10 @@ return (
                                     `Resend code in ${timer} seconds`
                                 )}
                         </p>
-                        {verifyOtpMutation.isError && !serverError && (
-                            <p className="text-red-500 text-sm mt-2 text-center">
-                                {verifyOtpMutation.error instanceof AxiosError 
-                                    ? verifyOtpMutation.error?.response?.data?.message || 'OTP verification failed'
-                                    : 'An error occurred during OTP verification'
-                                }
-                            </p>
+                        {serverError && (
+                            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-red-600 text-sm text-center">{serverError}</p>
+                            </div>
                         )}
                         
 

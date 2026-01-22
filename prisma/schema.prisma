@@ -154,16 +154,20 @@ model orderItems {
 }
 
 model sellers {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  name         String
-  email        String   @unique
-  password     String
-  phone_number String
-  country      String
-  stripeId     String?
-  shop         shops?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String   @unique
+  password         String
+  phone_number     String
+  country          String
+  stripeId         String?
+  // 2FA fields
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorSecret  String?
+  backupCodes      String[] @default([])
+  shop             shops?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 //Model site config

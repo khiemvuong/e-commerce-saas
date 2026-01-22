@@ -16,7 +16,9 @@ export interface LoginSellerDeps {
 
 export interface LoginSellerResult {
     message: string;
-    seller: Seller.PublicType;
+    seller?: Seller.PublicType;
+    requiresTwoFactor?: boolean;
+    sellerId?: string;
 }
 
 export type LoginSeller = (input: Seller.LoginInput, res: Response) => Promise<LoginSellerResult>;
@@ -43,6 +45,21 @@ export const makeLoginSeller = ({ sellerRepository }: LoginSellerDeps): LoginSel
                 source: 'auth-service',
             });
             throw new ValidationError('Invalid email or password');
+        }
+
+        // Check if 2FA is enabled
+        if (seller.twoFactorEnabled) {
+            await sendLog({
+                type: 'info',
+                message: `2FA required for seller: ${input.email}`,
+                source: 'auth-service',
+            });
+
+            return {
+                message: '2FA verification required',
+                requiresTwoFactor: true,
+                sellerId: seller.id,
+            };
         }
 
         // Clear user cookies

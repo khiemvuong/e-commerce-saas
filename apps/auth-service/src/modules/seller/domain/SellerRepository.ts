@@ -16,4 +16,10 @@ export interface SellerRepository {
         country: string;
     }): Promise<Seller.Type>;
     updateStripeId(id: string, stripeId: string): Promise<Seller.Type>;
+    update(id: string, data: Partial<{
+        twoFactorEnabled: boolean;
+        twoFactorSecret: string | null;
+        backupCodes: string[];
+    }>): Promise<Seller.Type>;
 }
+

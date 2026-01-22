@@ -20,6 +20,10 @@ export namespace Seller {
         phone_number: string;
         country: string;
         stripeId?: string | null;
+        // 2FA fields
+        twoFactorEnabled: boolean;
+        twoFactorSecret?: string | null;
+        backupCodes: string[];
         createdAt: Date;
         updatedAt: Date;
     }

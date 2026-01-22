@@ -18,6 +18,9 @@ const Login = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
+    const [requires2FA, setRequires2FA] = useState(false);
+    const [sellerId, setSellerId] = useState<string | null>(null);
+    const [totpCode, setTotpCode] = useState('');
     const router = useRouter();
     const queryClient = useQueryClient();
     const {seller, isLoading: isSellerLoading} = useSeller();
@@ -40,6 +43,14 @@ const Login = () => {
         onSuccess: (data) => {
             console.log("Login successful:", data);
             setServerError(null);
+            
+            // Check if 2FA is required
+            if (data.requiresTwoFactor) {
+                setRequires2FA(true);
+                setSellerId(data.sellerId);
+                return;
+            }
+            
             // Invalidate seller query to force refetch with new session
             queryClient.invalidateQueries({ queryKey: ['seller'] });
             router.push("/");
@@ -50,8 +61,41 @@ const Login = () => {
         }
     });
 
+    const verify2FAMutation = useMutation({
+        mutationFn: async (code: string) => {
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_SERVER_URL}/api/login/verify-2fa`,
+                {
+                    sellerId,
+                    code,
+                },
+                {
+                    withCredentials: true,
+                }
+            );
+            return response.data;
+        },
+        onSuccess: (data) => {
+            console.log("2FA verification successful:", data);
+            setServerError(null);
+            queryClient.invalidateQueries({ queryKey: ['seller'] });
+            router.push("/");
+        },
+        onError: (error: AxiosError) => {
+            const errorMessage = (error.response?.data as { message?: string })?.message || "Invalid 2FA code!";
+            setServerError(errorMessage);
+        }
+    });
+
     const onSubmit = async (data: FormData) => {
         loginMutation.mutate(data);
+    }
+
+    const handle2FASubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (totpCode.length === 6) {
+            verify2FAMutation.mutate(totpCode);
+        }
     }
 
     // Show loading if checking auth
@@ -71,6 +115,62 @@ const Login = () => {
             </div>
         );
     }
+
+    // Render 2FA verification form if needed
+    if (requires2FA) {
+        return (
+            <div className="w-full py-10 min-h-screen bg-[f1f1f1]">
+                <h1 className="text-4xl font-Poppins font-semibold text-black text-center">
+                    Two-Factor Authentication
+                </h1>
+                <p className="text-center text-lg font-medium py-3 text-[#00000099]">
+                    Enter the 6-digit code from your authenticator app
+                </p>
+                <div className="w-full flex justify-center">
+                    <div className="md:w-[480px] p-8 bg-white shadow rounded-lg">
+                        <form onSubmit={handle2FASubmit}>
+                            <label className="block text-gray-700 mb-1">
+                                Verification Code
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="000000"
+                                maxLength={6}
+                                className="w-full p-2 border border-gray-300 outline-0 text-center text-2xl tracking-widest"
+                                value={totpCode}
+                                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                            />
+                            <button
+                                type="submit"
+                                disabled={verify2FAMutation.isPending || totpCode.length !== 6}
+                                className="w-full p-2 mt-4 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-800 transition disabled:bg-gray-400"
+                            >
+                                {verify2FAMutation.isPending ? <PageLoader text="Verifying..." /> : "Verify"}
+                            </button>
+                            {serverError && (
+                                <p className="text-red-500 text-sm mt-2">
+                                    {serverError}
+                                </p>
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setRequires2FA(false);
+                                    setSellerId(null);
+                                    setTotpCode('');
+                                    setServerError(null);
+                                }}
+                                className="w-full p-2 mt-2 text-gray-600 hover:text-black transition"
+                            >
+                                Back to login
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
 return (
     <div className="w-full py-10 min-h-screen bg-[f1f1f1]">
         <h1 className="text-4xl font-Poppins font-semibold text-black text-center">

@@ -22,7 +22,7 @@ const Page = () => {
     const [searchInput, setSearchInput] = useState("");
     
     // Fetch site config
-    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
+    const { data: siteConfig } = useSiteConfig();
     const categoriesRaw = siteConfig?.shopCategories || [];
     // Deduplicate categories by value
     const categories = categoriesRaw.filter((cat: any, index: number, self: any[]) => 
