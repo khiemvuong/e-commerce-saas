@@ -2,7 +2,7 @@
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import React, { useState } from 'react'
 import { useForm } from 'react-hook-form';
-import { Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 const ChangePassword = () => {
     const {
@@ -59,7 +59,6 @@ const ChangePassword = () => {
                         Current Password
                     </label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             id="currentPassword"
                             type="password"
@@ -87,20 +86,15 @@ const ChangePassword = () => {
                         New Password
                     </label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             id="newPassword"
                             type="password"
                             {...register("newPassword", { 
                                 required: "New password is required",
                                 minLength: {
-                                    value: 8,
-                                    message: "Password must be at least 8 characters"
+                                    value: 6,
+                                    message: "Password must be at least 6 characters"
                                 },
-                                pattern: {
-                                    value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                                    message: "Password must contain uppercase, lowercase and number"
-                                }
                             })}
                             className="form-input w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter new password"
@@ -112,7 +106,7 @@ const ChangePassword = () => {
                         </p>
                     )}
                     <p className="text-gray-500 text-xs mt-1">
-                        Must be at least 8 characters with uppercase, lowercase and number
+                        Must be at least 6 characters
                     </p>
                 </div>
 
@@ -122,7 +116,6 @@ const ChangePassword = () => {
                         Confirm New Password
                     </label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
                             id="confirmPassword"
                             type="password"

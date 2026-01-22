@@ -65,19 +65,18 @@ const FilterSection: React.FC<FilterSectionProps> = ({
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-black transition"
                             />
-                            <Search className="absolute left-2.5 top-2.5 text-gray-400" size={16} />
                         </div>
                     )}
 
                     {/* Items List */}
                     <div className="space-y-2 max-h-[250px] overflow-y-auto">
                         {filteredItems.length > 0 ? (
-                            filteredItems.map((item) => {
+                            filteredItems.map((item, index) => {
                                 const key = getItemKey(item);
                                 const label = getItemLabel(item);
                                 return (
                                     <label
-                                        key={key}
+                                        key={`${key}-${index}`}
                                         className="flex items-center cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1.5 rounded transition"
                                     >
                                         <input

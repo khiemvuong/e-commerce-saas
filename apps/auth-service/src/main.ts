@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { errorMiddleware } from "@packages/error-handler/error-middleware";
-import router from "./routes/auth.router";
+import router from "./routes";
 import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import helmet from "helmet";

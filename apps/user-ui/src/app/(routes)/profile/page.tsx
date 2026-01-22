@@ -117,13 +117,15 @@ const Page = () => {
 
   return (
     <div className='bg-gray-50 p-6 pb-14'>
-        <div className=" max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
+        <div className="md:w-[85%] w-[95%] mx-auto bg-white rounded-2xl shadow-lg overflow-hidden">
             {/*Greeting Section*/}
-            <div className="-mx-6 -mt-6 mb-8">
-                <div className="h-36 bg-gradient-to-r from-blue-600 to-purple-700 relative rounded-t-lg overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-                    <div className="absolute top-[-50%] left-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+            <div className="mb-8">
+                <div className="h-40 bg-gradient-to-r from-[#070707] via-[#1a1a1a] to-[#070707] relative overflow-hidden">
+                    {/* Gold gradient effects */}
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(201,168,108,0.20),transparent_70%)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(201,168,108,0.15),transparent_70%)]" />
+                    <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-[#C9A86C]/10 rounded-full blur-3xl"></div>
+                    <div className="absolute top-[-50%] left-[-10%] w-64 h-64 bg-[#C9A86C]/10 rounded-full blur-3xl"></div>
                 </div>
                 <div className="px-8 relative">
                     <div className="flex flex-col md:flex-row items-center md:items-end -mt-12 gap-6">
@@ -145,7 +147,7 @@ const Page = () => {
                             </div>
                             <button 
                                 onClick={() => setIsEditModalOpen(true)}
-                                className="absolute bottom-2 right-2 p-2 bg-gray-900 text-white rounded-full hover:bg-blue-600 transition shadow-md border-2 border-white group-hover:scale-110"
+                                className="absolute bottom-2 right-2 p-2 bg-[#C9A86C] text-black rounded-full hover:bg-[#E8D5B5] transition shadow-md border-2 border-white group-hover:scale-110"
                                 title="Change Avatar"
                             >
                                 <Camera size={16} />
@@ -162,7 +164,7 @@ const Page = () => {
                             )}
                             <p className="text-gray-500 font-medium">Welcome back to your profile!</p>
                             <div className="flex items-center justify-center md:justify-start gap-3 mt-3">
-                                <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-100">
+                                <span className="px-3 py-1 bg-[#C9A86C]/10 text-[#C9A86C] text-xs font-bold uppercase tracking-wider rounded-full border border-[#C9A86C]/20">
                                     {user?.role || 'Member'}
                                 </span>
                                 <span className="text-sm text-gray-400 flex items-center gap-1">
@@ -175,7 +177,7 @@ const Page = () => {
                         <div className="mb-4 md:mb-2 hidden md:block">
                              <button 
                                 onClick={() => setIsEditModalOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition shadow-sm font-medium"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#C9A86C] to-[#B8956A] text-black rounded-xl hover:from-[#E8D5B5] hover:to-[#C9A86C] transition-all duration-300 shadow-md font-semibold"
                             >
                                 <Pencil size={16} />
                                 Edit Profile
