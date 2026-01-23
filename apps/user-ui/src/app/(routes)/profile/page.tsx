@@ -7,8 +7,9 @@ import StatCard from 'apps/user-ui/src/shared/components/cards/stat.card';
 import ChangePassword from 'apps/user-ui/src/shared/components/change-password';
 import ShippingAdressSection from 'apps/user-ui/src/shared/components/shippingAdress';
 import OrderTable from 'apps/user-ui/src/shared/components/tables/orders.table';
+import TwoFactorAuth from 'apps/user-ui/src/shared/components/TwoFactorAuth';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, ShoppingBag, Truck, User, X, Camera, User2Icon } from 'lucide-react';
+import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, Shield, ShoppingBag, Truck, User, X, Camera, User2Icon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, {useEffect, useState } from 'react'
@@ -247,6 +248,12 @@ const Page = () => {
                             active={activeTab === 'change-password'}
                             onClick={() => setActiveTab('change-password')}
                         />
+                        <NavItems
+                            label="Security Settings"
+                            Icon={Shield}
+                            active={activeTab === 'security'}
+                            onClick={() => setActiveTab('security')}
+                        />
                         {/*Line break*/}
                         <hr className="my-4 border-gray-300" />
                         <NavItems
@@ -282,8 +289,13 @@ const Page = () => {
                     ) : activeTab === 'My Orders' ?(
                         <OrderTable />
                     ): activeTab === 'change-password' ?(
-                        <ChangePassword />
-                    ) : null}
+                        <ChangePassword />                    ): activeTab === 'security' ?(
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-800 mb-4">Two-Factor Authentication</h3>
+                                <TwoFactorAuth />
+                            </div>
+                        </div>                    ) : null}
                 </div>
                 {/*Right Quick Panel*/}
                 <div className="w-full md:w-1/5 space-y-4 cursor-pointer">

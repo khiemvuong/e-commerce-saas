@@ -1,5 +1,7 @@
 /**
  * Login Admin Use Case
+ * 
+ * Now supports 2FA - returns requiresTwoFactor if 2FA is enabled.
  */
 
 import { Response } from 'express';
@@ -14,10 +16,14 @@ export interface LoginAdminInput {
     password: string;
 }
 
-export type LoginAdmin = (input: LoginAdminInput, res: Response) => Promise<{
+export interface LoginAdminResult {
     message: string;
-    user: { id: string; name: string; email: string; role: string };
-}>;
+    user?: { id: string; name: string; email: string; role: string };
+    requiresTwoFactor?: boolean;
+    adminId?: string;
+}
+
+export type LoginAdmin = (input: LoginAdminInput, res: Response) => Promise<LoginAdminResult>;
 
 export const makeLoginAdmin = (): LoginAdmin => {
     return async (input, res) => {
@@ -44,6 +50,21 @@ export const makeLoginAdmin = (): LoginAdmin => {
             throw new AuthError('Unauthorized! Not an admin');
         }
 
+        // Check if 2FA is enabled
+        if (user.twoFactorEnabled) {
+            await sendLog({
+                type: 'info',
+                message: `2FA required for admin: ${input.email}`,
+                source: 'auth-service',
+            });
+
+            return {
+                message: '2FA verification required',
+                requiresTwoFactor: true,
+                adminId: user.id,
+            };
+        }
+
         sendLog({
             type: 'success',
             message: `Admin logged in successfully with email: ${input.email}`,
@@ -51,9 +72,10 @@ export const makeLoginAdmin = (): LoginAdmin => {
         });
 
         TokenService.clearSellerCookies(res);
+        TokenService.clearUserCookies(res);
 
         const tokens = TokenService.generateTokenPair(user.id, 'admin');
-        TokenService.setUserCookies(res, tokens);
+        TokenService.setAdminCookies(res, tokens);
 
         return {
             message: 'Admin logged in successfully',

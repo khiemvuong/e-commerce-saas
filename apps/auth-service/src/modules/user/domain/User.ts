@@ -19,6 +19,10 @@ export namespace User {
         password: string;
         role: string;
         avatar?: UserAvatar | null;
+        // 2FA fields
+        twoFactorEnabled?: boolean;
+        twoFactorSecret?: string | null;
+        backupCodes?: string[];
         createdAt: Date;
         updatedAt: Date;
     }
@@ -37,6 +41,7 @@ export namespace User {
         email: string;
         role: string;
         avatar: string | null;
+        twoFactorEnabled?: boolean;
     }
 
     /**

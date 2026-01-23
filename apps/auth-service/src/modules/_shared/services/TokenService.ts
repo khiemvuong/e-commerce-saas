@@ -84,28 +84,42 @@ export const setAdminCookies = (res: Response, tokens: TokenPair): void => {
     setCookie(res, COOKIE_NAMES.ADMIN_REFRESH, tokens.refreshToken);
 };
 
+// Cookie clear options must match set options for proper clearing
+const getClearCookieOptions = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    return {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: isProd ? 'none' as const : 'lax' as const,
+        path: '/',
+    };
+};
+
 /**
  * Clear user cookies
  */
 export const clearUserCookies = (res: Response): void => {
-    res.clearCookie(COOKIE_NAMES.USER_ACCESS);
-    res.clearCookie(COOKIE_NAMES.USER_REFRESH);
+    const options = getClearCookieOptions();
+    res.clearCookie(COOKIE_NAMES.USER_ACCESS, options);
+    res.clearCookie(COOKIE_NAMES.USER_REFRESH, options);
 };
 
 /**
  * Clear seller cookies
  */
 export const clearSellerCookies = (res: Response): void => {
-    res.clearCookie(COOKIE_NAMES.SELLER_ACCESS);
-    res.clearCookie(COOKIE_NAMES.SELLER_REFRESH);
+    const options = getClearCookieOptions();
+    res.clearCookie(COOKIE_NAMES.SELLER_ACCESS, options);
+    res.clearCookie(COOKIE_NAMES.SELLER_REFRESH, options);
 };
 
 /**
  * Clear admin cookies
  */
 export const clearAdminCookies = (res: Response): void => {
-    res.clearCookie(COOKIE_NAMES.ADMIN_ACCESS);
-    res.clearCookie(COOKIE_NAMES.ADMIN_REFRESH);
+    const options = getClearCookieOptions();
+    res.clearCookie(COOKIE_NAMES.ADMIN_ACCESS, options);
+    res.clearCookie(COOKIE_NAMES.ADMIN_REFRESH, options);
 };
 
 // Export as TokenService object for convenience

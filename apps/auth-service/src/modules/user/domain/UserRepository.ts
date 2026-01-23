@@ -39,6 +39,9 @@ export interface UserRepository {
     update(id: string, data: Partial<{
         name: string;
         password: string;
+        twoFactorEnabled: boolean;
+        twoFactorSecret: string | null;
+        backupCodes: string[];
     }>): Promise<User.Type>;
 
     /**

@@ -2,6 +2,7 @@
  * Login User Use Case
  * 
  * Handles user authentication and token generation.
+ * Now supports 2FA - returns requiresTwoFactor if 2FA is enabled.
  */
 
 import { Response } from 'express';
@@ -18,7 +19,9 @@ export interface LoginUserDeps {
 
 export interface LoginUserResult {
     message: string;
-    user: { id: string; name: string; email: string };
+    user?: { id: string; name: string; email: string };
+    requiresTwoFactor?: boolean;
+    userId?: string;
 }
 
 export type LoginUser = (
@@ -53,16 +56,31 @@ export const makeLoginUser = ({ userRepository }: LoginUserDeps): LoginUser => {
             throw new AuthError('Invalid email or password');
         }
 
-        // 4. Clear seller cookies (if any)
+        // 4. Check if 2FA is enabled
+        if (user.twoFactorEnabled) {
+            await sendLog({
+                type: 'info',
+                message: `2FA required for user: ${input.email}`,
+                source: 'auth-service',
+            });
+
+            return {
+                message: '2FA verification required',
+                requiresTwoFactor: true,
+                userId: user.id,
+            };
+        }
+
+        // 5. Clear seller cookies (if any)
         TokenService.clearSellerCookies(res);
 
-        // 5. Generate tokens
+        // 6. Generate tokens
         const tokens = TokenService.generateTokenPair(user.id, 'user');
 
-        // 6. Set cookies
+        // 7. Set cookies
         TokenService.setUserCookies(res, tokens);
 
-        // 7. Log success
+        // 8. Log success
         await sendLog({
             type: 'success',
             message: `User logged in successfully: ${input.email}`,

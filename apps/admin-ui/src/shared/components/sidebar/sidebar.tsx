@@ -10,7 +10,7 @@ import { Sidebar } from "./sidebar.styles";
 import Link from "next/link";
 import Logo from "apps/admin-ui/src/app/assets/svgs/logo";
 import SidebarItem from "./sidebar.item";
-import { BellRingIcon, CalendarPlus, FileClock, HandCoins, LayoutDashboard, ListOrdered, LogOut, PencilRuler, Settings, ShoppingBasket, Store, Users } from "lucide-react";
+import { BellRingIcon, CalendarPlus, FileClock, HandCoins, LayoutDashboard, ListOrdered, LogOut, PencilRuler, Settings, Shield, ShoppingBasket, Store, Users } from "lucide-react";
 import SidebarMenu from "./sidabar.menu";
 
 const SidebarWrapper = () => {
@@ -134,6 +134,12 @@ const SidebarWrapper = () => {
                         </SidebarMenu>
                         {/*Extras*/}
                         <SidebarMenu title='Extras'>
+                            <SidebarItem
+                                title='Security Settings'
+                                icon={<Shield fill={getIconColor('/dashboard/settings')} />}
+                                isActive={activeSidebar === '/dashboard/settings'}
+                                href="/dashboard/settings"
+                            />
                             <div 
                                 className="cursor-pointer"
                                 onClick={() => !isLoggingOut && logout()}

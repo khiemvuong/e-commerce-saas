@@ -21,6 +21,15 @@ import {
     makeUpdatePassword,
     makeUploadAvatar,
     makeRefreshToken,
+    // 2FA Use Cases
+    makeEnable2FA,
+    makeVerify2FA,
+    makeDisable2FA,
+    makeVerifyLoginWith2FA,
+    makeGet2FAStatus,
+    // Change Password OTP Use Cases
+    makeRequestChangePasswordOtp,
+    makeVerifyChangePasswordOtp,
 } from '../../application/useCases';
 
 // Queries
@@ -43,6 +52,17 @@ const updatePassword = makeUpdatePassword({ userRepository });
 const uploadAvatar = makeUploadAvatar();
 const refreshToken = makeRefreshToken();
 const getUser = makeGetUser({ userRepository });
+
+// 2FA Use Cases
+const enable2FA = makeEnable2FA({ userRepository });
+const verify2FA = makeVerify2FA({ userRepository });
+const disable2FA = makeDisable2FA({ userRepository });
+const verifyLoginWith2FA = makeVerifyLoginWith2FA({ userRepository });
+const get2FAStatus = makeGet2FAStatus({ userRepository });
+
+// Change Password OTP Use Cases
+const requestChangePasswordOtp = makeRequestChangePasswordOtp({ userRepository });
+const verifyChangePasswordOtp = makeVerifyChangePasswordOtp({ userRepository });
 
 /**
  * User Controller
@@ -220,6 +240,134 @@ export const userController = {
                 name: req.body.name,
                 avatar: req.body.avatar,
             });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // ==================== 2FA Endpoints ====================
+
+    /**
+     * Enable 2FA - Generate secret and QR code
+     * POST /api/user/2fa/enable
+     */
+    async enable2FAHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await enable2FA({ userId });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Verify and activate 2FA
+     * POST /api/user/2fa/verify
+     */
+    async verify2FAHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await verify2FA({ userId, totpCode: req.body.totpCode });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Disable 2FA
+     * POST /api/user/2fa/disable
+     */
+    async disable2FAHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await disable2FA({ userId, password: req.body.password });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Get 2FA status
+     * GET /api/user/2fa/status
+     */
+    async get2FAStatusHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await get2FAStatus({ userId });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Verify 2FA during login
+     * POST /api/user/login/verify-2fa
+     */
+    async verifyLoginWith2FAHandler(req: Request, res: Response, next: NextFunction) {
+        try {
+            const result = await verifyLoginWith2FA(
+                { userId: req.body.userId, totpCode: req.body.totpCode },
+                res
+            );
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    // ==================== Change Password OTP Endpoints ====================
+
+    /**
+     * Request OTP for change password
+     * POST /api/user/change-password/request-otp
+     */
+    async requestChangePasswordOtpHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await requestChangePasswordOtp({ userId });
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    },
+
+    /**
+     * Verify OTP for change password
+     * POST /api/user/change-password/verify-otp
+     */
+    async verifyChangePasswordOtpHandler(req: any, res: Response, next: NextFunction) {
+        try {
+            const userId = req.user?.id;
+            if (!userId) {
+                return next(new AuthError('User not authenticated'));
+            }
+
+            const result = await verifyChangePasswordOtp({ userId, otp: req.body.otp });
             res.status(200).json(result);
         } catch (error) {
             next(error);

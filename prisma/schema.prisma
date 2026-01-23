@@ -48,21 +48,25 @@ model images {
 }
 
 model users {
-  id          String         @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  email       String         @unique
-  password    String?
-  role        String         @default("user") // "user" or "admin"
-  following   String[]
-  avatar      images[]
-  addresses   address[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  shopReviews shopReviews[]
-  imagesId    String[]       @db.ObjectId
-  followings  followers[]
-  orders      orders[]
-  analytics   userAnalytics?
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  email            String         @unique
+  password         String?
+  role             String         @default("user") // "user" or "admin"
+  following        String[]
+  avatar           images[]
+  addresses        address[]
+  // 2FA fields
+  twoFactorEnabled Boolean        @default(false)
+  twoFactorSecret  String?
+  backupCodes      String[]       @default([])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  shopReviews      shopReviews[]
+  imagesId         String[]       @db.ObjectId
+  followings       followers[]
+  orders           orders[]
+  analytics        userAnalytics?
 
   @@index([role])
   @@index([createdAt])

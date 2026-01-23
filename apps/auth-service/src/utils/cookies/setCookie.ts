@@ -7,6 +7,7 @@ export const setCookie = (res: Response, name: string, value: string, options: C
         secure: isProd, // Only secure in production
         sameSite: isProd ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/', // Ensure consistent path for proper clearing
         ...options
     });
 };
