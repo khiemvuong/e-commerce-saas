@@ -5,9 +5,10 @@ import React, { useEffect, useState } from 'react'
 import ShopCard from 'apps/user-ui/src/shared/components/cards/shop.card'
 import { useSiteConfig } from 'apps/user-ui/src/hooks/useSiteConfig'
 import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
-import { Search } from 'lucide-react'
+import { Store } from 'lucide-react'
 import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
 import FilterSection from 'apps/user-ui/src/shared/components/filters/FilterSection'
+import { PageHeader } from 'apps/user-ui/src/shared/components/page-header'
 
 const Page = () => {
     const router = useRouter();
@@ -21,9 +22,17 @@ const Page = () => {
     const [searchInput, setSearchInput] = useState("");
     
     // Fetch site config
-    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
-    const categories = siteConfig?.shopCategories || [];
-    const countries = siteConfig?.countries || [];
+    const { data: siteConfig } = useSiteConfig();
+    const categoriesRaw = siteConfig?.shopCategories || [];
+    // Deduplicate categories by value
+    const categories = categoriesRaw.filter((cat: any, index: number, self: any[]) => 
+        index === self.findIndex((t) => t.value === cat.value)
+    );
+    const countriesRaw = siteConfig?.countries || [];
+    // Deduplicate countries by code to prevent key duplicate error
+    const countries = countriesRaw.filter((country: any, index: number, self: any[]) => 
+        index === self.findIndex((t) => t.code === country.code)
+    );
     
     // Temp states for filters (before Apply is clicked)
     const [tempCategories, setTempCategories] = useState<string[]>([]);
@@ -110,9 +119,18 @@ const Page = () => {
     }
 
   return (
-    <div className="w-full min-h-screen pb-10 mt-10">
+    <div className="w-full min-h-screen pb-10">
+        {/* Page Header */}
+        <div className="md:w-[85%] w-[95%] mx-auto pt-8">
+            <PageHeader 
+                title="Our Shops" 
+                subtitle="Discover premium shops and trusted sellers"
+                Icon={Store}
+                badge="Verified Partners"
+            />
+        </div>
         
-        <div className="w-full flex flex-col lg:flex-row gap-8 lg:gap-20 px-4 lg:px-0">
+        <div className="md:w-[85%] w-[95%] mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
         {/* Mobile Filter Drawer */}
         <MobileFilterDrawer 
             isOpen={isFilterOpen} 
@@ -131,7 +149,6 @@ const Page = () => {
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-black"
                     />
-                    <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
                 </div>
             </div>
 
@@ -182,7 +199,7 @@ const Page = () => {
         <aside className='hidden lg:block w-[270px] space-y-4'>
             {/* Search Input */}
             <div className="relative">
-                 <input
+                <input
                     type="text"
                     placeholder="Search shops..."
                     value={searchInput}
@@ -190,14 +207,13 @@ const Page = () => {
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                     className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-black transition-colors"
                 />
-                <Search className="absolute left-3 top-3.5 text-gray-400" size={20} />
             </div>
 
             {/* Active Filters Summary */}
             {activeFiltersCount > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center justify-between">
+                <div className="bg-[#C9A86C]/10 border border-[#C9A86C]/30 rounded-xl p-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-blue-900">{activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} active</span>
+                        <span className="text-sm font-medium text-[#C9A86C]">{activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} active</span>
                     </div>
                     <button
                         onClick={() => {
@@ -206,7 +222,7 @@ const Page = () => {
                             setSelectedCategories([]);
                             setSelectedCountries([]);
                         }}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium underline"
+                        className="text-xs text-[#C9A86C] hover:text-[#b89a5c] font-medium underline"
                     >
                         Clear All
                     </button>
@@ -240,7 +256,7 @@ const Page = () => {
             {/* Apply All Filters Button */}
             <div className="sticky bottom-4">
                 <button
-                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition shadow-lg"
+                    className="w-full px-4 py-3.5 bg-gradient-to-r from-[#C9A86C] to-[#B8956A] text-black font-semibold rounded-xl hover:from-[#E8D5B5] hover:to-[#C9A86C] transition-all duration-300 shadow-lg shadow-[#C9A86C]/20"
                     onClick={applyAllFilters}
                 >
                     Apply Filters
@@ -249,10 +265,7 @@ const Page = () => {
         </aside>
 
         {/*shop Listing Section*/}
-        <div className="flex-1 px-2 lg:px-3">
-            <div className=" m-auto">
-                    <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Shops</h1>
-            </div>
+        <div className="flex-1">
             {isShopLoading ? (
                 <PageLoader text="Loading shops" />
             ) : shops.length > 0 ? (

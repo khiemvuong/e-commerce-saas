@@ -7,9 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 const Hero = () => {
-  const [banners, setBanners] = useState<string[]>([
-    "https://ik.imagekit.io/khiemvuong/hero_endframe__cvklg0xk3w6e_large%202.png?updatedAt=1761726370763"
-  ]);
+  const [banners, setBanners] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const { data } = useQuery({
@@ -75,24 +73,14 @@ const Hero = () => {
         <div className="py-20 md:py-24 lg:py-32">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Content */}
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-              className="text-center lg:text-left order-2 lg:order-1"
-            >
+            <div className="text-center lg:text-left order-2 lg:order-1">
               {/* Luxury Pill Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-6 py-2 mb-8 rounded-full border border-[#C9A86C] bg-[#1a0f1a]/50 backdrop-blur-sm shadow-[0_0_15px_rgba(201,168,108,0.2)]"
-              >
+              <div className="inline-flex items-center gap-2 px-6 py-2 mb-8 rounded-full border border-[#C9A86C] bg-[#1a0f1a]/50 backdrop-blur-sm shadow-[0_0_15px_rgba(201,168,108,0.2)]">
                 <Sparkles className="w-4 h-4 text-[#C9A86C]" />
                 <span className="text-[#C9A86C] text-sm font-bold tracking-[0.2em] uppercase">
                   Premium Collection
                 </span>
-              </motion.div>
+              </div>
 
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
                 <span className="text-white drop-shadow-lg">Discover</span>
@@ -108,11 +96,9 @@ const Hero = () => {
 
               {/* CTA Buttons */}
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <motion.button
+                <button
                   onClick={scrollToProducts}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="group relative w-full sm:w-auto overflow-hidden rounded-full shadow-[0_0_20px_rgba(201,168,108,0.4)]"
+                  className="group relative w-full sm:w-auto overflow-hidden rounded-full shadow-[0_0_20px_rgba(201,168,108,0.4)] hover:scale-105 transition-transform duration-300"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-[#C9A86C] to-[#B8956A]" />
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
@@ -120,7 +106,7 @@ const Hero = () => {
                     <span>Explore Collection</span>
                     <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                   </div>
-                </motion.button>
+                </button>
 
                 <Link
                   href="/products"
@@ -134,11 +120,8 @@ const Hero = () => {
               <div className="mt-16 pt-8 border-t border-[#C9A86C]/20">
                 <div className="grid grid-cols-3 gap-4 md:gap-8">
                   {trustBadges.map((badge, index) => (
-                    <motion.div
+                    <div
                       key={badge.label}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
                       className="flex flex-col items-center lg:items-start gap-3 group"
                     >
                       <div className="w-12 h-12 rounded-full border border-[#C9A86C]/30 flex items-center justify-center group-hover:border-[#C9A86C] group-hover:shadow-[0_0_10px_rgba(201,168,108,0.3)] transition-all duration-300">
@@ -148,19 +131,14 @@ const Hero = () => {
                         <p className="text-white text-sm font-semibold">{badge.label}</p>
                         <p className="text-gray-400 text-xs mt-0.5">{badge.sublabel}</p>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {/* Right Visual - Product Showcase with Golden Ring */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8,delay:0.2, ease: "easeOut" }}
-              className="relative h-[450px] lg:h-[600px] order-1 lg:order-2 flex items-center justify-center"
-            >
+            <div className="relative h-[450px] lg:h-[600px] order-1 lg:order-2 flex items-center justify-center">
               {/* Golden Ring Circle BG */}
               <div className="absolute w-[400px] h-[400px] lg:w-[500px] lg:h-[500px] rounded-full border border-[#C9A86C] shadow-[0_0_30px_rgba(201,168,108,0.15)] animate-spin-slow-reverse" />
               <div className="absolute w-[350px] h-[350px] lg:w-[450px] lg:h-[450px] rounded-full border border-[#C9A86C]/30" />
@@ -172,35 +150,36 @@ const Hero = () => {
                  <div className="absolute bottom-6 right-6 w-3 h-3 bg-[#C9A86C] rounded-full shadow-[0_0_10px_#C9A86C]" />
 
                  {/* Banner Image */}
-                 <motion.div
-                    key={currentIndex}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                    className="w-full h-full relative"
-                 >
-                    <AnimatePresence mode="wait">
-                        <motion.img 
-                            key={currentIndex}
-                            src={banners[currentIndex]} 
-                            alt="Luxury Product" 
-                            className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 1.1, opacity: 0 }}
-                            transition={{ duration: 0.7 }}
-                        />
-                    </AnimatePresence>
-                 </motion.div>
+                 <div className="w-full h-full relative flex items-center justify-center">
+                    {banners.length > 0 ? (
+                        <AnimatePresence mode="wait">
+                            <motion.img 
+                                key={currentIndex}
+                                src={banners[currentIndex]} 
+                                alt="Luxury Product" 
+                                className="w-full h-full object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.5)]"
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 1.05, opacity: 0 }}
+                                transition={{ duration: 0.5 }}
+                            />
+                        </AnimatePresence>
+                    ) : (
+                        /* Skeleton Loading State */
+                         <div className="w-[80%] h-[80%] bg-gradient-to-br from-white/5 to-white/10 rounded-3xl animate-pulse flex items-center justify-center">
+                            <Sparkles className="w-12 h-12 text-[#C9A86C]/20" />
+                         </div>
+                    )}
+                 </div>
               </div>
 
-               {/* Floating Orbs */}
+               {/* Floating Orbs - Keep minimal subtle movement or remove if needed, keeping for now as it's not "outside in" entrance */}
               <motion.div 
                 animate={{ y: [-10, 10, -10] }} 
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute -top-4 -right-4 w-16 h-16 rounded-full border border-[#C9A86C]/40 backdrop-blur-md" 
               />
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

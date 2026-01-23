@@ -242,7 +242,7 @@ const Dashboard = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                {/* Bottom Row: Map and Recent Orders */}
+                {/* Bottom Row: Map and Country Stats */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                     {/* Geographical Map */}
                     <div className="lg:col-span-3 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
@@ -256,55 +256,100 @@ const Dashboard = () => {
                         </div>
                         <GeographicalMap geographicalData={geographicalData} />
                     </div>
-                    {/* Recent Orders */}
-                    <div className="lg:col-span-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+
+                    {/* Country Statistics Table */}
+                    <div className="lg:col-span-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 flex flex-col h-[500px]">
                         <div className="mb-4">
-                            <h2 className="text-xl font-bold text-white">Recent Orders</h2>
+                            <h2 className="text-xl font-bold text-white">By Country</h2>
                             <p className="text-gray-400 text-sm mt-1">
-                                Latest transactions from your store
+                                Detailed breakdown (Sorted by User count)
                             </p>
                         </div>
-                        <div className="overflow-x-auto">
+                        <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar">
                             <table className="w-full">
-                                <thead>
-                                    <tr className="border-b border-gray-800">
-                                        {table.getHeaderGroups().map((headerGroup) =>
-                                            headerGroup.headers.map((header) => (
-                                                <th
-                                                    key={header.id}
-                                                    className="text-left py-3 px-4 text-sm font-semibold text-gray-400"
-                                                >
-                                                    {flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
-                                                </th>
-                                            ))
-                                        )}
+                                <thead className="sticky top-0 bg-[#1a1a1a] z-10">
+                                    <tr className="border-b border-gray-800 text-left">
+                                        <th className="py-2 text-sm font-semibold text-gray-400">Country</th>
+                                        <th className="py-2 text-sm font-semibold text-gray-400 text-right">Users</th>
+                                        <th className="py-2 text-sm font-semibold text-gray-400 text-right">Sellers</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {table.getRowModel().rows.map((row) => (
-                                        <tr
-                                            key={row.id}
-                                            className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors"
-                                        >
-                                            {row.getVisibleCells().map((cell) => (
-                                                <td
-                                                    key={cell.id}
-                                                    className="py-4 px-4 text-sm text-gray-300"
-                                                >
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext()
-                                                    )}
+                                    {geographicalData
+                                        .sort((a: any, b: any) => b.users - a.users)
+                                        .map((item: any) => (
+                                            <tr key={item.id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
+                                                <td className="py-3 text-sm text-gray-300 font-medium">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-6 text-center text-xs bg-gray-800 rounded px-1 text-gray-500">{item.id}</span>
+                                                        {item.name}
+                                                    </div>
                                                 </td>
-                                            ))}
+                                                <td className="py-3 text-sm text-blue-400 text-right font-mono">{item.users}</td>
+                                                <td className="py-3 text-sm text-purple-400 text-right font-mono">{item.sellers}</td>
+                                            </tr>
+                                        ))}
+                                    {geographicalData.length === 0 && (
+                                        <tr>
+                                            <td colSpan={3} className="py-8 text-center text-gray-500">
+                                                No country data available
+                                            </td>
                                         </tr>
-                                    ))}
+                                    )}
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                {/* Recent Orders */}
+                <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+                    <div className="mb-4">
+                        <h2 className="text-xl font-bold text-white">Recent Orders</h2>
+                        <p className="text-gray-400 text-sm mt-1">
+                            Latest transactions from your store
+                        </p>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead>
+                                <tr className="border-b border-gray-800">
+                                    {table.getHeaderGroups().map((headerGroup) =>
+                                        headerGroup.headers.map((header) => (
+                                            <th
+                                                key={header.id}
+                                                className="text-left py-3 px-4 text-sm font-semibold text-gray-400"
+                                            >
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                            </th>
+                                        ))
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {table.getRowModel().rows.map((row) => (
+                                    <tr
+                                        key={row.id}
+                                        className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors"
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <td
+                                                key={cell.id}
+                                                className="py-4 px-4 text-sm text-gray-300"
+                                            >
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>

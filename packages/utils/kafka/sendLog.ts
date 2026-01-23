@@ -17,14 +17,18 @@ export async function sendLog({
         source,
     };
 
-    await producer.connect();
-    await producer.send({
-        topic: 'logs',
-        messages: [
-            {
-                value: JSON.stringify(logPayload),
-            },
-        ],
-    });
-    await producer.disconnect();
+    try {
+        await producer.connect();
+        await producer.send({
+            topic: 'logs',
+            messages: [
+                {
+                    value: JSON.stringify(logPayload),
+                },
+            ],
+        });
+        await producer.disconnect();
+    } catch (error) {
+        console.error('Failed to send log to Kafka:', error);
+    }
 }

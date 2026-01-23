@@ -18,13 +18,18 @@ import {
 
 import {
     getProductDetails,
-    getAllProducts,
-    getFilteredProducts,
     getMyProducts,
-    searchProducts,
-    getBestSellers,
-    getFeaturedProducts,
-    getDealsOfTheDay,
+    // Use cached versions for public-facing endpoints
+    getAllProductsCached,
+    getFilteredProductsCached,
+    searchProductsCached,
+    getBestSellersCached,
+    getFeaturedProductsCached,
+    getDealsOfTheDayCached,
+    invalidateProductCaches,
+    // Enhanced search with fuzzy matching
+    enhancedSearchProducts,
+    getSearchSuggestions,
 } from '../../application/queries';
 
 // Infrastructure
@@ -61,6 +66,9 @@ export const productController = {
                 shopId: req.seller.shop.id,
             });
 
+            // Invalidate product caches so new product appears in lists
+            await invalidateProductCaches();
+
             return res.status(201).json({ success: true, newProduct: product });
         } catch (error) {
             return next(error);
@@ -86,6 +94,9 @@ export const productController = {
                 ...req.body,
             });
 
+            // Invalidate product caches so updated product reflects in lists
+            await invalidateProductCaches();
+
             return res.status(200).json({ success: true, product });
         } catch (error) {
             return next(error);
@@ -108,6 +119,9 @@ export const productController = {
                 productId,
                 shopId: req.seller.shop.id,
             });
+
+            // Invalidate product caches so deleted product is removed from lists
+            await invalidateProductCaches();
 
             return res.status(200).json(result);
         } catch (error) {
@@ -164,13 +178,18 @@ export const productController = {
             const limit = parseInt((req.query.limit as string) || '20', 10);
             const type = (req.query.type as string) || 'topSales';
 
-            const result = await getAllProducts({
+            // Using cached version for performance
+            const result = await getAllProductsCached({
                 page,
                 limit,
                 type: type === 'latest' ? 'latest' : 'topSales',
             });
 
-            return res.status(200).json(result);
+            // Include cache info in response for monitoring
+            return res.status(200).json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
         } catch (error) {
             return next(error);
         }
@@ -182,7 +201,9 @@ export const productController = {
      */
     async getFiltered(req: Request, res: Response, next: NextFunction) {
         try {
-            const result = await getFilteredProducts({
+            // Using cached version for performance
+            const result = await getFilteredProductsCached({
+                search: req.query.search as string,
                 priceRange: req.query.priceRange as string,
                 categories: req.query.categories as string | string[],
                 colors: req.query.colors as string | string[],
@@ -191,7 +212,10 @@ export const productController = {
                 limit: parseInt((req.query.limit as string) || '12', 10),
             });
 
-            return res.json(result);
+            return res.json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
         } catch (error) {
             return next(error);
         }
@@ -235,9 +259,13 @@ export const productController = {
                 return res.json({ products: [], pagination: { total: 0, page: 1, totalPages: 0 } });
             }
 
-            const result = await searchProducts({ keyword, page, limit });
+            // Using cached version for performance
+            const result = await searchProductsCached({ keyword, page, limit });
 
-            return res.json(result);
+            return res.json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
         } catch (error) {
             return next(error);
         }
@@ -250,8 +278,12 @@ export const productController = {
     async getBestSellers(req: Request, res: Response, next: NextFunction) {
         try {
             const limit = parseInt((req.query.limit as string) || '8', 10);
-            const result = await getBestSellers({ limit });
-            return res.status(200).json(result);
+            // Using cached version for performance
+            const result = await getBestSellersCached({ limit });
+            return res.status(200).json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
         } catch (error) {
             return next(error);
         }
@@ -264,8 +296,12 @@ export const productController = {
     async getFeaturedProducts(req: Request, res: Response, next: NextFunction) {
         try {
             const limit = parseInt((req.query.limit as string) || '8', 10);
-            const result = await getFeaturedProducts({ limit });
-            return res.status(200).json(result);
+            // Using cached version for performance
+            const result = await getFeaturedProductsCached({ limit });
+            return res.status(200).json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
         } catch (error) {
             return next(error);
         }
@@ -278,8 +314,65 @@ export const productController = {
     async getDealsOfTheDay(req: Request, res: Response, next: NextFunction) {
         try {
             const limit = parseInt((req.query.limit as string) || '6', 10);
-            const result = await getDealsOfTheDay({ limit });
-            return res.status(200).json(result);
+            // Using cached version for performance
+            const result = await getDealsOfTheDayCached({ limit });
+            return res.status(200).json({
+                ...result,
+                _fromCache: result._cacheInfo.fromCache,
+            });
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    /**
+     * Enhanced search with fuzzy matching
+     * GET /api/enhanced-search
+     * Supports typo tolerance, suggestions, and "did you mean?"
+     */
+    async enhancedSearch(req: Request, res: Response, next: NextFunction) {
+        try {
+            const keyword = (req.query.keyword as string) || '';
+            const page = parseInt((req.query.page as string) || '1', 10);
+            const limit = parseInt((req.query.limit as string) || '12', 10);
+
+            if (!keyword.trim()) {
+                return res.json({
+                    products: [],
+                    suggestions: [],
+                    didYouMean: null,
+                    pagination: { total: 0, page: 1, totalPages: 0 },
+                    searchMeta: {
+                        originalKeyword: '',
+                        matchedVariations: [],
+                        fuzzyMatchCount: 0,
+                        exactMatchCount: 0,
+                    },
+                });
+            }
+
+            const result = await enhancedSearchProducts({ keyword, page, limit });
+            return res.json(result);
+        } catch (error) {
+            return next(error);
+        }
+    },
+
+    /**
+     * Get search suggestions (autocomplete)
+     * GET /api/search-suggestions
+     * For real-time search-as-you-type functionality
+     */
+    async getSuggestions(req: Request, res: Response, next: NextFunction) {
+        try {
+            const keyword = (req.query.keyword as string) || '';
+            const limit = parseInt((req.query.limit as string) || '8', 10);
+
+            const result = await getSearchSuggestions(keyword, limit);
+            return res.json({
+                success: true,
+                ...result,
+            });
         } catch (error) {
             return next(error);
         }

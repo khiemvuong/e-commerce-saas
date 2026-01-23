@@ -75,7 +75,7 @@ const ForgotPassword = () => {
     mutationFn: async ({ email }: { email: string }) => {
       const e = sanitizedEmail(email);
       const response = await axiosInstance.post(
-        `/api/forgot-password-user`,
+        `/api/forgot-password-admin`,
         { email: e }
       );
       return response.data;
@@ -99,7 +99,7 @@ const ForgotPassword = () => {
       if (!userEmail) throw new Error("User email is not set");
       const code = getOtpString();
       const response = await axiosInstance.post(
-        `/api/verify-forgot-password-user`,
+        `/api/verify-forgot-password-admin`,
         { email: userEmail, otp: code }
       );
       return response.data;
@@ -120,7 +120,7 @@ const ForgotPassword = () => {
     mutationFn: async ({ password }: { password: string }) => {
       const code = getOtpString();
       const response = await axiosInstance.post(
-        `/api/reset-password-user`,
+        `/api/reset-password-admin`,
         { email: userEmail, otp: code, newPassword: password }
       );
       return response.data;

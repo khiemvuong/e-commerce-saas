@@ -43,6 +43,21 @@ router.get('/get-filtered-products', productController.getFiltered);
 router.get('/search-products', productController.search);
 
 /**
+ * @route GET /api/enhanced-search
+ * @desc Enhanced search with fuzzy matching, typo tolerance, and suggestions
+ * @access Public
+ */
+router.get('/enhanced-search', productController.enhancedSearch);
+
+/**
+ * @route GET /api/search-suggestions
+ * @desc Get autocomplete suggestions for search
+ * @access Public
+ */
+router.get('/search-suggestions', productController.getSuggestions);
+
+
+/**
  * @route GET /api/best-sellers
  * @desc Get best selling products
  * @access Public

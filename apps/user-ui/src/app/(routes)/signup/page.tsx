@@ -12,7 +12,8 @@ import {useForm} from 'react-hook-form';
 import GoogleButton from '../../../shared/components/google-button';
 import { Eye, EyeOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import axios, { AxiosError } from 'axios';
+import { AxiosError } from 'axios';
+import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 const Signup = () => {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
@@ -38,7 +39,7 @@ const Signup = () => {
     };
     const signupMutation = useMutation({
         mutationFn: async (data: FormData) => {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/user-registration`, data);
+            const response = await axiosInstance.post('/api/user-registration', data);
             return response.data;
         },  
         onSuccess: (data, formData) => {
@@ -69,7 +70,7 @@ const Signup = () => {
                 otp: otpCode 
             });
             
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/verify-user`, {
+            const response = await axiosInstance.post('/api/verify-user', {
                 name: userData.name,
                 email: userData.email,
                 password: userData.password,
@@ -214,6 +215,13 @@ return (
                     className="w-full p-2 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-600 transition mt-5">
                         {signupMutation.isPending ? "Signing Up..." : "Sign Up"}
                     </button>
+                    
+                    {/* Server Error Display */}
+                    {serverError && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm text-center">{serverError}</p>
+                        </div>
+                    )}
 
                 </form>
                 ):(

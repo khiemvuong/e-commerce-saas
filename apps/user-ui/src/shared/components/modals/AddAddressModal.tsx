@@ -174,8 +174,9 @@ const AddAddressModal = ({ isOpen, onClose }: AddAddressModalProps) => {
                             {...register("country", { required: "Country is required" })}
                             className={`${formInput}`}
                         >
-                            {countries.map((country) => (
-                                <option key={country.code} value={country.name}>{country.name}
+                            {countries.map((country: any, index: number) => (
+                                <option key={`${country.code}-${index}`} value={country.name}>
+                                    {country.name}
                                 </option>
                             ))}
                         </select>

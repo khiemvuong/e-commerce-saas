@@ -7,6 +7,8 @@ import {Range} from "react-range"
 import ProductCard from 'apps/user-ui/src/shared/components/cards/product-card'
 import PageLoader from 'apps/user-ui/src/shared/components/loading/component-loader'
 import MobileFilterDrawer, { FloatingFilterButton } from 'apps/user-ui/src/shared/components/buttons/mobile-filter-drawer'
+import { Sparkles } from 'lucide-react'
+import { PageHeader } from 'apps/user-ui/src/shared/components/page-header'
 const MIN=0;
 const MAX=1199;
 const Page = () => {
@@ -135,14 +137,23 @@ const Page = () => {
         setPage(1);
     }
   return (
-    <div className="w-full min-h-screen pb-10 mt-10">
+    <div className="w-full min-h-screen pb-10">
+        {/* Page Header */}
+        <div className="md:w-[85%] w-[95%] mx-auto pt-8">
+            <PageHeader 
+                title="Special Offers" 
+                subtitle="Exclusive deals and discounts on premium products"
+                Icon={Sparkles}
+                badge="Limited Time"
+            />
+        </div>
         
-        <div className="w-full flex flex-col lg:flex-row gap-8 lg:gap-20 px-4 lg:px-0">
+        <div className="md:w-[85%] w-[95%] mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
         {/*Side Bar for filters*/}
         <aside className='hidden lg:block w-[270px] space-y-6'>
             {/*Category Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Categories</h3>
+            <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 border-l-4 border-[#C9A86C] pl-3">Categories</h3>
                 <ul className='space-y-4 mb-4'>
                     {isLoading ? (
                         <div className="text-gray-500">Loading...</div>
@@ -164,8 +175,8 @@ const Page = () => {
                 </ul>
             </div>
             {/*Color Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Filter by Color</h3>
+            <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 border-l-4 border-[#C9A86C] pl-3">Filter by Color</h3>
                 <ul className='space-y-4 mb-4'>
                     {colors.map((color) => (
                         <li key={color.name} className="flex items-center">
@@ -188,8 +199,8 @@ const Page = () => {
             </div>
 
             {/*Size Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3 className="text-[18px] font-medium text-gray-800 mb-6 border-l-4 border-black pl-3">Filter by Size</h3>
+            <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 border-l-4 border-[#C9A86C] pl-3">Filter by Size</h3>
                 <ul className='space-y-4 mb-4'>
                     {sizes.map((size) => (
                         <li key={size} className="flex items-center">
@@ -207,8 +218,8 @@ const Page = () => {
                 </ul>
             </div>
             {/*Price Range Filter*/}
-            <div className="bg-white border border-gray-200 rounded-sm p-6">
-                <h3>Price Filter</h3>
+            <div className="bg-white/95 backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 border-l-4 border-[#C9A86C] pl-3">Price Filter</h3>
                 <div className='ml-2'>
                     <Range
                         step={1}
@@ -261,7 +272,7 @@ const Page = () => {
             {/* Apply All Filters Button */}
             <div className="sticky bottom-4">
                 <button
-                    className="w-full px-4 py-3 bg-black text-white font-medium rounded-md hover:bg-gray-800 transition shadow-lg"
+                    className="w-full px-4 py-3.5 bg-gradient-to-r from-[#C9A86C] to-[#B8956A] text-black font-semibold rounded-xl hover:from-[#E8D5B5] hover:to-[#C9A86C] transition-all duration-300 shadow-lg shadow-[#C9A86C]/20"
                     onClick={applyAllFilters}
                 >
                     Apply All Filters
@@ -390,10 +401,7 @@ const Page = () => {
             activeFiltersCount={activeFiltersCount}
         />
         {/*Product Listing Section*/}
-        <div className="flex-1 px-2 lg:px-3">
-            <div className=" m-auto">
-                    <h1 className="font-medium text-[40px] leading-1 mb-[14px]">Our Collection Of Products</h1>
-            </div>
+        <div className="flex-1">
             {isProductLoading ? (
                 <PageLoader text="Loading offers" />
             ) : products.length > 0 ? (

@@ -1,6 +1,7 @@
 import './global.css';
 import Providers from './providers';
 import Header from '../shared/widgets/header';
+import HeaderSpacer from '../shared/components/layout/header-spacer';
 import Footer from '../shared/widgets/footer';
 import {Poppins, Roboto} from "next/font/google"
 export const metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body className={`${roboto.variable} ${poppins.variable}`} suppressHydrationWarning>
         <Providers>
         <Header/>
+        <HeaderSpacer />
         {children}
         <Footer />
         </Providers>
@@ -35,3 +37,4 @@ export default function RootLayout({
     </html>
   )
 }
+
