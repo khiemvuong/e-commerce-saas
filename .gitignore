@@ -53,6 +53,6 @@ out
 
 # .gitignore
 .env
-.agent
 .gemini
 docs
+.agent

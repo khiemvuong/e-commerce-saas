@@ -3,6 +3,13 @@ import prisma from "@packages/libs/prisma";
 import { Request, Response, NextFunction } from "express";
 import { client } from "@packages/libs/imagekit";
 import { toFile } from "@imagekit/nodejs";
+import { getOrSetCache, invalidateCache } from "@packages/libs/cache-manager";
+
+// Cache keys for admin APIs
+const ADMIN_CACHE_KEYS = {
+    DASHBOARD_STATS: 'admin:dashboard:stats',
+    CUSTOMIZATIONS: 'admin:customizations',
+} as const;
 
 //Get all Products
 export const getAllProducts = async (
@@ -223,30 +230,40 @@ export const removeAdmin = async (
     }
 };
 
-//Fetch all customizations
+//Fetch all customizations - CACHED (5 min)
 export const getAllCustomizations = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const config = await prisma.site_config.findFirst({
-            include: { images: true }
-        });
-        return res.status(200).json({
-            categories: config?.categories || [],
-            subCategories: config?.subCategories || {},
-            shopCategories: config?.shopCategories || [],
-            countries: config?.countries || [],
-            images: config?.images || [],
-        });
+        const { data, fromCache, responseTime } = await getOrSetCache(
+            ADMIN_CACHE_KEYS.CUSTOMIZATIONS,
+            async () => {
+                const config = await prisma.site_config.findFirst({
+                    include: { images: true }
+                });
+                return {
+                    categories: config?.categories || [],
+                    subCategories: config?.subCategories || {},
+                    shopCategories: config?.shopCategories || [],
+                    countries: config?.countries || [],
+                    images: config?.images || [],
+                };
+            },
+            300 // 5 minutes TTL
+        );
+
+        res.setHeader('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.setHeader('X-Response-Time', `${responseTime}ms`);
+        return res.status(200).json(data);
     } catch (error) {
         console.error("Error fetching customizations:", error);
         return next(error);
     }
 };
 
-// Update site config
+// Update site config - INVALIDATES CACHE
 export const updateSiteConfig = async (
     req: Request,
     res: Response,
@@ -274,6 +291,9 @@ export const updateSiteConfig = async (
                     }
                 },
             });
+            
+            // Invalidate cache after create
+            await invalidateCache(ADMIN_CACHE_KEYS.CUSTOMIZATIONS);
             return res.status(201).json({ success: true });
         }
 
@@ -299,6 +319,9 @@ export const updateSiteConfig = async (
             },
             include: { images: true }
         });
+
+        // Invalidate cache after update
+        await invalidateCache(ADMIN_CACHE_KEYS.CUSTOMIZATIONS);
 
         res.status(200).json({
             success: true,
@@ -596,31 +619,38 @@ export const getUserNotifications = async (req: any, res: Response, next: NextFu
     }
 };
 
-// Get Dashboard Statistics
+// Get Dashboard Statistics - CACHED (60s)
 export const getDashboardStats = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
+        const { data: dashboardData, fromCache, responseTime } = await getOrSetCache(
+            ADMIN_CACHE_KEYS.DASHBOARD_STATS,
+            async () => {
+        // Date ranges for comparison
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+
         // Fetch site config for country mapping
         const siteConfig = await prisma.site_config.findFirst({
             select: { countries: true }
         });
         
         // Create a map of Name -> Code and Code -> Name for flexibility
-        // If countries is not set, we fall back to a basic map or empty
         const countryList = (siteConfig?.countries as any[]) || [];
         const nameToCodeMap: Record<string, string> = {};
         const codeToNameMap: Record<string, string> = {};
 
         countryList.forEach((c: {name: string, code: string}) => {
             nameToCodeMap[c.name] = c.code;
-            nameToCodeMap[c.name.toLowerCase()] = c.code; // Case insensitive lookup
+            nameToCodeMap[c.name.toLowerCase()] = c.code;
             codeToNameMap[c.code] = c.name;
         });
 
-        // Helper to get Code from Name (or handle if input is already a code)
         // Standard ISO 3166-1 alpha-2 to numeric mapping
         const isoAlpha2ToNumeric: Record<string, string> = {
             'AF': '004', 'AL': '008', 'DZ': '012', 'AS': '016', 'AD': '020', 'AO': '024', 'AI': '660', 'AQ': '010', 'AG': '028', 'AR': '032',
@@ -654,50 +684,54 @@ export const getDashboardStats = async (
             const cleanInput = input.trim();
             const upperInput = cleanInput.toUpperCase();
             
-            // Check if it matches a 2-letter code directly
             if (isoAlpha2ToNumeric[upperInput]) return isoAlpha2ToNumeric[upperInput];
-
-            // Check if it matches a name from our DB config
             if (nameToCodeMap[cleanInput]) return nameToCodeMap[cleanInput];
             if (nameToCodeMap[cleanInput.toLowerCase()]) return nameToCodeMap[cleanInput.toLowerCase()];
-            
-            // Check if it is already a valid numeric code
             if (codeToNameMap[cleanInput]) return cleanInput;
-            
-            // Manual fallbacks for common mismatched names
             if (upperInput === 'USA') return '840';
             if (upperInput === 'VIETNAM') return '704';
             
-            return cleanInput; // Return as is if no match found
+            return cleanInput;
         };
 
         // 1. Sellers by Country
         const sellersRaw = await prisma.sellers.findMany({
-            select: { country: true },
+            select: { country: true, createdAt: true },
         });
         const sellersByCountry: Record<string, number> = {};
+        let thisMonthSellers = 0;
+        let lastMonthSellers = 0;
+
         sellersRaw.forEach((s) => {
             const countryName = s.country || "Unknown";
-            // We count by Name for the list, but use Code for the map later
             sellersByCountry[countryName] = (sellersByCountry[countryName] || 0) + 1;
+            
+            const createdAt = new Date(s.createdAt);
+            if (createdAt >= thisMonthStart && createdAt <= now) thisMonthSellers++;
+            if (createdAt >= lastMonthStart && createdAt <= lastMonthEnd) lastMonthSellers++;
         });
+        
         const sellersByCountryArray = Object.entries(sellersByCountry).map(
             ([country, count]) => ({ country, count })
         );
 
         // 2. Users by Country (from userAnalytics)
         const userAnalyticsRaw = await prisma.userAnalytics.findMany({
-            select: { country: true, device: true },
+            select: { country: true, device: true, createdAt: true },
         });
         const usersByCountry: Record<string, number> = {};
         const deviceStats: Record<string, number> = { Mobile: 0, Desktop: 0, Tablet: 0 };
+        let thisMonthUsers = 0;
+        let lastMonthUsers = 0;
 
         userAnalyticsRaw.forEach((ua) => {
-            // Count by country
             const countryName = ua.country || "Unknown";
             usersByCountry[countryName] = (usersByCountry[countryName] || 0) + 1;
 
-            // Count by device type
+            const createdAt = new Date(ua.createdAt);
+            if (createdAt >= thisMonthStart && createdAt <= now) thisMonthUsers++;
+            if (createdAt >= lastMonthStart && createdAt <= lastMonthEnd) lastMonthUsers++;
+
             const deviceStr = (ua.device || "").toLowerCase();
             if (deviceStr.includes("mobile") || deviceStr.includes("iphone") || deviceStr.includes("android")) {
                 deviceStats["Mobile"]++;
@@ -726,17 +760,30 @@ export const getDashboardStats = async (
 
         const revenueByMonth: Record<string, { revenue: number; orders: number }> = {};
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        let thisMonthRevenue = 0;
+        let lastMonthRevenue = 0;
+        let thisMonthOrderCount = 0;
+        let lastMonthOrderCount = 0;
 
-        // Initialize all months
         months.forEach((m) => {
             revenueByMonth[m] = { revenue: 0, orders: 0 };
         });
 
         orders.forEach((order) => {
-            const monthIndex = new Date(order.createdAt).getMonth();
+            const orderDate = new Date(order.createdAt);
+            const monthIndex = orderDate.getMonth();
             const monthName = months[monthIndex];
             revenueByMonth[monthName].revenue += order.total || 0;
             revenueByMonth[monthName].orders += 1;
+
+            if (orderDate >= thisMonthStart && orderDate <= now) {
+                thisMonthRevenue += order.total || 0;
+                thisMonthOrderCount++;
+            }
+            if (orderDate >= lastMonthStart && orderDate <= lastMonthEnd) {
+                lastMonthRevenue += order.total || 0;
+                lastMonthOrderCount++;
+            }
         });
 
         const revenueData = months.map((month) => ({
@@ -756,7 +803,135 @@ export const getDashboardStats = async (
         // 5. Total Revenue
         const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
 
-        // 6. Geographical data for map (combine users + sellers by country)
+        // 6. Calculate growth percentages
+        const calculateGrowth = (current: number, previous: number) => {
+            if (previous === 0) return current > 0 ? 100 : 0;
+            return Math.round(((current - previous) / previous) * 100);
+        };
+
+        const growth = {
+            users: calculateGrowth(thisMonthUsers, lastMonthUsers),
+            sellers: calculateGrowth(thisMonthSellers, lastMonthSellers),
+            revenue: calculateGrowth(thisMonthRevenue, lastMonthRevenue),
+            orders: calculateGrowth(thisMonthOrderCount, lastMonthOrderCount),
+        };
+
+        // 7. Alerts - Action required items
+        const [failedOrders, pendingOrders, todayNewUsers] = await Promise.all([
+            prisma.orders.count({ where: { status: 'Failed' } }),
+            prisma.orders.count({ where: { status: 'Pending' } }),
+            prisma.users.count({
+                where: {
+                    createdAt: {
+                        gte: new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                    }
+                }
+            })
+        ]);
+
+        const alerts: Array<{ type: string; icon: string; text: string; count: number; link?: string }> = [];
+        
+        if (failedOrders > 0) {
+            alerts.push({
+                type: 'error',
+                icon: 'alert-circle',
+                text: `${failedOrders} đơn hàng Failed cần review`,
+                count: failedOrders,
+                link: '/dashboard/orders?status=Failed'
+            });
+        }
+        
+        if (pendingOrders > 0) {
+            alerts.push({
+                type: 'warning',
+                icon: 'clock',
+                text: `${pendingOrders} đơn hàng Pending chờ xử lý`,
+                count: pendingOrders,
+                link: '/dashboard/orders?status=Pending'
+            });
+        }
+        
+        if (todayNewUsers > 0) {
+            alerts.push({
+                type: 'success',
+                icon: 'user-plus',
+                text: `${todayNewUsers} users mới đăng ký hôm nay`,
+                count: todayNewUsers,
+                link: '/dashboard/users'
+            });
+        }
+
+        // 8. Top Performers - Shop rankings
+        const shopsWithOrders = await prisma.shops.findMany({
+            select: {
+                id: true,
+                name: true,
+                orders: {
+                    where: {
+                        createdAt: { gte: lastMonthStart }
+                    },
+                    select: {
+                        total: true,
+                        createdAt: true
+                    }
+                },
+                images: {
+                    where: { type: 'avatar' },
+                    take: 1,
+                    select: { file_url: true }
+                }
+            }
+        });
+
+        // Calculate shop metrics
+        const shopMetrics = shopsWithOrders.map(shop => {
+            const thisMonthOrders = shop.orders.filter(o => new Date(o.createdAt) >= thisMonthStart);
+            const lastMonthOrders = shop.orders.filter(o => {
+                const d = new Date(o.createdAt);
+                return d >= lastMonthStart && d < thisMonthStart;
+            });
+            
+            const thisMonthRev = thisMonthOrders.reduce((sum, o) => sum + o.total, 0);
+            const lastMonthRev = lastMonthOrders.reduce((sum, o) => sum + o.total, 0);
+            const growthPct = lastMonthRev > 0 ? Math.round(((thisMonthRev - lastMonthRev) / lastMonthRev) * 100) : (thisMonthRev > 0 ? 100 : 0);
+            
+            return {
+                id: shop.id,
+                name: shop.name,
+                avatar: shop.images[0]?.file_url || null,
+                revenue: thisMonthRev,
+                orderCount: thisMonthOrders.length,
+                growth: growthPct
+            };
+        }).filter(s => s.revenue > 0 || s.orderCount > 0);
+
+        // Sort for different rankings
+        const topByRevenue = [...shopMetrics].sort((a, b) => b.revenue - a.revenue)[0];
+        const topByGrowth = [...shopMetrics].sort((a, b) => b.growth - a.growth)[0];
+        const topByOrders = [...shopMetrics].sort((a, b) => b.orderCount - a.orderCount)[0];
+
+        const topPerformers = {
+            topRevenue: topByRevenue ? {
+                shopName: topByRevenue.name,
+                shopId: topByRevenue.id,
+                avatar: topByRevenue.avatar,
+                revenue: topByRevenue.revenue
+            } : null,
+            fastestGrowth: topByGrowth ? {
+                shopName: topByGrowth.name,
+                shopId: topByGrowth.id,
+                avatar: topByGrowth.avatar,
+                growth: topByGrowth.growth
+            } : null,
+            mostOrders: topByOrders ? {
+                shopName: topByOrders.name,
+                shopId: topByOrders.id,
+                avatar: topByOrders.avatar,
+                orders: topByOrders.orderCount
+            } : null
+        };
+
+        // 9. Geographical data for map
         const geoData: Record<string, { users: number; sellers: number }> = {};
         
         usersByCountryArray.forEach(({ country, count }) => {
@@ -773,27 +948,40 @@ export const getDashboardStats = async (
 
         const geographicalData = Object.entries(geoData).map(([id, data]) => ({
             id,
-            name: codeToNameMap[id] || id, // Try to provide clean name from config if available
+            name: codeToNameMap[id] || id,
             users: data.users,
             sellers: data.sellers,
         }));
 
+        // Return data object for caching
+        return {
+            summary: {
+                totalUsers,
+                totalSellers,
+                totalProducts,
+                totalOrders,
+                totalRevenue: Math.round(totalRevenue * 100) / 100,
+            },
+            growth,
+            alerts,
+            topPerformers,
+            sellersByCountry: sellersByCountryArray,
+            usersByCountry: usersByCountryArray,
+            deviceStats: deviceStatsArray,
+            revenueData,
+            geographicalData,
+        };
+            }, // end of fetcher function
+            60 // 60 seconds TTL for dashboard stats
+        );
+
+        // Set cache headers
+        res.setHeader('X-Cache', fromCache ? 'HIT' : 'MISS');
+        res.setHeader('X-Response-Time', `${responseTime}ms`);
+
         res.status(200).json({
             success: true,
-            data: {
-                summary: {
-                    totalUsers,
-                    totalSellers,
-                    totalProducts,
-                    totalOrders,
-                    totalRevenue: Math.round(totalRevenue * 100) / 100,
-                },
-                sellersByCountry: sellersByCountryArray,
-                usersByCountry: usersByCountryArray,
-                deviceStats: deviceStatsArray,
-                revenueData,
-                geographicalData,
-            },
+            data: dashboardData,
         });
     } catch (error) {
         next(error);
