@@ -19,7 +19,10 @@ import SalesChart from "../../shared/components/charts/sale-chart";
 import GeographicalMap from "../../shared/components/charts/geographicalMap";
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "apps/admin-ui/src/utils/axiosInstance";
-import { Users, ShoppingBag, Store, DollarSign, TrendingUp } from "lucide-react";
+import { Users, ShoppingBag, Store, DollarSign, ShoppingCart } from "lucide-react";
+import AlertSection from "../../shared/components/alerts/AlertSection";
+import StatCardWithGrowth from "../../shared/components/cards/StatCardWithGrowth";
+import TopPerformers from "../../shared/components/cards/TopPerformers";
 
 const fetchRecentOrders = async () => {
     const res = await axiosInstance.get('/order/api/get-admin-orders');
@@ -40,15 +43,14 @@ const Dashboard = () => {
     const { data: dashboardStats, isLoading: isLoadingStats } = useQuery({
         queryKey: ['dashboard-stats'],
         queryFn: fetchDashboardStats,
-        staleTime: 5 * 60 * 1000, // 5 minutes
+        staleTime: 5 * 60 * 1000,
     });
 
-    const recentOrders = React.useMemo(() => orders.slice(0, 8), [orders]);
+    const recentOrders = React.useMemo(() => orders.slice(0, 6), [orders]);
 
-    // Use API data or fallback to defaults
     const deviceData = dashboardStats?.deviceStats || [
-        { name: "Mobile", value: 0, color: "#4ade80" },
-        { name: "Desktop", value: 0, color: "#60a5fa" },
+        { name: "Mobile", value: 0, color: "#22c55e" },
+        { name: "Desktop", value: 0, color: "#3b82f6" },
         { name: "Tablet", value: 0, color: "#f59e0b" },
     ];
 
@@ -61,26 +63,33 @@ const Dashboard = () => {
         totalOrders: 0,
         totalRevenue: 0,
     };
+    const growth = dashboardStats?.growth || {};
+    const alerts = dashboardStats?.alerts || [];
+    const topPerformers = dashboardStats?.topPerformers || {};
 
     const columns: ColumnDef<any>[] = [
         {
             accessorKey: "id",
-            header: "Order ID",
+            header: "Order",
             cell: ({ row }) => (
-                <span className="font-mono text-gray-300">
-                    #{row.original.id.slice(-8).toUpperCase()}
+                <span className="font-mono text-xs text-gray-400">
+                    #{row.original.id.slice(-6).toUpperCase()}
                 </span>
             ),
         },
         {
             accessorKey: "user.name",
             header: "Customer",
-            cell: ({ row }) => <span className="text-gray-300">{row.original.user?.name || 'Guest'}</span>,
+            cell: ({ row }) => (
+                <span className="text-gray-300 text-sm">{row.original.user?.name || 'Guest'}</span>
+            ),
         },
         {
             accessorKey: "total",
             header: "Amount",
-            cell: ({ row }) => <span className="text-gray-300">${row.original.total.toFixed(2)}</span>,
+            cell: ({ row }) => (
+                <span className="text-white font-medium text-sm">${row.original.total.toFixed(2)}</span>
+            ),
         },
         {
             accessorKey: "status",
@@ -88,18 +97,15 @@ const Dashboard = () => {
             cell: ({ row }) => {
                 const status = row.original.status || 'Pending';
                 const statusColors: Record<string, string> = {
-                    Paid: "bg-green-500/20 text-green-400",
-                    Pending: "bg-yellow-500/20 text-yellow-400",
+                    Paid: "bg-emerald-500/20 text-emerald-400",
+                    Pending: "bg-amber-500/20 text-amber-400",
                     Failed: "bg-red-500/20 text-red-400",
                     Refunded: "bg-purple-500/20 text-purple-400",
                     COD: "bg-blue-500/20 text-blue-400",
-                    Delivered: "bg-emerald-500/20 text-emerald-400",
+                    Delivered: "bg-green-500/20 text-green-400",
                 };
                 return (
-                    <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[status] || "bg-gray-500/20 text-gray-400"
-                            }`}
-                    >
+                    <span className={`px-2 py-1 rounded-md text-xs font-medium ${statusColors[status] || "bg-gray-500/20 text-gray-400"}`}>
                         {status}
                     </span>
                 );
@@ -114,106 +120,89 @@ const Dashboard = () => {
     });
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] p-6">
-            <div className="max-w-[1400px] mx-auto space-y-6">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-blue-500/20 rounded-lg">
-                                <Users className="w-5 h-5 text-blue-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Total Users</p>
-                                <p className="text-2xl font-bold text-white">
-                                    {isLoadingStats ? '...' : summary.totalUsers.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-purple-500/20 rounded-lg">
-                                <Store className="w-5 h-5 text-purple-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Total Sellers</p>
-                                <p className="text-2xl font-bold text-white">
-                                    {isLoadingStats ? '...' : summary.totalSellers.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-orange-500/20 rounded-lg">
-                                <ShoppingBag className="w-5 h-5 text-orange-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Products</p>
-                                <p className="text-2xl font-bold text-white">
-                                    {isLoadingStats ? '...' : summary.totalProducts.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-green-500/20 rounded-lg">
-                                <TrendingUp className="w-5 h-5 text-green-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Total Orders</p>
-                                <p className="text-2xl font-bold text-white">
-                                    {isLoadingStats ? '...' : summary.totalOrders.toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-500/20 rounded-lg">
-                                <DollarSign className="w-5 h-5 text-emerald-400" />
-                            </div>
-                            <div>
-                                <p className="text-gray-400 text-sm">Revenue</p>
-                                <p className="text-2xl font-bold text-white">
-                                    {isLoadingStats ? '...' : `$${summary.totalRevenue.toLocaleString()}`}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+        <div className="min-h-screen bg-[#0a0a0a] p-4 md:p-6">
+            <div className="max-w-[1400px] mx-auto space-y-5">
+                
+                {/* Row 1: Stats Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                    <StatCardWithGrowth
+                        title="Users"
+                        value={summary.totalUsers}
+                        growth={growth.users}
+                        icon={<Users className="w-5 h-5 text-blue-400" />}
+                        iconBgColor="bg-blue-500/20"
+                        isLoading={isLoadingStats}
+                    />
+                    <StatCardWithGrowth
+                        title="Sellers"
+                        value={summary.totalSellers}
+                        growth={growth.sellers}
+                        icon={<Store className="w-5 h-5 text-purple-400" />}
+                        iconBgColor="bg-purple-500/20"
+                        isLoading={isLoadingStats}
+                    />
+                    <StatCardWithGrowth
+                        title="Products"
+                        value={summary.totalProducts}
+                        icon={<ShoppingBag className="w-5 h-5 text-orange-400" />}
+                        iconBgColor="bg-orange-500/20"
+                        isLoading={isLoadingStats}
+                    />
+                    <StatCardWithGrowth
+                        title="Orders"
+                        value={summary.totalOrders}
+                        growth={growth.orders}
+                        icon={<ShoppingCart className="w-5 h-5 text-sky-400" />}
+                        iconBgColor="bg-sky-500/20"
+                        isLoading={isLoadingStats}
+                    />
+                    <StatCardWithGrowth
+                        title="Revenue"
+                        value={`$${summary.totalRevenue.toLocaleString()}`}
+                        growth={growth.revenue}
+                        icon={<DollarSign className="w-5 h-5 text-emerald-400" />}
+                        iconBgColor="bg-emerald-500/20"
+                        isLoading={isLoadingStats}
+                    />
                 </div>
 
-                {/* Top Row: Revenue Chart and Device Usage */}
-                <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
-                    {/* Revenue Chart */}
-                    <div className="lg:col-span-4 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+                {/* Row 2: Alerts + Top Performers (side by side) */}
+                {(alerts.length > 0 || topPerformers.topRevenue) && (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {alerts.length > 0 && <AlertSection alerts={alerts} title="Action Required" />}
+                        {topPerformers.topRevenue && (
+                            <TopPerformers 
+                                topRevenue={topPerformers.topRevenue}
+                                fastestGrowth={topPerformers.fastestGrowth}
+                                mostOrders={topPerformers.mostOrders}
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* Row 3: Revenue Chart + Device Usage */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 bg-[#111] border border-gray-800/60 rounded-xl p-5 md:p-6">
                         <div className="mb-4">
-                            <h2 className="text-xl font-bold text-white">Revenue Overview</h2>
-                            <p className="text-gray-400 text-sm mt-1">
-                                Monthly revenue trends
-                            </p>
+                            <h2 className="text-base md:text-lg font-semibold text-white">Revenue Overview</h2>
+                            <p className="text-gray-500 text-sm mt-0.5">Monthly revenue trends</p>
                         </div>
                         <SalesChart revenueData={revenueData} />
                     </div>
-                    {/* Device Usage */}
-                    <div className="lg:col-span-3 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+                    <div className="bg-[#111] border border-gray-800/60 rounded-xl p-5 md:p-6">
                         <div className="mb-4">
-                            <h2 className="text-xl font-bold text-white">Device Usage</h2>
-                            <p className="text-gray-400 text-sm mt-1">
-                                Traffic by device type
-                            </p>
+                            <h2 className="text-base md:text-lg font-semibold text-white">Device Usage</h2>
+                            <p className="text-gray-500 text-sm mt-0.5">Traffic by device type</p>
                         </div>
-                        <ResponsiveContainer width="100%" height={250}>
+                        <ResponsiveContainer width="100%" height={220}>
                             <PieChart>
                                 <Pie
                                     data={deviceData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={90}
-                                    paddingAngle={5}
+                                    innerRadius={55}
+                                    outerRadius={80}
+                                    paddingAngle={4}
                                     dataKey="value"
                                 >
                                     {deviceData.map((entry: any, index: number) => (
@@ -223,10 +212,11 @@ const Dashboard = () => {
                                 <Tooltip
                                     contentStyle={{
                                         backgroundColor: "#1a1a1a",
-                                        border: "1px solid #374151",
+                                        border: "1px solid #333",
                                         borderRadius: "8px",
                                         color: "#fff",
                                     }}
+                                    
                                     labelStyle={{ color: "#fff" }}
                                     itemStyle={{ color: "#fff" }}
                                 />
@@ -234,120 +224,99 @@ const Dashboard = () => {
                                     verticalAlign="bottom"
                                     height={36}
                                     iconType="circle"
+                                    iconSize={8}
                                     formatter={(value) => (
-                                        <span className="text-gray-300">{value}</span>
+                                        <span className="text-gray-400 text-xs">{value}</span>
                                     )}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
-                {/* Bottom Row: Map and Country Stats */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                    {/* Geographical Map */}
-                    <div className="lg:col-span-3 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+
+                {/* Row 4: Map + Country Stats + Recent Orders */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {/* Map */}
+                    <div className="lg:col-span-2 bg-[#111] border border-gray-800/60 rounded-xl p-5 md:p-6">
                         <div className="mb-4">
-                            <h2 className="text-xl font-bold text-white">
-                                User & Seller Distribution
-                            </h2>
-                            <p className="text-gray-400 text-sm mt-1">
-                                Geographic distribution of users and sellers
-                            </p>
+                            <h2 className="text-base md:text-lg font-semibold text-white">Geographic Distribution</h2>
+                            <p className="text-gray-500 text-sm mt-0.5">Users and sellers by country</p>
                         </div>
                         <GeographicalMap geographicalData={geographicalData} />
                     </div>
 
-                    {/* Country Statistics Table */}
-                    <div className="lg:col-span-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 flex flex-col h-[500px]">
+                    {/* Country Stats */}
+                    <div className="bg-[#111] border border-gray-800/60 rounded-xl p-5 md:p-6 flex flex-col max-h-[400px]">
                         <div className="mb-4">
-                            <h2 className="text-xl font-bold text-white">By Country</h2>
-                            <p className="text-gray-400 text-sm mt-1">
-                                Detailed breakdown (Sorted by User count)
-                            </p>
+                            <h2 className="text-base md:text-lg font-semibold text-white">By Country</h2>
+                            <p className="text-gray-500 text-sm mt-0.5">Sorted by user count</p>
                         </div>
-                        <div className="overflow-y-auto flex-1 pr-2 custom-scrollbar">
-                            <table className="w-full">
-                                <thead className="sticky top-0 bg-[#1a1a1a] z-10">
-                                    <tr className="border-b border-gray-800 text-left">
-                                        <th className="py-2 text-sm font-semibold text-gray-400">Country</th>
-                                        <th className="py-2 text-sm font-semibold text-gray-400 text-right">Users</th>
-                                        <th className="py-2 text-sm font-semibold text-gray-400 text-right">Sellers</th>
+                        <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+                            <table className="w-full text-sm">
+                                <thead className="sticky top-0 bg-[#111]">
+                                    <tr className="border-b border-gray-800/60">
+                                        <th className="text-left py-2 text-xs font-medium text-gray-500">Country</th>
+                                        <th className="text-right py-2 text-xs font-medium text-gray-500">Users</th>
+                                        <th className="text-right py-2 text-xs font-medium text-gray-500">Sellers</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="divide-y divide-gray-800/40">
                                     {geographicalData
                                         .sort((a: any, b: any) => b.users - a.users)
+                                        .slice(0, 10)
                                         .map((item: any) => (
-                                            <tr key={item.id} className="border-b border-gray-800/50 hover:bg-gray-900/50 transition-colors">
-                                                <td className="py-3 text-sm text-gray-300 font-medium">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="w-6 text-center text-xs bg-gray-800 rounded px-1 text-gray-500">{item.id}</span>
-                                                        {item.name}
-                                                    </div>
-                                                </td>
-                                                <td className="py-3 text-sm text-blue-400 text-right font-mono">{item.users}</td>
-                                                <td className="py-3 text-sm text-purple-400 text-right font-mono">{item.sellers}</td>
+                                            <tr key={item.id} className="hover:bg-white/[0.02] transition-colors">
+                                                <td className="py-2.5 text-gray-300">{item.name}</td>
+                                                <td className="py-2.5 text-right font-mono text-xs text-blue-400">{item.users}</td>
+                                                <td className="py-2.5 text-right font-mono text-xs text-purple-400">{item.sellers}</td>
                                             </tr>
                                         ))}
-                                    {geographicalData.length === 0 && (
-                                        <tr>
-                                            <td colSpan={3} className="py-8 text-center text-gray-500">
-                                                No country data available
-                                            </td>
-                                        </tr>
-                                    )}
                                 </tbody>
                             </table>
+                            {geographicalData.length === 0 && (
+                                <div className="text-center py-8 text-gray-500 text-sm">No data available</div>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Recent Orders */}
-                <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6">
+                {/* Row 5: Recent Orders */}
+                <div className="bg-[#111] border border-gray-800/60 rounded-xl p-5 md:p-6">
                     <div className="mb-4">
-                        <h2 className="text-xl font-bold text-white">Recent Orders</h2>
-                        <p className="text-gray-400 text-sm mt-1">
-                            Latest transactions from your store
-                        </p>
+                        <h2 className="text-base md:text-lg font-semibold text-white">Recent Orders</h2>
+                        <p className="text-gray-500 text-sm mt-0.5">Latest transactions</p>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto -mx-5 md:-mx-6 px-5 md:px-6">
                         <table className="w-full">
                             <thead>
-                                <tr className="border-b border-gray-800">
+                                <tr className="border-b border-gray-800/60">
                                     {table.getHeaderGroups().map((headerGroup) =>
                                         headerGroup.headers.map((header) => (
                                             <th
                                                 key={header.id}
-                                                className="text-left py-3 px-4 text-sm font-semibold text-gray-400"
+                                                className="text-left py-2.5 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider"
                                             >
-                                                {flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
+                                                {flexRender(header.column.columnDef.header, header.getContext())}
                                             </th>
                                         ))
                                     )}
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-gray-800/40">
                                 {table.getRowModel().rows.map((row) => (
-                                    <tr
-                                        key={row.id}
-                                        className="border-b border-gray-800 hover:bg-gray-900/50 transition-colors"
-                                    >
+                                    <tr key={row.id} className="hover:bg-white/[0.02] transition-colors cursor-pointer">
                                         {row.getVisibleCells().map((cell) => (
-                                            <td
-                                                key={cell.id}
-                                                className="py-4 px-4 text-sm text-gray-300"
-                                            >
-                                                {flexRender(
-                                                    cell.column.columnDef.cell,
-                                                    cell.getContext()
-                                                )}
+                                            <td key={cell.id} className="py-3 px-3">
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                             </td>
                                         ))}
                                     </tr>
                                 ))}
+                                {recentOrders.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} className="text-center py-8 text-gray-500 text-sm">No orders yet</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

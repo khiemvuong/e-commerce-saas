@@ -304,14 +304,14 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
                             <div className="flex items-center rounded-md border border-gray-300">
                                 <button
                                     className="px-3 cursor-pointer py-1 bg-gray-300 text-gray-900 hover:bg-gray-500 font-semibold rounded-l-md text-2xl"
-                                    onClick={() => setQuantity((prev) => Math.max(1, prev - 1))}
+                                    onClick={() => setQuantity((prev:number) => Math.max(1, prev - 1))}
                                 >
                                     -
                                 </button>
                                 <span className="px-10 py-1 text-gray-700 font-semibold">{quantity}</span>
                                 <button
                                     className="px-3 cursor-pointer py-1 bg-black text-white hover:bg-gray-500 font-semibold rounded-r-md text-2xl"
-                                    onClick={() => setQuantity((prev) => prev + 1)}
+                                    onClick={() => setQuantity((prev:number) => prev + 1)}
                                 >
                                     +
                                 </button>

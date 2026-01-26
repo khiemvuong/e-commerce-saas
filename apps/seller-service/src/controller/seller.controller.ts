@@ -392,6 +392,19 @@ export const getSellerAnalytics = async (
             return next(new ValidationError("Shop not found"));
         }
 
+        // Date ranges for comparison
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        const thisWeekStart = new Date(now);
+        thisWeekStart.setDate(now.getDate() - now.getDay());
+        thisWeekStart.setHours(0, 0, 0, 0);
+        const lastWeekStart = new Date(thisWeekStart);
+        lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+        const lastWeekEnd = new Date(thisWeekStart);
+        lastWeekEnd.setMilliseconds(-1);
+
         // 1. Revenue Analytics (Last 12 months)
         const last12Months = new Date();
         last12Months.setMonth(last12Months.getMonth() - 11);
@@ -404,7 +417,9 @@ export const getSellerAnalytics = async (
                 createdAt: { gte: last12Months }
             },
             select: {
+                id: true,
                 total: true,
+                status: true,
                 createdAt: true
             }
         });
@@ -419,51 +434,191 @@ export const getSellerAnalytics = async (
             revenueMap.set(month, 0);
         }
 
+        // Calculate revenue and period-specific metrics
+        let thisMonthRevenue = 0;
+        let lastMonthRevenue = 0;
+        let thisWeekOrders = 0;
+        let lastWeekOrders = 0;
+
         orders.forEach(order => {
-            const month = new Date(order.createdAt).toLocaleString('default', { month: 'short', year: 'numeric' });
+            const orderDate = new Date(order.createdAt);
+            const month = orderDate.toLocaleString('default', { month: 'short', year: 'numeric' });
+            
             if (revenueMap.has(month)) {
                 revenueMap.set(month, revenueMap.get(month)! + order.total);
+            }
+
+            // This month revenue
+            if (orderDate >= thisMonthStart && orderDate <= now) {
+                thisMonthRevenue += order.total;
+            }
+            // Last month revenue
+            if (orderDate >= lastMonthStart && orderDate <= lastMonthEnd) {
+                lastMonthRevenue += order.total;
+            }
+            // This week orders
+            if (orderDate >= thisWeekStart && orderDate <= now) {
+                thisWeekOrders++;
+            }
+            // Last week orders
+            if (orderDate >= lastWeekStart && orderDate < thisWeekStart) {
+                lastWeekOrders++;
             }
         });
 
         const revenueData = Array.from(revenueMap, ([name, total]) => ({ name, total }));
 
-        // 2. Top Products (by Sales)
-        const topProducts = await prisma.products.findMany({
-            where: { shopId: shop.id, isDeleted: false },
-            orderBy: { totalSales: 'desc' },
-            take: 5,
-            select: {
-                id: true,
-                title: true,
-                sale_price: true,
-                regular_price: true,
-                totalSales: true,
-                images: {
-                    take: 1,
-                    select: {
-                        id: true,
-                        file_url: true
+        // Calculate growth percentages
+        const revenueGrowth = lastMonthRevenue > 0 
+            ? Math.round(((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100) 
+            : thisMonthRevenue > 0 ? 100 : 0;
+        const ordersGrowth = lastWeekOrders > 0 
+            ? Math.round(((thisWeekOrders - lastWeekOrders) / lastWeekOrders) * 100) 
+            : thisWeekOrders > 0 ? 100 : 0;
+
+        // 2. Products data
+        const [allProducts, lowStockProducts, topProductsRaw] = await Promise.all([
+            prisma.products.count({
+                where: { shopId: shop.id, isDeleted: false }
+            }),
+            prisma.products.findMany({
+                where: { shopId: shop.id, isDeleted: false, stock: { lt: 10 } },
+                select: { id: true, title: true, stock: true }
+            }),
+            prisma.products.findMany({
+                where: { shopId: shop.id, isDeleted: false },
+                orderBy: { totalSales: 'desc' },
+                take: 5,
+                select: {
+                    id: true,
+                    title: true,
+                    sale_price: true,
+                    regular_price: true,
+                    totalSales: true,
+                    stock: true,
+                    images: {
+                        take: 1,
+                        select: {
+                            id: true,
+                            file_url: true
+                        }
                     }
+                }
+            })
+        ]);
+
+        // Calculate product sales trends (compare last 30 days vs previous 30 days)
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sixtyDaysAgo = new Date(now);
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+        const recentOrderItems = await prisma.orderItems.findMany({
+            where: {
+                order: {
+                    shopId: shop.id,
+                    createdAt: { gte: sixtyDaysAgo }
+                }
+            },
+            select: {
+                productId: true,
+                quantity: true,
+                order: {
+                    select: { createdAt: true }
                 }
             }
         });
 
-        // 3. Recent Orders
+        // Calculate trend for each top product
+        const productSalesMap = new Map<string, { recent: number; previous: number }>();
+        recentOrderItems.forEach(item => {
+            const orderDate = new Date(item.order.createdAt);
+            const existing = productSalesMap.get(item.productId) || { recent: 0, previous: 0 };
+            
+            if (orderDate >= thirtyDaysAgo) {
+                existing.recent += item.quantity;
+            } else {
+                existing.previous += item.quantity;
+            }
+            productSalesMap.set(item.productId, existing);
+        });
+
+        const topProducts = topProductsRaw.map(product => {
+            const sales = productSalesMap.get(product.id) || { recent: 0, previous: 0 };
+            const trend = sales.previous > 0 
+                ? Math.round(((sales.recent - sales.previous) / sales.previous) * 100)
+                : sales.recent > 0 ? 100 : 0;
+            return { ...product, trend };
+        });
+
+        // 3. Pending orders count
+        const pendingOrdersCount = await prisma.orders.count({
+            where: {
+                shopId: shop.id,
+                OR: [
+                    { status: 'Pending' },
+                    { deliveryStatus: 'Ordered' }
+                ]
+            }
+        });
+
+        // 4. Recent Orders with status
         const recentOrders = await prisma.orders.findMany({
             where: { shopId: shop.id },
             orderBy: { createdAt: 'desc' },
-            take: 5,
+            take: 8,
             include: {
                 user: { select: { name: true, email: true } }
             }
         });
 
+        // 5. Build alerts
+        const alerts: Array<{ type: string; icon: string; text: string; count: number; link?: string }> = [];
+        
+        if (lowStockProducts.length > 0) {
+            alerts.push({
+                type: 'warning',
+                icon: 'package',
+                text: `${lowStockProducts.length} sản phẩm sắp hết hàng`,
+                count: lowStockProducts.length,
+                link: '/dashboard/all-products'
+            });
+        }
+        
+        if (pendingOrdersCount > 0) {
+            alerts.push({
+                type: 'info',
+                icon: 'clock',
+                text: `${pendingOrdersCount} đơn hàng chờ xử lý`,
+                count: pendingOrdersCount,
+                link: '/dashboard/orders'
+            });
+        }
+
+        // 6. Summary with growth
+        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+        const totalOrders = orders.length;
+
+        const summary = {
+            totalRevenue,
+            revenueGrowth,
+            thisMonthRevenue,
+            totalOrders,
+            ordersGrowth,
+            thisWeekOrders,
+            totalProducts: allProducts,
+            lowStockCount: lowStockProducts.length,
+            pendingOrders: pendingOrdersCount
+        };
+
         res.status(200).json({
             success: true,
+            summary,
+            alerts,
             revenueData,
             topProducts,
-            recentOrders
+            recentOrders,
+            lowStockProducts: lowStockProducts.slice(0, 5)
         });
     } catch (error) {
         next(error);
