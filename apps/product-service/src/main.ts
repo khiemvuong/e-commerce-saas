@@ -1,10 +1,12 @@
 import express from 'express';
+import http from 'http';
 import "./jobs/product-crone.job";  
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { errorMiddleware } from '@packages/error-handler/error-middleware';
-import { performanceTracker } from '@packages/middleware/performanceTracker';
+import { performanceTracker, setBroadcastFunction, setBroadcastSummaryFunction } from '@packages/middleware/performanceTracker';
 import swaggerUi from 'swagger-ui-express';
+import { createMetricsWebSocket, broadcastMetrics, broadcastSummary } from './modules/metrics/metricsWebSocket';
 const swaggerDocument = require('./swagger-output.json');
 
 // Import all modular routes (Clean Architecture)
@@ -60,8 +62,31 @@ app.use(errorMiddleware)
 
 
 const port = 6002;
-const server = app.listen(port, () => {
+const server = http.createServer(app);
+
+// Setup WebSocket for real-time metrics
+const metricsWss = createMetricsWebSocket(server);
+
+// Connect broadcast functions to performance tracker
+setBroadcastFunction(broadcastMetrics);
+setBroadcastSummaryFunction(broadcastSummary);
+
+// Handle WebSocket upgrade for /ws/metrics endpoint
+server.on('upgrade', (request, socket, head) => {
+    const pathname = request.url;
+    
+    if (pathname === '/ws/metrics') {
+        metricsWss.handleUpgrade(request, socket, head, (ws) => {
+            metricsWss.emit('connection', ws, request);
+        });
+    } else {
+        socket.destroy();
+    }
+});
+
+server.listen(port, () => {
     console.log(`Product service is running at http://localhost:${port}/api`);
+    console.log(`WebSocket metrics available at ws://localhost:${port}/ws/metrics`);
     console.log(`Active modules: Product, Event, Discount, Category, Shop, Image, Metrics`);
 });
 server.on("error", (err) => {

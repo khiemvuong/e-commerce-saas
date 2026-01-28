@@ -137,5 +137,5 @@ export const PRODUCT_DETAIL_SELECT = {
   discount_codes: true,
   shopId: true,
   images: { select: { id: true, file_url: true, fileId: true } },
-  Shop: { select: { id: true, name: true, rating: true, address: true } },
+  Shop: { select: { id: true, name: true, rating: true, address: true, sellerId: true } },
 } as const;

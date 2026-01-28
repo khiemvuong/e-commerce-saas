@@ -10,7 +10,7 @@ import rateLimit from 'express-rate-limit';
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 5, // 5 requests per 15 minutes
     message: 'Too many login attempts, please try again later',
     standardHeaders: true,
     legacyHeaders: false,

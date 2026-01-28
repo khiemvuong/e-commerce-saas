@@ -527,7 +527,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                 <div className="max-w-4xl mx-auto">
                     {activeTab === 'description' ? (
                         <div 
-                            className="prose prose-lg prose-gray mx-auto text-gray-600 leading-relaxed"
+                            className="prose prose-lg prose-gray mx-auto text-gray-600 leading-relaxed w-full max-w-full break-words overflow-x-auto"
                             dangerouslySetInnerHTML={{
                                 __html: productDetails?.detailed_description || '<p class="text-center text-gray-500 italic">No description available for this product.</p>'
                             }}  

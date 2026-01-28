@@ -3,11 +3,17 @@
  */
 
 import prisma from '@packages/libs/prisma';
+import {
+    CACHE_TTL,
+    CACHE_PREFIX,
+    generateCacheKey,
+    getOrSetCache,
+} from '@packages/libs/cache-manager';
 
 /**
- * Get top 10 shops by total sales
+ * Get top 10 shops by total sales (internal - no cache)
  */
-export const getTopShops = async () => {
+const getTopShopsInternal = async () => {
     // 1. Fetch shops with necessary metrics
     // We take more than 10 to calculate scores and rerank
     const shops = await prisma.shops.findMany({
@@ -84,4 +90,20 @@ export const getTopShops = async () => {
     return scoredShops
         .sort((a, b) => b.score - a.score)
         .slice(0, 10);
+};
+
+/**
+ * Cached version of getTopShops
+ * TTL: 10 minutes (same as products list)
+ */
+export const getTopShops = async () => {
+    const cacheKey = generateCacheKey(`${CACHE_PREFIX.SHOP}:top`, {});
+
+    const result = await getOrSetCache(
+        cacheKey,
+        () => getTopShopsInternal(),
+        CACHE_TTL.PRODUCTS_LIST // 10 minutes
+    );
+
+    return result.data;
 };

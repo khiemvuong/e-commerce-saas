@@ -10,7 +10,7 @@ import { Sidebar } from "./sidebar.styles";
 import Link from "next/link";
 import Logo from "apps/admin-ui/src/app/assets/svgs/logo";
 import SidebarItem from "./sidebar.item";
-import { BellRingIcon, CalendarPlus, FileClock, HandCoins, LayoutDashboard, ListOrdered, LogOut, PencilRuler, Settings, Shield, ShoppingBasket, Store, Users } from "lucide-react";
+import { Activity, BellRingIcon, CalendarPlus, FileClock, HandCoins, LayoutDashboard, ListOrdered, LogOut, PencilRuler, Settings, Shield, ShoppingBasket, Store, Users } from "lucide-react";
 import SidebarMenu from "./sidabar.menu";
 
 const SidebarWrapper = () => {
@@ -122,6 +122,15 @@ const SidebarWrapper = () => {
                                 icon={<BellRingIcon fill={getIconColor('/dashboard/notifications')} />}
                                 isActive={activeSidebar === '/dashboard/notifications'}
                                 href="/dashboard/notifications"
+                            />
+                        </SidebarMenu>
+
+                        <SidebarMenu title='Monitoring'>
+                            <SidebarItem
+                                title='Performance'
+                                icon={<Activity fill={getIconColor('/dashboard/performance')} />}
+                                isActive={activeSidebar === '/dashboard/performance'}
+                                href="/dashboard/performance"
                             />
                         </SidebarMenu>
                         <SidebarMenu title='Customization'>
