@@ -6,7 +6,7 @@ import ChatInput from "apps/seller-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/seller-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/seller-ui/src/utils/axiosInstance";
 import { API_CONFIG } from "apps/seller-ui/src/utils/apiConfig";
-import { Send } from "lucide-react";
+import { Send, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -263,13 +263,19 @@ const SellerInboxPage = () => {
                                         }`}
                                     >
                                         <div className="relative">
-                                            <Image
-                                                src={chat.user?.avatar || "/default-avatar.png"} // Lưu ý cấu trúc object user
-                                                alt={chat.user?.name || "User"}
-                                                width={44}
-                                                height={44}
-                                                className="rounded-full object-cover w-11 h-11 border border-gray-200"
-                                            />
+                                            {chat.user?.avatar ? (
+                                                <Image
+                                                    src={chat.user.avatar}
+                                                    alt={chat.user?.name || "User"}
+                                                    width={44}
+                                                    height={44}
+                                                    className="rounded-full object-cover w-11 h-11 border border-gray-200"
+                                                />
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-200 flex items-center justify-center">
+                                                    <User className="w-6 h-6 text-indigo-600" />
+                                                </div>
+                                            )}
                                             {chat.user?.isOnline && (
                                                 <span className="absolute bottom-0 right-0 block w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
                                             )}

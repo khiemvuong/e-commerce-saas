@@ -3,6 +3,12 @@
  */
 
 import prisma from '@packages/libs/prisma';
+import {
+    CACHE_TTL,
+    CACHE_PREFIX,
+    generateCacheKey,
+    getOrSetCache,
+} from '@packages/libs/cache-manager';
 
 /**
  * Input for filtering shops
@@ -25,9 +31,9 @@ const parseArrayInput = (input: string | string[] | undefined): string[] => {
 };
 
 /**
- * Get filtered shops with pagination
+ * Get filtered shops with pagination (internal - no cache)
  */
-export const getFilteredShops = async (input: GetFilteredShopsInput = {}) => {
+const getFilteredShopsInternal = async (input: GetFilteredShopsInput = {}) => {
     const {
         search,
         categories,
@@ -125,5 +131,33 @@ export const getFilteredShops = async (input: GetFilteredShopsInput = {}) => {
             page: parsedPage,
             totalPages: Math.ceil(total / parsedLimit)
         }
+    };
+};
+
+/**
+ * Cached version of getFilteredShops
+ * TTL: 10 minutes (same as products)
+ */
+export const getFilteredShops = async (input: GetFilteredShopsInput = {}) => {
+    const cacheKey = generateCacheKey(`${CACHE_PREFIX.SHOP}:filtered`, {
+        search: input.search,
+        categories: input.categories,
+        countries: input.countries,
+        page: input.page || 1,
+        limit: input.limit || 12,
+    });
+
+    const result = await getOrSetCache(
+        cacheKey,
+        () => getFilteredShopsInternal(input),
+        CACHE_TTL.PRODUCTS_LIST // 10 minutes
+    );
+
+    return {
+        ...result.data,
+        _cacheInfo: {
+            fromCache: result.fromCache,
+            responseTime: result.responseTime,
+        },
     };
 };

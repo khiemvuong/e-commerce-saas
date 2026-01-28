@@ -8,6 +8,18 @@
 import { Request, Response, NextFunction } from 'express';
 import redis from '../libs/redis';
 
+// WebSocket broadcast functions (will be set from product-service)
+let broadcastMetricsFunc: ((data: any) => void) | null = null;
+let broadcastSummaryFunc: ((data: any) => void) | null = null;
+
+export const setBroadcastFunction = (func: (data: any) => void) => {
+    broadcastMetricsFunc = func;
+};
+
+export const setBroadcastSummaryFunction = (func: (data: any) => void) => {
+    broadcastSummaryFunc = func;
+};
+
 
 // Metrics storage key prefix
 const METRICS_PREFIX = 'perf:metrics';
@@ -58,6 +70,18 @@ const flushMetricsBuffer = async (): Promise<void> => {
     try {
         const key = `${METRICS_PREFIX}:buffer:${Date.now()}`;
         await redis.setex(key, METRICS_TTL, JSON.stringify(toFlush));
+        
+        // Broadcast new metrics to WebSocket clients
+        if (broadcastMetricsFunc && toFlush.length > 0) {
+            broadcastMetricsFunc(toFlush);
+        }
+        
+        // After flushing, broadcast updated summary to WebSocket clients
+        if (broadcastSummaryFunc && toFlush.length > 0) {
+            // Get updated summary and broadcast it
+            const summary = await getPerformanceSummary();
+            broadcastSummaryFunc(summary);
+        }
     } catch (error) {
         console.error('Failed to flush metrics buffer:', error);
         // Put items back in buffer on failure
@@ -74,6 +98,11 @@ setInterval(flushMetricsBuffer, BUFFER_FLUSH_INTERVAL);
  */
 export const performanceTracker = () => {
     return (req: Request, res: Response, next: NextFunction): void => {
+        // Skip tracking for metrics API endpoints to avoid tracking the metrics themselves
+        if (req.path.startsWith('/api/metrics')) {
+            return next();
+        }
+        
         const startTime = process.hrtime.bigint();
         const startTimestamp = Date.now();
         
@@ -101,8 +130,13 @@ export const performanceTracker = () => {
             const responseTimeMs = responseTimeNs / 1_000_000;
             
             // Create metric record
+            // Prefer route pattern if available, otherwise use actual path
+            // Strip query params and ensure we have a valid path
+            const rawPath = req.route?.path || req.path || req.url?.split('?')[0] || '/unknown';
+            const cleanPath = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+            
             const metric: PerformanceMetric = {
-                endpoint: req.route?.path || req.path,
+                endpoint: cleanPath,
                 method: req.method,
                 responseTime: Math.round(responseTimeMs * 100) / 100,
                 statusCode: res.statusCode,
@@ -251,6 +285,35 @@ export const getPerformanceSummary = async (): Promise<{
         cacheHitRate: totalRequests > 0 ? (cacheHits / totalRequests) * 100 : 0,
         lastHour: Array.from(stats.values()),
     };
+};
+
+/**
+ * Reset all performance metrics from Redis
+ * Deletes all metric buffer keys to clear historical data
+ */
+export const resetPerformanceMetrics = async (): Promise<{ deletedKeys: number }> => {
+    try {
+        // Clear in-memory buffer first
+        metricsBuffer = [];
+        
+        // Delete all metric buffer keys from Redis
+        const keys = await redis.keys(`${METRICS_PREFIX}:*`);
+        
+        if (keys.length === 0) {
+            return { deletedKeys: 0 };
+        }
+        
+        // Delete all matching keys
+        for (const key of keys) {
+            await redis.del(key);
+        }
+        
+        console.log(`✓ Reset performance metrics: deleted ${keys.length} Redis keys`);
+        return { deletedKeys: keys.length };
+    } catch (error) {
+        console.error('Failed to reset performance metrics:', error);
+        throw error;
+    }
 };
 
 export default performanceTracker;

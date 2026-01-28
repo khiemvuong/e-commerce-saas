@@ -27,6 +27,7 @@ const ProductsContent = () => {
     
     // Search keyword state
     const [searchKeyword, setSearchKeyword] = useState('');
+    const [didYouMean, setDidYouMean] = useState<string | null>(null);
     
     // Temp states for filters (before Apply is clicked)
     const [tempPriceRange, setTempPriceRange] = useState([0, 1199]);
@@ -126,33 +127,56 @@ const ProductsContent = () => {
     const fetchFilteredProducts = async (signal?: AbortSignal) => {
         setIsProductLoading(true);
         try {
+            // Use enhanced-search API when there's a search keyword for better fuzzy matching
+            const useEnhancedSearch = searchKeyword && searchKeyword.trim().length > 0;
+            
             const query = new URLSearchParams();
 
-            // Add search keyword
-            if (searchKeyword) {
-                query.set("search", searchKeyword);
-            }
+            if (useEnhancedSearch) {
+                // Enhanced search with fuzzy matching and didYouMean
+                query.set("keyword", searchKeyword);
+                query.set("page", page.toString());
+                query.set("limit", "12");
+                
+                const res = await axiosInstance.get(
+                    `/product/api/enhanced-search?${query.toString()}`,
+                    { signal }
+                );
+                
+                // Extract didYouMean suggestion
+                setDidYouMean(res.data.didYouMean || null);
+                setProducts(res.data.products);
+                setTotalPages(res.data.pagination.totalPages);
+                setTotalProducts(res.data.pagination.total);
+            } else {
+                // Regular filtered search
+                // Add search keyword
+                if (searchKeyword) {
+                    query.set("search", searchKeyword);
+                }
 
-            // Only send priceRange if it's not default
-            if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
-                query.set("priceRange", priceRange.join(","));
+                // Only send priceRange if it's not default
+                if (priceRange[0] !== 0 || priceRange[1] !== 1199) {
+                    query.set("priceRange", priceRange.join(","));
+                }
+                if (selectedCategories.length > 0) 
+                    query.set("categories", selectedCategories.join(","));
+                if (selectedColors.length > 0)
+                    query.set("colors", selectedColors.join(","));
+                if (selectedSizes.length > 0) 
+                    query.set("sizes", selectedSizes.join(","));
+                query.set("page", page.toString());
+                query.set("limit", "12");
+                
+                const res = await axiosInstance.get(
+                    `/product/api/get-filtered-products?${query.toString()}`,
+                    { signal }
+                );
+                setDidYouMean(null);
+                setProducts(res.data.products);
+                setTotalPages(res.data.pagination.totalPages);
+                setTotalProducts(res.data.pagination.total);
             }
-            if (selectedCategories.length > 0) 
-                query.set("categories", selectedCategories.join(","));
-            if (selectedColors.length > 0)
-                query.set("colors", selectedColors.join(","));
-            if (selectedSizes.length > 0) 
-                query.set("sizes", selectedSizes.join(","));
-            query.set("page", page.toString());
-            query.set("limit", "12");
-            
-            const res = await axiosInstance.get(
-                `/product/api/get-filtered-products?${query.toString()}`,
-                { signal }
-            );
-            setProducts(res.data.products);
-            setTotalPages(res.data.pagination.totalPages);
-            setTotalProducts(res.data.pagination.total);
             setIsProductLoading(false);
         } catch (error) {
             if ((error as any).name !== 'CanceledError') {
@@ -487,6 +511,27 @@ const ProductsContent = () => {
                 {/* Search Results Header */}
                 {searchKeyword ? (
                     <div className="mb-6">
+                        {/* Did You Mean Suggestion */}
+                        {didYouMean && (
+                            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2">
+                                    <Search size={18} className="text-blue-600" />
+                                    <p className="text-sm text-gray-700">
+                                        Có phải bạn muốn tìm:{" "}
+                                        <button
+                                            onClick={() => {
+                                                setSearchKeyword(didYouMean);
+                                                setPage(1);
+                                            }}
+                                            className="font-semibold text-blue-600 hover:underline"
+                                        >
+                                            {didYouMean}
+                                        </button>
+                                        ?
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-center gap-3 mb-2">
                             <Search size={24} className="text-[#C9A86C]" />
                             <h1 className="font-medium text-[28px] lg:text-[40px] leading-tight">

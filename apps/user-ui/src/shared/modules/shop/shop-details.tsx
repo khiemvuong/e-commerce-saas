@@ -275,12 +275,6 @@ const ShopDetails = ({ shop }: { shop: any }) => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                             {shop.events.map((event: any) => (
                                 <div key={event.id} className="relative">
-                                    {/* Event Date Badge */}
-                                    {event.starting_date && event.ending_date && (
-                                        <div className="absolute top-2 left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                                            {new Date(event.starting_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} - {new Date(event.ending_date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
-                                        </div>
-                                    )}
                                     <ProductCard product={event} />
                                 </div>
                             ))}

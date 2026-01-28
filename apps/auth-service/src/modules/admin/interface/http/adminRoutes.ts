@@ -15,7 +15,7 @@ const refreshLimiter = rateLimit({
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 5, // 5 requests per 15 minutes
     message: 'Too many login attempts, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
@@ -23,7 +23,7 @@ const loginLimiter = rateLimit({
 
 const twoFALimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 10, // 10 requests per 15 minutes
     message: 'Too many 2FA requests, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
@@ -31,7 +31,7 @@ const twoFALimiter = rateLimit({
 
 const forgotPasswordLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 5, // 5 requests per 15 minutes
     message: 'Too many password reset requests, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
