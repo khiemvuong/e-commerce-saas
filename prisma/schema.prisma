@@ -206,25 +206,30 @@ model products {
   title                 String
   slug                  String            @unique
   category              String
-  sub_category          String
-  short_description     String
-  detailed_description  String
+  sub_category          String? // Optional for backward compatibility
+  subCategory           String? // New field name
+  short_description     String? // Optional for backward compatibility
+  detailed_description  String? // Optional for backward compatibility
   images                images[]
   video_url             String?
   tags                  String[]
   brand                 String?
   colors                String[]
   sizes                 String[]
+  gender                String? // New field: men/women/unisex/kids
   starting_date         DateTime?
   ending_date           DateTime?
   stock                 Int
-  sale_price            Float
-  regular_price         Float
+  sale_price            Float? // Optional for backward compatibility
+  price                 Float? // New field name
+  regular_price         Float? // Optional for backward compatibility
+  compareAtPrice        Float? // New field name
   rating                Float             @default(5)
   warranty              String?
   custom_specifications Json?
   custom_properties     Json?
   isDeleted             Boolean?          @default(false)
+  isPublic              Boolean?          @default(true) // New field for visibility
   cash_on_delivery      String?
   discount_codes        String[]          @db.ObjectId
   status                productStatus     @default(Active)
@@ -242,6 +247,8 @@ model products {
   @@index([totalSales])
   @@index([createdAt])
   @@index([sale_price])
+  @@index([gender])
+  @@index([isPublic])
 }
 
 // Product Analytics - Track product performance metrics

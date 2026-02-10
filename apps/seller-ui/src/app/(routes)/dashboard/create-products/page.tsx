@@ -508,6 +508,43 @@ const handleCropComplete = async (croppedFile: File) => {
                 {errors.cash_on_delivery &&<p className="text-red-500 text-sm mt-1">{errors.cash_on_delivery.message as string}
                 </p>}
               </div>
+
+              {/* Gender Field */}
+              <div className="mt-2">
+                <label className="block font-semibold text-gray-300 mb-1">
+                  Gender (Optional)
+                </label>
+                <select 
+                  {...register('gender')}
+                  className="w-full px-4 py-2 bg-[#1e1e1e] border border-gray-600 rounded-lg focus:outline-none focus:border-gray-500 text-gray-200">
+                  <option value="" className="bg-black">Select Gender...</option>
+                  <option value="men" className="bg-black">Men</option>
+                  <option value="women" className="bg-black">Women</option>
+                  <option value="unisex" className="bg-black">Unisex</option>
+                  <option value="kids" className="bg-black">Kids</option>
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Select gender to improve product discoverability
+                </p>
+              </div>
+
+              {/* Publish Status */}
+              <div className="mt-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    {...register('isPublic')}
+                    defaultChecked={true}
+                    className="w-4 h-4 rounded border-gray-600 bg-[#1e1e1e] text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0"
+                  />
+                  <span className="font-semibold text-gray-300">
+                    Publish Immediately
+                  </span>
+                </label>
+                <p className="text-xs text-gray-400 mt-1 ml-6">
+                  Uncheck to save as draft
+                </p>
+              </div>
               <div/>
             </div>
             <div className="w-2/4">

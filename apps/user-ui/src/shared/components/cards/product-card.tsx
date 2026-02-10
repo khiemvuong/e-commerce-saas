@@ -190,13 +190,28 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                             <span className="text-xl font-bold text-[#C9A86C]">
-                                ${product?.sale_price ? product?.sale_price.toFixed(2) : product?.regular_price.toFixed(2)}
+                                ${(() => {
+                                    // Support both old and new field names
+                                    const salePrice = product?.sale_price ?? product?.price;
+                                    const regularPrice = product?.regular_price ?? product?.compareAtPrice;
+                                    const displayPrice = salePrice || regularPrice || 0;
+                                    return displayPrice.toFixed(2);
+                                })()}
                             </span>
-                            {product?.sale_price && (
-                                <span className="text-sm text-gray-400 line-through">
-                                    ${product?.regular_price.toFixed(2)}
-                                </span>
-                            )}
+                            {(() => {
+                                const salePrice = product?.sale_price ?? product?.price;
+                                const regularPrice = product?.regular_price ?? product?.compareAtPrice;
+                                const hasDiscount = salePrice && regularPrice && salePrice < regularPrice;
+                                
+                                if (hasDiscount) {
+                                    return (
+                                        <span className="text-sm text-gray-400 line-through">
+                                            ${regularPrice.toFixed(2)}
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded-full">
                             {formatSales(product?.totalSales || 0)} sold

@@ -517,7 +517,7 @@ const ProductsContent = () => {
                                 <div className="flex items-center gap-2">
                                     <Search size={18} className="text-blue-600" />
                                     <p className="text-sm text-gray-700">
-                                        Có phải bạn muốn tìm:{" "}
+                                        Did you mean:{" "}
                                         <button
                                             onClick={() => {
                                                 setSearchKeyword(didYouMean);
@@ -535,12 +535,12 @@ const ProductsContent = () => {
                         <div className="flex items-center gap-3 mb-2">
                             <Search size={24} className="text-[#C9A86C]" />
                             <h1 className="font-medium text-[28px] lg:text-[40px] leading-tight">
-                                Kết quả tìm kiếm
+                                Search results
                             </h1>
                         </div>
                         <div className="flex items-center gap-3 flex-wrap">
                             <p className="text-gray-600">
-                                Tìm thấy <span className="font-semibold text-[#C9A86C]">{totalProducts}</span> sản phẩm cho từ khóa:
+                                Found <span className="font-semibold text-[#C9A86C]">{totalProducts}</span> products for the keyword:
                             </p>
                             <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#C9A86C]/10 text-[#C9A86C] rounded-full font-medium">
                                 <Search size={14} />
@@ -548,7 +548,7 @@ const ProductsContent = () => {
                                 <button 
                                     onClick={clearSearch}
                                     className="ml-1 p-0.5 hover:bg-[#C9A86C]/20 rounded-full transition-colors"
-                                    title="Xóa tìm kiếm"
+                                    title="Clear search"
                                 >
                                     <X size={14} />
                                 </button>
@@ -573,10 +573,10 @@ const ProductsContent = () => {
             ) : (
                 <div className="flex flex-col items-center justify-center py-16">
                     <Search size={48} className="text-gray-300 mb-4" />
-                    <p className="text-lg text-gray-500 mb-2">Không tìm thấy sản phẩm nào</p>
+                    <p className="text-lg text-gray-500 mb-2">No products found</p>
                     {searchKeyword && (
                         <p className="text-sm text-gray-400 mb-4">
-                            Thử tìm kiếm với từ khóa khác hoặc xóa bộ lọc
+                            Try searching with a different keyword or clear the filter
                         </p>
                     )}
                     {searchKeyword && (
@@ -584,7 +584,7 @@ const ProductsContent = () => {
                             onClick={clearSearch}
                             className="px-4 py-2 bg-[#C9A86C] text-white rounded-lg hover:bg-[#b89a5c] transition-colors"
                         >
-                            Xóa tìm kiếm
+                            Clear search
                         </button>
                     )}
                 </div>

@@ -66,14 +66,19 @@ export const getFilteredProducts = async (
         { isDeleted: false },
     ];
 
+    // Add isPublic filter
+    andConditions.push({
+        OR: [
+            { isPublic: true },
+            { isPublic: null }, // For old products without isPublic field
+        ],
+    });
+
     // When searching, include both products and events
     // When browsing without search, only show regular products (not events)
-    if (!search || search.trim().length === 0) {
-        andConditions.push(
-            { starting_date: null },
-            { ending_date: null },
-        );
-    }
+    // Note: We don't filter by starting_date/ending_date anymore because:
+    // 1. Many products don't have these fields (they're not events)
+    // 2. Products without these fields should still be shown
 
     // Search keyword filter - search in title, description, tags, brand
     if (search && search.trim().length > 0) {
@@ -89,35 +94,50 @@ export const getFilteredProducts = async (
         });
     }
 
-    const filters: Record<string, any> = {
-        AND: andConditions,
-    };
-
-    // Price range filter
+    // Price range filter - support both old and new field names
     if (priceRange && typeof priceRange === 'string' && priceRange.length > 0) {
         const [min, max] = priceRange.split(',').map(Number);
         if (!isNaN(min) && !isNaN(max)) {
-            filters.sale_price = { gte: min, lte: max };
+            // Check for either sale_price or price
+            andConditions.push({
+                OR: [
+                    { sale_price: { gte: min, lte: max } },
+                    { price: { gte: min, lte: max } },
+                ],
+            });
         }
     }
 
-    // Categories filter
+    // Categories filter - Case-insensitive to handle both "clothing" and "Clothing"
     const parsedCategories = parseArrayInput(categories);
     if (parsedCategories.length > 0) {
-        filters.category = { in: parsedCategories };
+        andConditions.push({
+            OR: parsedCategories.map(cat => ({
+                category: { equals: cat, mode: 'insensitive' }
+            }))
+        });
     }
 
     // Colors filter
     const parsedColors = parseArrayInput(colors);
     if (parsedColors.length > 0) {
-        filters.colors = { hasSome: parsedColors };
+        andConditions.push({
+            colors: { hasSome: parsedColors },
+        });
     }
 
     // Sizes filter
     const parsedSizes = parseArrayInput(sizes);
     if (parsedSizes.length > 0) {
-        filters.sizes = { hasSome: parsedSizes };
+        andConditions.push({
+            sizes: { hasSome: parsedSizes },
+        });
     }
+
+    // Build final filter
+    const filters: Record<string, any> = {
+        AND: andConditions,
+    };
 
     // Execute queries
     const [products, total] = await Promise.all([

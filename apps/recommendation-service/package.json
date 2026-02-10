@@ -2,6 +2,9 @@
   "name": "@eshop/recommendation-service",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "test:phase1": "npx ts-node src/__tests__/run-phase1-tests.ts"
+  },
   "nx": {
     "targets": {
       "prune-lockfile": {
@@ -62,5 +65,10 @@
   },
   "dependencies": {
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2"
   }
 }

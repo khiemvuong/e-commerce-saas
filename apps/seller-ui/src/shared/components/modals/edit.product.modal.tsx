@@ -49,6 +49,8 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
             sale_price: product?.sale_price || 0,
             regular_price: product?.regular_price || 0,
             cash_on_delivery: product?.cash_on_delivery || 'yes',
+            gender: product?.gender || '',
+            isPublic: product?.isPublic ?? true,
             colors: product?.colors || [],
             sizes: product?.sizes || [],
             custom_specifications: product?.custom_specifications || [],
@@ -420,6 +422,36 @@ const EditProductModal = ({ product, onClose }: EditProductModalProps) => {
                                                 <option value="yes">Yes</option>
                                                 <option value="no">No</option>
                                             </select>
+                                        </div>
+
+                                        {/* Gender Field */}
+                                        <div>
+                                            <label className="block font-semibold text-gray-300 mb-1">Gender (Optional)</label>
+                                            <select
+                                                {...register('gender')}
+                                                className="w-full px-4 py-2 bg-[#1e1e1e] border border-gray-600 rounded-lg text-gray-200"
+                                            >
+                                                <option value="">Select Gender...</option>
+                                                <option value="men">Men</option>
+                                                <option value="women">Women</option>
+                                                <option value="unisex">Unisex</option>
+                                                <option value="kids">Kids</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Publish Status */}
+                                        <div>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    {...register('isPublic')}
+                                                    className="w-4 h-4 rounded border-gray-600 bg-[#1e1e1e] text-blue-600"
+                                                />
+                                                <span className="font-semibold text-gray-300">Published</span>
+                                            </label>
+                                            <p className="text-xs text-gray-400 mt-1 ml-6">
+                                                Uncheck to save as draft
+                                            </p>
                                         </div>
                                     </div>
 

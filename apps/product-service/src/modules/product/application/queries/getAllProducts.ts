@@ -30,16 +30,23 @@ export interface GetAllProductsOutput {
 
 /**
  * Get all products with pagination
+ * Updated to support both old and new schema
  */
 export const getAllProducts = async (input: GetAllProductsInput = {}): Promise<GetAllProductsOutput> => {
     const { page = 1, limit = 20, type = 'topSales' } = input;
 
     const skip = Math.max(0, (page - 1) * limit);
 
-    // Base filter: exclude deleted products and events
+    // Base filter: exclude deleted products and events, include only public products
     const baseFilter = {
         AND: [
             { isDeleted: false },
+            {
+                OR: [
+                    { isPublic: true },
+                    { isPublic: null }, // For old products without isPublic field
+                ],
+            },
             { starting_date: null },
             { ending_date: null },
         ],
@@ -70,7 +77,9 @@ export const getAllProducts = async (input: GetAllProductsInput = {}): Promise<G
                 title: true,
                 slug: true,
                 sale_price: true,
+                price: true,
                 regular_price: true,
+                compareAtPrice: true,
                 rating: true,
                 totalSales: true,
                 images: { take: 1, select: { file_url: true } },

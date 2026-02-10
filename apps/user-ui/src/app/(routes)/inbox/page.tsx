@@ -5,7 +5,7 @@ import useRequiredAuth from "apps/user-ui/src/hooks/useRequiredAuth";
 import ChatInput from "apps/user-ui/src/shared/components/chats/chatinput";
 import PageLoader from "apps/user-ui/src/shared/components/loading/page-loader";
 import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
-import { Send, ArrowLeft } from "lucide-react";
+import { Send, ArrowLeft, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
@@ -250,7 +250,7 @@ const Page = () => {
                                             className={`w-full text-left px-4 py-3 transition hover:bg-blue-50 flex items-center gap-3 ${isActive ? "bg-blue-100" : ""
                                                 }`}
                                         >
-                                            <div className="relative">
+                                            {/* <div className="relative">
                                                 <Image
                                                     src={chat.seller.avatar || "/default-avatar.png"}
                                                     alt={chat.seller.name}
@@ -261,7 +261,25 @@ const Page = () => {
                                                 {chat.seller?.isOnline && (
                                                     <span className="absolute bottom-0 right-0 block w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></span>
                                                 )}
-                                            </div>
+                                            </div> */}
+                                             <div className="relative">
+                                            {chat.seller?.avatar ? (
+                                                <Image
+                                                    src={chat.seller.avatar}
+                                                    alt={chat.seller?.name || "Seller"}
+                                                    width={44}
+                                                    height={44}
+                                                    className="rounded-full object-cover w-11 h-11 border border-gray-200"
+                                                />
+                                            ) : (
+                                                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-200 flex items-center justify-center">
+                                                    <User className="w-6 h-6 text-indigo-600" />
+                                                </div>
+                                            )}
+                                            {chat.seller?.isOnline && (
+                                                <span className="absolute bottom-0 right-0 block w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                                            )}
+                                        </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex justify-between items-baseline">
                                                     <span className="font-medium text-gray-900 truncate">
@@ -292,13 +310,19 @@ const Page = () => {
                                     >
                                         <ArrowLeft size={20} className="text-gray-600" />
                                     </button>
-                                    <Image
-                                        src={selectedChat.seller.avatar || "/default-avatar.png"}
-                                        alt={selectedChat.seller.name}
-                                        width={40}
-                                        height={40}
+                                    {selectedChat.seller?.avatar ? (
+                                        <Image
+                                            src={selectedChat.seller.avatar || "/default-avatar.png"}
+                                            alt={selectedChat.seller.name}
+                                            width={40}
+                                            height={40}
                                         className="rounded-full object-cover w-10 h-10"
                                     />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 border border-indigo-200 flex items-center justify-center">
+                                            <User className="w-6 h-6 text-indigo-600" />
+                                        </div>
+                                    )}
                                     <div>
                                         <h3 className="font-semibold text-gray-900">
                                             {selectedChat.seller.name}

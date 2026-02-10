@@ -221,13 +221,28 @@ const ProductDetailsCard = ({ data, setOpen }: { data: any, setOpen: (open: bool
                         {/*Price*/}
                         <div className="mt-1 flex items-center gap-4">
                             <span className="text-2xl font-semibold  text-gray-900">
-                                ${data?.sale_price ? data?.sale_price.toFixed(2) : (data?.regular_price || 0).toFixed(2)}
+                                ${(() => {
+                                    // Support both old and new field names
+                                    const salePrice = data?.sale_price ?? data?.price;
+                                    const regularPrice = data?.regular_price ?? data?.compareAtPrice;
+                                    const displayPrice = salePrice || regularPrice || 0;
+                                    return displayPrice.toFixed(2);
+                                })()}
                             </span>
-                            {data?.sale_price && (
-                                <span className="text-lg text-gray-500 line-through">
-                                    ${(data?.regular_price || 0).toFixed(2)}
-                                </span>
-                            )}
+                            {(() => {
+                                const salePrice = data?.sale_price ?? data?.price;
+                                const regularPrice = data?.regular_price ?? data?.compareAtPrice;
+                                const hasDiscount = salePrice && regularPrice && salePrice < regularPrice;
+                                
+                                if (hasDiscount) {
+                                    return (
+                                        <span className="text-lg text-gray-500 line-through">
+                                            ${regularPrice.toFixed(2)}
+                                        </span>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
                         {/*Product details*/}
                         <div className="text-sm text-gray-500 mt-2">
