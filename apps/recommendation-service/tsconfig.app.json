@@ -4,9 +4,11 @@
     "outDir": "dist",
     "types": [
       "node",
-      "express"
+      "express",
+      "jest"
     ],
     "rootDir": "src",
+    "esModuleInterop": true,
     "tsBuildInfoFile": "dist/tsconfig.app.tsbuildinfo"
   },
   "include": [

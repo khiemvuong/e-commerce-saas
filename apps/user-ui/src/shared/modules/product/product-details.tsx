@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
 import { optimizeImageUrl, IMAGE_PRESETS } from 'apps/user-ui/src/utils/imageOptimizer';
 import toast from 'react-hot-toast';
+import { getProductPrices } from 'apps/user-ui/src/utils/productPriceUtils';
 
 // Skeleton component for product cards
 const ProductCardSkeleton = () => (
@@ -54,7 +55,9 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
     const recommendationsRef = useRef<HTMLDivElement>(null);
     const hasTrackedView = useRef(false);
 
-    const discountPercentage = productDetails?.regular_price && productDetails?.sale_price ? Math.round(((productDetails?.regular_price - productDetails?.sale_price) / productDetails?.regular_price) * 100) : 0;
+    // Get normalized prices using helper
+    const productPrices = getProductPrices(productDetails);
+    const discountPercentage = productPrices.discountPercent;
     
     const fetchRecommendedProducts = useCallback(async () => {
         if (hasLoadedRecommendations || isRecommendationsLoading) return;
@@ -64,7 +67,7 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
             const query = new URLSearchParams();
             
             // Tính price range linh hoạt dựa trên giá sản phẩm
-            const basePrice = productDetails?.sale_price || productDetails?.regular_price || 100;
+            const basePrice = productPrices.displayPrice || 100;
             const minPrice = Math.max(0, basePrice - 200);
             const maxPrice = basePrice + 200;
             
@@ -310,11 +313,11 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                         
                         <div className="flex items-baseline gap-4 pt-2">
                             <span className="text-4xl font-bold text-[#C9A86C]">
-                                ${productDetails?.sale_price?.toLocaleString()}
+                                ${productPrices.displayPrice.toLocaleString()}
                             </span>
-                            {productDetails?.regular_price && productDetails.regular_price > productDetails.sale_price && (
+                            {productPrices.hasDiscount && (
                                 <span className="text-xl text-gray-400 line-through decoration-gray-400/50">
-                                    ${productDetails.regular_price.toLocaleString()}
+                                    ${productPrices.regularPrice.toLocaleString()}
                                 </span>
                             )}
                         </div>

@@ -33,8 +33,10 @@ interface DashboardData {
     topProducts: Array<{
         id: string;
         title: string;
-        sale_price: number;
-        regular_price: number;
+        sale_price?: number;  // Optional for backward compatibility
+        price?: number;       // New field name
+        regular_price?: number;  // Optional for backward compatibility
+        compareAtPrice?: number; // New field name
         totalSales: number;
         stock: number;
         trend: number;
@@ -236,7 +238,15 @@ const SellerDashboard = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-sm font-semibold text-white">${product.sale_price || product.regular_price}</p>
+                                        <p className="text-sm font-semibold text-white">
+                                            ${(() => {
+                                                // Support both old and new field names
+                                                const salePrice = product.sale_price ?? product.price;
+                                                const regularPrice = product.regular_price ?? product.compareAtPrice;
+                                                const displayPrice = salePrice || regularPrice || 0;
+                                                return displayPrice.toFixed(2);
+                                            })()}
+                                        </p>
                                         {product.stock < 10 && (
                                             <p className="text-xs text-amber-400">{product.stock} left</p>
                                         )}

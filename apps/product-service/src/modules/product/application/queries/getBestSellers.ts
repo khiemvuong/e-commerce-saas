@@ -16,6 +16,7 @@ export interface GetBestSellersInput {
 
 /**
  * Get best selling products
+ * Updated to support both old and new schema, and include products with zero sales
  */
 export const getBestSellers = async (input: GetBestSellersInput = {}) => {
     const { limit = 8 } = input;
@@ -24,11 +25,18 @@ export const getBestSellers = async (input: GetBestSellersInput = {}) => {
         take: limit,
         where: {
             isDeleted: false,
+            OR: [
+                { isPublic: true },
+                { isPublic: null }, // For old products without isPublic field
+            ],
             starting_date: null,
             ending_date: null,
-            totalSales: { gt: 0 },
+            // Removed totalSales > 0 requirement to include new products
         },
-        orderBy: { totalSales: 'desc' },
+        orderBy: [
+            { totalSales: 'desc' },
+            { createdAt: 'desc' }, // Newer products appear first for same sales
+        ],
         select: {
             ...PRODUCT_CARD_SELECT,
             short_description: true,

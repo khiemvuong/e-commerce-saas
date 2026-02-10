@@ -105,8 +105,12 @@ const ProductList = () => {
             {
                 header:'Price',
                 accessorKey:'price',
-                cell:({row}:any) => (<span>{`$${row.original.sale_price.toFixed(2)}`}</span>
-            ),
+                cell:({row}:any) => {
+                    const salePrice = row.original.sale_price ?? row.original.price;
+                    const regularPrice = row.original.regular_price ?? row.original.compareAtPrice;
+                    const displayPrice = salePrice || regularPrice || 0;
+                    return <span>{`$${displayPrice.toFixed(2)}`}</span>;
+                }
             },
             {
                 header:'Stock',

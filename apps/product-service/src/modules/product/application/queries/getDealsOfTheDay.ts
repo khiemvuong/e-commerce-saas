@@ -16,38 +16,63 @@ export interface GetDealsOfTheDayInput {
 
 /**
  * Get deals of the day (products with best discounts)
+ * Updated to support both old and new schema
  */
 export const getDealsOfTheDay = async (input: GetDealsOfTheDayInput = {}) => {
     const { limit = 6 } = input;
 
-    // Get products with sale_price (discounted products)
+    // Get products with sale_price or price (discounted products)
     const products = await prisma.products.findMany({
-        take: limit * 2, // Get more to filter
+        take: 50,
         where: {
-            isDeleted: false,
-            starting_date: null,
-            ending_date: null,
-            sale_price: { gt: 0 },
-            stock: { gt: 0 },
+            AND: [
+                { isDeleted: false },
+                {
+                    OR: [
+                        { isPublic: true },
+                        { isPublic: null },
+                    ],
+                },
+                { starting_date: null },
+                { ending_date: null },
+                {
+                    OR: [
+                        { sale_price: { gt: 0 } },
+                        { price: { gt: 0 } },
+                    ],
+                },
+                { stock: { gt: 0 } },
+            ],
         },
         orderBy: { updatedAt: 'desc' },
         select: {
             ...PRODUCT_CARD_SELECT,
             short_description: true,
+            compareAtPrice: true,
+            price: true,
         },
     });
 
     // Calculate discount percentage and sort
     const productsWithDiscount = products
-        .map(product => ({
-            ...product,
-            discountPercentage: product.sale_price 
-                ? Math.round(((product.regular_price - product.sale_price) / product.regular_price) * 100)
-                : 0,
-        }))
-        .filter(p => p.discountPercentage > 0)
-        .sort((a, b) => b.discountPercentage - a.discountPercentage)
-        .slice(0, limit);
+        .map(product => {
+            // Support both old and new field names
+            const salePrice = product.sale_price || product.price || 0;
+            const regularPrice = product.regular_price || product.compareAtPrice || salePrice;
+            
+            const discountPercentage = salePrice && regularPrice > salePrice
+                ? Math.round(((regularPrice - salePrice) / regularPrice) * 100)
+                : 0;
 
-    return { products: productsWithDiscount };
+            return {
+                ...product,
+                discountPercentage,
+            };
+        })
+        .filter(p => p.discountPercentage > 0)
+        .sort((a, b) => b.discountPercentage - a.discountPercentage);
+    
+    const topDeals = productsWithDiscount.slice(0, limit);
+
+    return { products: topDeals };
 };

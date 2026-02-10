@@ -16,6 +16,9 @@ const nextConfig = {
       {
         hostname: 'ik.imagekit.io',
       },
+      {
+        hostname: 'bunchobagels.com',
+      },
     ],
   },
   // Suppress HMR WebSocket connection warnings

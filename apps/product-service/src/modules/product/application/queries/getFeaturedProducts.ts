@@ -1,4 +1,4 @@
-/**
+    /**
  * Get Featured Products Query
  * 
  * Fetches products with highest ratings for featured display.
@@ -16,6 +16,7 @@ export interface GetFeaturedProductsInput {
 
 /**
  * Get featured products (highest rated)
+ * Updated to include isPublic filter
  */
 export const getFeaturedProducts = async (input: GetFeaturedProductsInput = {}) => {
     const { limit = 8 } = input;
@@ -24,6 +25,10 @@ export const getFeaturedProducts = async (input: GetFeaturedProductsInput = {}) 
         take: limit,
         where: {
             isDeleted: false,
+            OR: [
+                { isPublic: true },
+                { isPublic: null },
+            ],
             starting_date: null,
             ending_date: null,
             rating: { gte: 4 },
@@ -31,6 +36,7 @@ export const getFeaturedProducts = async (input: GetFeaturedProductsInput = {}) 
         orderBy: [
             { rating: 'desc' },
             { totalSales: 'desc' },
+            { createdAt: 'desc' }, // Newer products appear for same rating/sales
         ],
         select: {
             ...PRODUCT_CARD_SELECT,
