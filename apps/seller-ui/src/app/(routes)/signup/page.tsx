@@ -26,7 +26,7 @@ const Signup = () => {
     const [sellerId, setSellerId] = useState("");
     const [isStripeLoading, setIsStripeLoading] = useState(false);
     
-    const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
+    const { data: siteConfig } = useSiteConfig();
     const countries = siteConfig?.countries || [];
     const startResendTimer = () => {
         const interval = setInterval(() => {

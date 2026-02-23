@@ -89,7 +89,7 @@ export const sellerController = {
             if (error.code === 'P2002') {
                 return res.status(409).json({ message: 'Duplicate field in DB' });
             }
-            next(error);
+            return next(error);
         }
     },
 
@@ -107,13 +107,13 @@ export const sellerController = {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
             const result = await enable2FA({ sellerId: req.seller.id });
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
                 message: 'Scan the QR code with your authenticator app',
                 ...result,
             });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     },
 
@@ -130,9 +130,9 @@ export const sellerController = {
                 sellerId: req.seller.id,
                 totpCode: req.body.code,
             });
-            res.status(200).json(result);
+            return res.status(200).json(result);
         } catch (error) {
-            next(error);
+            return next(error);
         }
     },
 
@@ -149,9 +149,9 @@ export const sellerController = {
                 sellerId: req.seller.id,
                 password: req.body.password,
             });
-            res.status(200).json(result);
+            return res.status(200).json(result);
         } catch (error) {
-            next(error);
+            return next(error);
         }
     },
 
@@ -164,11 +164,11 @@ export const sellerController = {
             if (!req.seller?.id) {
                 return res.status(401).json({ message: 'Unauthorized' });
             }
-            res.status(200).json({
+            return res.status(200).json({
                 enabled: req.seller.twoFactorEnabled || false,
             });
         } catch (error) {
-            next(error);
+            return next(error);
         }
     },
 

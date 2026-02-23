@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 const SellerInboxPage = () => {
     const searchParams = useSearchParams();
-    const { seller, isLoading: sellerLoading } = useSeller(); 
+    const { seller } = useSeller(); 
     const router = useRouter();
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null);

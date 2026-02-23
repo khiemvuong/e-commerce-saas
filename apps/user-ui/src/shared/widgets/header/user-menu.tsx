@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { User2Icon } from "lucide-react";
 
-interface UserMenuProps {
-    user: any;
-}
 
 const UserMenu = ({ user, isTransparent = false }: { user: any, isTransparent?: boolean }) => {
     if (user) {

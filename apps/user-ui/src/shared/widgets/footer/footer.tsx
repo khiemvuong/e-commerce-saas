@@ -17,7 +17,7 @@ const Footer = () => {
     gcTime: 15 * 60 * 1000, // 15 minutes (formerly cacheTime)
   });
 
-  if(pathname==='/inbox') return null;
+  if(pathname === '/inbox') return null;
 
   const logos = (customizationData?.images?.filter((img: any) => img.type === 'logo') || [])
     .sort((a: any, b: any) => a.id.localeCompare(b.id));

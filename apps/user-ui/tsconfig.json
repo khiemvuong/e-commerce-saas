@@ -52,6 +52,8 @@
     "jest.config.ts",
     "src/**/*.spec.ts",
     "src/**/*.test.ts",
-    ".next"
+    ".next",
+    "../../packages/middleware/**",
+    "../../packages/error-handler/**"
   ]
 }

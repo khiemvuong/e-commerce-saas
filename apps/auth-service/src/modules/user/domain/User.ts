@@ -16,7 +16,7 @@ export namespace User {
         id: string;
         name: string;
         email: string;
-        password: string;
+        password: string | null;
         role: string;
         avatar?: UserAvatar | null;
         // 2FA fields

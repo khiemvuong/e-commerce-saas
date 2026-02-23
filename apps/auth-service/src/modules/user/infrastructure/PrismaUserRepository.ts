@@ -6,7 +6,6 @@
 
 import prisma from '@packages/libs/prisma';
 import { UserRepository } from '../domain/UserRepository';
-import { User } from '../domain/User';
 
 /**
  * Create Prisma User Repository instance

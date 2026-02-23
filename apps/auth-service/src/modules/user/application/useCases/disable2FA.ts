@@ -41,6 +41,9 @@ export const makeDisable2FA = ({ userRepository }: Disable2FADeps): Disable2FA =
         }
 
         // Verify password
+        if (!user.password) {
+            throw new ValidationError('Password is not set for this account');
+        }
         const isPasswordValid = await PasswordService.compare(input.password, user.password);
         if (!isPasswordValid) {
             await sendLog({

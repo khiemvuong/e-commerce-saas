@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { toast } from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
 
 const WS_URL = 'ws://localhost:6002/ws/metrics';

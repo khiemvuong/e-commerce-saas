@@ -88,7 +88,7 @@ const Header = () => {
           <nav className="hidden md:flex items-center gap-8">
             {navItems.map((item: any, index: number) => {
               const isActive = pathname === item.href || 
-                              (item.href !== '/' && pathname.startsWith(item.href));
+                              (item.href !== '/' && pathname?.startsWith(item.href));
               
               return (
                 <Link
@@ -182,7 +182,7 @@ const Header = () => {
           <nav className="max-w-7xl mx-auto px-6 py-6 flex flex-col gap-2">
             {navItems.map((item: any, index: number) => {
               const isActive = pathname === item.href || 
-                              (item.href !== '/' && pathname.startsWith(item.href));
+                              (item.href !== '/' && pathname?.startsWith(item.href));
               
               return (
                 <Link
