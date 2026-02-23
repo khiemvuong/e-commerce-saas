@@ -9,13 +9,14 @@ import ShippingAdressSection from 'apps/user-ui/src/shared/components/shippingAd
 import OrderTable from 'apps/user-ui/src/shared/components/tables/orders.table';
 import TwoFactorAuth from 'apps/user-ui/src/shared/components/TwoFactorAuth';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, Shield, ShoppingBag, Truck, User, X, Camera, User2Icon } from 'lucide-react';
+import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, Shield, ShoppingBag, Sparkles, Truck, User, X, Camera, User2Icon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React, {useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
 import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
 import useLogout from 'apps/user-ui/src/hooks/useLogout';
+import RecommendationsSection from 'apps/user-ui/src/shared/components/recommendations/RecommendationsSection';
 
 const NavItems = ({label,Icon,active,danger,onClick}:any)=>(
     <button
@@ -254,6 +255,12 @@ const Page = () => {
                             active={activeTab === 'security'}
                             onClick={() => setActiveTab('security')}
                         />
+                        <NavItems
+                            label="Recommendations"
+                            Icon={Sparkles}
+                            active={activeTab === 'recommendations'}
+                            onClick={() => setActiveTab('recommendations')}
+                        />
                         {/*Line break*/}
                         <hr className="my-4 border-gray-300" />
                         <NavItems
@@ -295,7 +302,9 @@ const Page = () => {
                                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Two-Factor Authentication</h3>
                                 <TwoFactorAuth />
                             </div>
-                        </div>                    ) : null}
+                        </div>                    ) : activeTab === 'recommendations' ? (
+                        <RecommendationsSection userId={user?.id || ''} />
+                    ) : null}
                 </div>
                 {/*Right Quick Panel*/}
                 <div className="w-full md:w-1/5 space-y-4 cursor-pointer">

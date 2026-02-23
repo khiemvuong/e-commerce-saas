@@ -341,10 +341,10 @@
                     </div>
                     <div class="item-price">
                         <div class="item-unit-price">
-                            $<%= item.sale_price.toFixed(2) %> each
+                            $<%= (item.sale_price || item.price || 0).toFixed(2) %> each
                         </div>
                         <div class="item-total-price">
-                            $<%= (item.quantity * item.sale_price).toFixed(2) %>
+                            $<%= (item.quantity * (item.sale_price || item.price || 0)).toFixed(2) %>
                         </div>
                     </div>
                 </div>

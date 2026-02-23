@@ -169,10 +169,10 @@ const CartPage = () => {
         removeFromCart(cartId, user, location, deviceInfo);
     };
     const subtotal = cart
-        .filter((item: any) => item && item.sale_price != null)
+        .filter((item: any) => item && (item.sale_price != null || item.price != null))
         .reduce(
             (total: number, item: any) =>
-                total + item.sale_price * (item.quantity || 1),
+                total + (item.sale_price ?? item.price ?? 0) * (item.quantity || 1),
             0
         );
     //Get Addresses
@@ -269,14 +269,14 @@ const CartPage = () => {
                                                 {item?.id === discountedProductId ? (
                                                     <div className="flex items-center gap-2">
                                                         <span className="line-through text-gray-400 text-sm">
-                                                            ${(item?.sale_price || 0).toFixed(2)}
+                                                            ${(item?.sale_price ?? item?.price ?? 0).toFixed(2)}
                                                         </span>
                                                         <span className="text-green-600">
-                                                            ${(((item?.sale_price || 0) * (100 - discountPercent)) / 100).toFixed(2)}
+                                                            ${(((item?.sale_price ?? item?.price ?? 0) * (100 - discountPercent)) / 100).toFixed(2)}
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span>${(item?.sale_price || 0).toFixed(2)}</span>
+                                                    <span>${(item?.sale_price ?? item?.price ?? 0).toFixed(2)}</span>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -388,12 +388,12 @@ const CartPage = () => {
                                             {item?.id === discountedProductId ? (
                                                 <div className="flex flex-col items-center">
                                                     <span className="line-through text-gray-600 text-sm">
-                                                        ${(item?.sale_price || 0).toFixed(2)}
+                                                        ${(item?.sale_price ?? item?.price ?? 0).toFixed(2)}
                                                     </span>{" "}
                                                     <span className="text-green-600 font-semibold">
                                                         $
                                                         {(
-                                                            ((item?.sale_price || 0) * (100 - discountPercent)) /
+                                                            ((item?.sale_price ?? item?.price ?? 0) * (100 - discountPercent)) /
                                                             100
                                                         ).toFixed(2)}
                                                     </span>
@@ -402,7 +402,7 @@ const CartPage = () => {
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span>{`$${(item?.sale_price || 0).toFixed(2)}`}</span>
+                                                <span>{`$${(item?.sale_price ?? item?.price ?? 0).toFixed(2)}`}</span>
                                             )}
                                         </td>
                                         <td>

@@ -3,6 +3,7 @@ import Providers from './providers';
 import Header from '../shared/widgets/header';
 import HeaderSpacer from '../shared/components/layout/header-spacer';
 import Footer from '../shared/widgets/footer';
+import AIChatbox from '../shared/components/ai-chatbox/AIChatboxWrapper';
 import {Poppins, Roboto} from "next/font/google"
 export const metadata = {
   title: 'Ilan',
@@ -32,6 +33,7 @@ export default function RootLayout({
         <HeaderSpacer />
         {children}
         <Footer />
+        <AIChatbox />
         </Providers>
         </body>
     </html>

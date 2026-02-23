@@ -2,7 +2,7 @@
 import React from 'react'
 import Hero from '../shared/modules/hero'
 import CategorySection from '../shared/modules/categories/category-section'
-import ScrollToTop from '../shared/components/scroll-to-top'
+// import ScrollToTop from '../shared/components/scroll-to-top'
 import {
     BestSellersSection,
     FeaturedSection,
@@ -137,7 +137,7 @@ const HomePage = () => {
             </main>
 
             {/* Scroll to Top Button */}
-            <ScrollToTop />
+            {/* <ScrollToTop /> */}
         </div>
     )
 }
