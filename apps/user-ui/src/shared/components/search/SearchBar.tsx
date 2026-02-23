@@ -14,6 +14,7 @@ interface SearchSuggestion {
         title: string;
         slug: string;
         sale_price: number;
+        price?: number;
         images: { file_url: string }[];
     }[];
 }
@@ -244,7 +245,7 @@ const SearchBar = ({ isTransparent = false, className = '' }: SearchBarProps) =>
                                                 {product.title}
                                             </p>
                                             <p className="text-sm text-[#C9A86C] font-semibold">
-                                                {product.sale_price?.toLocaleString('vi-VN')}$
+                                                {(product.sale_price ?? product.price)?.toLocaleString('vi-VN')}$
                                             </p>
                                         </div>
                                     </button>

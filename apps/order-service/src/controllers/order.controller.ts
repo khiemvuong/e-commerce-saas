@@ -62,7 +62,7 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             .map((item:any) => ({
                 id: item.id,
                 quantity: item.quantity,
-                sale_price: item.sale_price,
+                sale_price: item.sale_price ?? item.price,
                 shopId: item.shopId,
                 selectedOptions: item.selectedOptions || {},
             }))
@@ -80,7 +80,7 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
                         .map((item:any) => ({
                             id: item.id,
                             quantity: item.quantity,
-                            sale_price: item.sale_price,
+                            sale_price: item.sale_price ?? item.price,
                             shopId: item.shopId,
                             selectedOptions: item.selectedOptions || {},
                         }))
@@ -131,7 +131,7 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
 
         //Calculate total amount
         const totalAmount = cart.reduce((total:number,item:any) => {
-            return total + (item.sale_price * item.quantity);
+            return total + ((item.sale_price ?? item.price ?? 0) * item.quantity);
         },0);
         //Create session payload
         const sessionId = crypto.randomUUID();
@@ -264,14 +264,14 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                 const orderItems =shopGrouped[shopId];
 
                 let orderTotal = orderItems.reduce(
-                    (sum:number, p:any) => sum + (p.sale_price * p.quantity),0
+                    (sum:number, p:any) => sum + ((p.sale_price ?? p.price ?? 0) * p.quantity),0
                 );
                 if(coupon && coupon.discountedProductId && orderItems.some((item:any) => item.id === coupon.discountedProductId)
                 ){
                     const discountedItem = orderItems.find((item:any) => item.id === coupon.discountedProductId);
                     if(discountedItem) {
                         const discount = coupon.discountPercent > 0
-                        ? (discountedItem.sale_price * discountedItem.quantity) * (coupon.discountPercent / 100)
+                        ? ((discountedItem.sale_price ?? discountedItem.price ?? 0) * discountedItem.quantity) * (coupon.discountPercent / 100)
                         : coupon.discountAmount;
                         orderTotal -= discount;
                     }
@@ -291,7 +291,7 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                             create : orderItems.map((item:any) => ({
                                 productId: item.id,
                                 quantity: item.quantity,
-                                price: item.sale_price,
+                                price: item.sale_price ?? item.price ?? 0,
                                 selectedOptions: item.selectedOptions || {},
                                 title: item.title,
                             })),
@@ -498,7 +498,7 @@ export const verifyCouponCode = async (req:any,res:Response,next:NextFunction) =
         }
 
         let discountAmount = 0;
-        const price = matchingProduct.sale_price * matchingProduct.quantity;
+        const price = (matchingProduct.sale_price ?? matchingProduct.price ?? 0) * matchingProduct.quantity;
         if(discount.discountType === "percentage"){
             discountAmount = (price * discount.discountValue) / 100;
         } else if(discount.discountType === "flat"){
@@ -682,7 +682,7 @@ export const createCODOrder = async (req: any, res: Response, next: NextFunction
             const orderItems = shopGrouped[shopId];
 
             let orderTotal = orderItems.reduce(
-                (sum: number, p: any) => sum + (p.sale_price * p.quantity), 0
+                (sum: number, p: any) => sum + ((p.sale_price ?? p.price ?? 0) * p.quantity), 0
             );
 
             // Apply coupon if applicable
@@ -691,7 +691,7 @@ export const createCODOrder = async (req: any, res: Response, next: NextFunction
                 const discountedItem = orderItems.find((item: any) => item.id === coupon.discountedProductId);
                 if (discountedItem) {
                     const discount = coupon.discountPercent > 0
-                        ? (discountedItem.sale_price * discountedItem.quantity) * (coupon.discountPercent / 100)
+                        ? ((discountedItem.sale_price ?? discountedItem.price ?? 0) * discountedItem.quantity) * (coupon.discountPercent / 100)
                         : coupon.discountAmount;
                     orderTotal -= discount;
                 }
@@ -713,7 +713,7 @@ export const createCODOrder = async (req: any, res: Response, next: NextFunction
                         create: orderItems.map((item: any) => ({
                             productId: item.id,
                             quantity: item.quantity,
-                            price: item.sale_price,
+                            price: item.sale_price ?? item.price ?? 0,
                             selectedOptions: item.selectedOptions || {},
                             title: item.title,
                         })),

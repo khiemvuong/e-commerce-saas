@@ -40,6 +40,7 @@ app.use(limiter);
 app.get('/gateway-health', (req, res) => {
   res.send({ message: 'Welcome to api-gateway!' });
 });
+app.use('/ai-chat' , proxy("http://localhost:6007"));
 app.use('/chatting' , proxy("http://localhost:6006"));
 app.use('/admin' , proxy("http://localhost:6005"));
 app.use('/order' , proxy("http://localhost:6004"));

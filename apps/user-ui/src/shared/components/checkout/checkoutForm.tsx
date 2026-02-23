@@ -57,7 +57,7 @@ const CheckoutForm = ({
                 {cartItems.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm pb-1">
                         <span>{item.title} x {item.quantity}</span>
-                        <span>${(item.sale_price * item.quantity).toFixed(2)}</span>
+                        <span>${((item.sale_price ?? item.price ?? 0) * item.quantity).toFixed(2)}</span>
                     </div>
                 ))}
                 
@@ -72,7 +72,7 @@ const CheckoutForm = ({
                 <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
                     <span>
-                        ${cartItems.reduce((total, item) => total + item.sale_price * item.quantity, 0) - (coupon?.discountAmount || 0).toFixed(2)}
+                        ${(cartItems.reduce((total, item) => total + (item.sale_price ?? item.price ?? 0) * item.quantity, 0) - (coupon?.discountAmount || 0)).toFixed(2)}
                     </span>
                 </div>
             </div>

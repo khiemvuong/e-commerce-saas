@@ -18,6 +18,73 @@ import {
   SIZE_PATTERNS,
 } from '../config/keywords.config';
 
+// ========== Fuzzy Matching Utilities ==========
+
+/**
+ * Levenshtein distance between two strings.
+ * Used for typo correction: "adisdas" → "adidas" (distance = 1)
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+
+  return dp[m][n];
+}
+
+/**
+ * Find the best fuzzy match for a word against a list of known terms.
+ * Returns the matched term if distance is within threshold, otherwise null.
+ */
+export function fuzzyMatch(word: string, knownTerms: string[], maxDistance: number = 2): string | null {
+  if (word.length < 3) return null; // Don't fuzzy match very short words
+  
+  let bestMatch: string | null = null;
+  let bestDistance = Infinity;
+
+  for (const term of knownTerms) {
+    // Skip if length difference is too large
+    if (Math.abs(word.length - term.length) > maxDistance) continue;
+    
+    const dist = levenshteinDistance(word.toLowerCase(), term.toLowerCase());
+    // Adaptive threshold: shorter words need tighter matching
+    const threshold = term.length >= 5 ? maxDistance : 1;
+    
+    if (dist <= threshold && dist < bestDistance) {
+      bestDistance = dist;
+      bestMatch = term;
+    }
+  }
+
+  return bestMatch;
+}
+
+/**
+ * Get all keyword dictionaries for autocomplete suggestions.
+ */
+export function getAllSuggestionTerms(): { brands: string[]; categories: string[]; colors: string[] } {
+  const categories: string[] = [];
+  for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    categories.push(...keywords);
+  }
+  return {
+    brands: [...BRAND_KEYWORDS],
+    categories: [...new Set(categories)],
+    colors: [...COLOR_KEYWORDS],
+  };
+}
+
 export interface PriceRange {
   min?: number;
   max?: number;
@@ -84,14 +151,27 @@ export function extractKeywords(message: string): ExtractedKeywords {
  */
 function extractCategories(message: string): string[] {
   const found: string[] = [];
+  const words = message.split(/\s+/);
   
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    // Exact match first
     for (const keyword of keywords) {
       if (message.includes(keyword)) {
         if (!found.includes(category)) {
           found.push(category);
         }
         break;
+      }
+    }
+    
+    // Fuzzy match if no exact match found for this category
+    if (!found.includes(category)) {
+      for (const word of words) {
+        const match = fuzzyMatch(word, keywords, 2);
+        if (match) {
+          found.push(category);
+          break;
+        }
       }
     }
   }
@@ -104,10 +184,22 @@ function extractCategories(message: string): string[] {
  */
 function extractBrands(message: string): string[] {
   const found: string[] = [];
+  const words = message.split(/\s+/);
   
+  // Exact match first
   for (const brand of BRAND_KEYWORDS) {
     if (message.includes(brand.toLowerCase())) {
       found.push(brand);
+    }
+  }
+  
+  // Fuzzy match for remaining words (typo correction)
+  if (found.length === 0) {
+    for (const word of words) {
+      const match = fuzzyMatch(word, BRAND_KEYWORDS, 2);
+      if (match && !found.includes(match)) {
+        found.push(match);
+      }
     }
   }
   
@@ -244,6 +336,9 @@ function extractRawKeywords(message: string): string[] {
     'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they',
     'them', 'their', 'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those',
     'am', 'looking', 'find', 'search', 'want', 'need', 'show', 'get', 'buy', 'please',
+    // Intent verbs — should not be search keywords
+    'recommend', 'suggest', 'compare', 'browse', 'check', 'tell', 'give',
+    'best', 'good', 'great', 'nice', 'like', 'something', 'anything', 'products', 'items',
   ]);
   
   const words = message

@@ -6,6 +6,8 @@
  */
 
 import { Intent, INTENT_PATTERNS, QUICK_REPLIES, RESPONSE_TEMPLATES } from '../config/intents.config';
+import { BRAND_KEYWORDS, CATEGORY_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
+import { fuzzyMatch } from './keyword-extractor';
 
 export interface DetectionResult {
   intent: Intent;
@@ -43,7 +45,95 @@ export function detectIntent(message: string): DetectionResult {
     }
   }
 
+  // =========================================================
+  // Implicit Intent Detection
+  // If no explicit pattern matched, check if the message contains
+  // product-related keywords (brands, categories, colors).
+  // e.g. "adidas shirt" → SEARCH_PRODUCT
+  // e.g. "black polo" → SEARCH_PRODUCT  
+  // e.g. "adisdas" (typo) → SEARCH_PRODUCT
+  // =========================================================
+  const implicitResult = detectImplicitProductSearch(trimmed);
+  if (implicitResult) {
+    return implicitResult;
+  }
+
   return createResult(Intent.UNKNOWN, 0);
+}
+
+/**
+ * Detect implicit product search from keyword presence.
+ * Catches messages like "adidas shirt", "black polo", "nike shoes"
+ * that don't have explicit intent verbs like "show me" or "find".
+ */
+function detectImplicitProductSearch(message: string): DetectionResult | null {
+  const lower = message.toLowerCase();
+  const words = lower.split(/\s+/);
+  let hasProductSignal = false;
+  let confidence = 0;
+
+  // Check for brand mentions (exact or fuzzy)
+  for (const brand of BRAND_KEYWORDS) {
+    if (lower.includes(brand.toLowerCase())) {
+      hasProductSignal = true;
+      confidence += 40;
+      break;
+    }
+  }
+  if (!hasProductSignal) {
+    for (const word of words) {
+      const match = fuzzyMatch(word, BRAND_KEYWORDS, 2);
+      if (match) {
+        hasProductSignal = true;
+        confidence += 35; // Slightly lower for fuzzy match
+        break;
+      }
+    }
+  }
+
+  // Check for category keywords (exact or fuzzy)
+  for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    for (const keyword of keywords) {
+      if (lower.includes(keyword)) {
+        hasProductSignal = true;
+        confidence += 35;
+        break;
+      }
+    }
+    if (confidence >= 70) break;
+  }
+  if (confidence < 70) {
+    // Fuzzy category check
+    const allCatKeywords: string[] = [];
+    for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+      allCatKeywords.push(...keywords);
+    }
+    for (const word of words) {
+      const match = fuzzyMatch(word, allCatKeywords, 2);
+      if (match) {
+        hasProductSignal = true;
+        confidence += 30;
+        break;
+      }
+    }
+  }
+
+  // Check for color keywords
+  for (const color of COLOR_KEYWORDS) {
+    const regex = new RegExp(`\\b${color}\\b`, 'i');
+    if (regex.test(lower)) {
+      hasProductSignal = true;
+      confidence += 15;
+      break;
+    }
+  }
+
+  if (hasProductSignal) {
+    confidence = Math.min(confidence, 85); // Cap at 85 (explicit patterns can reach higher)
+    return createResult(Intent.SEARCH_PRODUCT, confidence, message);
+  }
+
+  return null;
 }
 
 /**
