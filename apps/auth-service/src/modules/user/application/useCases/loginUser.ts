@@ -46,6 +46,9 @@ export const makeLoginUser = ({ userRepository }: LoginUserDeps): LoginUser => {
         }
 
         // 3. Verify password
+        if (!user.password) {
+            throw new AuthError('Invalid email or password');
+        }
         const isMatch = await PasswordService.compare(input.password, user.password);
         if (!isMatch) {
             await sendLog({

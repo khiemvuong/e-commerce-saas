@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { CheckCircle, Store, LayoutDashboard, ArrowRight} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import toast from 'react-hot-toast';
-import axios from 'axios';
 import PageLoader from 'apps/seller-ui/src/shared/components/loading/page-loader';
 import axiosInstance from 'apps/seller-ui/src/utils/axiosInstance';
 const SellerSuccessPage = () => {

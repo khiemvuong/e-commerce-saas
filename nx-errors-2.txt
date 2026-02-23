@@ -1,0 +1,370 @@
+﻿
+ NX   Running targets test, build, typecheck for 15 projects:
+
+- @eshop/recommendation-service
+- @eshop/kafka-service-e2e
+- @eshop/auth-service-e2e
+- @eshop/chatting-service
+- @eshop/product-service
+- @eshop/logger-service
+- @eshop/seller-service
+- @eshop/admin-service
+- @eshop/kafka-service
+- @eshop/order-service
+- @eshop/auth-service
+- @eshop/api-gateway
+- seller-ui
+- admin-ui
+- @eshop/user-ui
+
+
+node.exe : 
+(node:54224) 
+[DEP0169] 
+DeprecationWarning: 
+`url.parse()` 
+behavior is not 
+standardized and 
+prone to errors that 
+have security 
+implications. Use 
+the WHATWG URL API 
+instead. CVEs are 
+not issued for 
+`url.parse()` 
+vulnerabilities.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/
+node.exe" "C:\nvm4w\n
+odejs/node_modules/np
+m/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ((node:5   
+ 4224) [D...ulner    
+abilities.:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+
+> nx run @eshop/kafka-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/auth-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+src/modules/user/application/useCases/disable2FA.ts(44,79): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/modules/user/application/useCases/loginUser.ts(49,71): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/modules/user/application/useCases/resetPassword.ts(31,81): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+> tsc --build --emitDeclarationOnly
+
+src/modules/user/application/useCases/disable2FA.ts(44,79): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/modules/user/application/useCases/loginUser.ts(49,71): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/modules/user/application/useCases/resetPassword.ts(31,81): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'string'.
+  Type 'null' is not assignable to type 'string'.
+Warning: command "tsc --build --emitDeclarationOnly" exited with non-zero status code
+> nx run @eshop/auth-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 173 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (1319b29d67db077f)
+(node:54224) MaxListe
+nersExceededWarning: 
+Possible 
+EventEmitter memory 
+leak detected. 11 
+exit listeners added 
+to [process]. 
+MaxListeners is 10. 
+Use emitter.setMaxLis
+teners() to increase 
+limit
+
+> nx run @eshop/auth-service:test
+
+> jest --passWithNoTests=true
+
+[1mNo tests found, exiting with code 0[22m
+
+> nx run @eshop/kafka-service-e2e:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/api-gateway:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/kafka-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 11.1 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (940ec6ee0b046086)
+
+> nx run @eshop/order-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 48.4 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (dca2ac90a1e5dec3)
+(node:54224) MaxListe
+nersExceededWarning: 
+Possible 
+EventEmitter memory 
+leak detected. 11 
+SIGINT listeners 
+added to [process]. 
+MaxListeners is 10. 
+Use emitter.setMaxLis
+teners() to increase 
+limit
+(node:54224) MaxListe
+nersExceededWarning: 
+Possible 
+EventEmitter memory 
+leak detected. 11 
+SIGTERM listeners 
+added to [process]. 
+MaxListeners is 10. 
+Use emitter.setMaxLis
+teners() to increase 
+limit
+(node:54224) MaxListe
+nersExceededWarning: 
+Possible 
+EventEmitter memory 
+leak detected. 11 
+SIGHUP listeners 
+added to [process]. 
+MaxListeners is 10. 
+Use emitter.setMaxLis
+teners() to increase 
+limit
+
+> nx run @eshop/admin-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 54.1 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (56725a8e9d203677)
+
+> nx run @eshop/logger-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 3.76 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (6c6b3a45bfe5f82f)
+
+> nx run @eshop/seller-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 41.2 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (5f6adf59ffc4973c)
+
+> nx run @eshop/chatting-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 38.6 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (b302d945fbeec78e)
+
+> nx run @eshop/product-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 186 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (0f6074d95dd5e36b)
+
+> nx run @eshop/recommendation-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/recommendation-service:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 86.2 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (e5c9c82f1f9f4c43)
+
+> nx run @eshop/chatting-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/product-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/logger-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run admin-ui:build:production
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+[31mFailed to compile.
+[39m
+[36m../../packages/middleware/authorizeRoles.ts[39m:[33m1[39m:[33m27[39m
+[31m[1mType error[22m[39m: Cannot find module '@packages/error-handler' or its corresponding type declarations.
+
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { [33mAuthError[39m } [36mfrom[39m [32m"@packages/error-handler"[39m[33m;[39m[0m
+[0m [90m   |[39m                           [31m[1m^[22m[39m[0m
+[0m [90m 2 |[39m [36mimport[39m { [33mNextFunction[39m[33m,[39m [33mResponse[39m } [36mfrom[39m [32m"express"[39m[33m;[39m[0m
+[0m [90m 3 |[39m[0m
+[0m [90m 4 |[39m [90m// Re-export role-specific auth middlewares for convenience[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+[1m[31mBuild process exited due to code 1  [39m[22m
+
+> nx run @eshop/seller-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/admin-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/order-service:typecheck
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/api-gateway:build
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 10 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (4b81ad1e48de650e)
+
+> nx run seller-ui:build:production
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+[31mFailed to compile.
+[39m
+[36m./src/app/(routes)/signup/page.tsx[39m:[33m29[39m:[33m42[39m
+[31m[1mType error[22m[39m: 'isConfigLoading' is declared but its value is never read.
+
+[0m [90m 27 |[39m     [36mconst[39m [isStripeLoading[33m,[39m setIsStripeLoading] [33m=[39m useState([36mfalse[39m)[33m;[39m[0m
+[0m [90m 28 |[39m     [0m
+[0m[31m[1m>[22m[39m[90m 29 |[39m     [36mconst[39m { data[33m:[39m siteConfig[33m,[39m isLoading[33m:[39m isConfigLoading } [33m=[39m useSiteConfig()[33m;[39m[0m
+[0m [90m    |[39m                                          [31m[1m^[22m[39m[0m
+[0m [90m 30 |[39m     [36mconst[39m countries [33m=[39m siteConfig[33m?[39m[33m.[39mcountries [33m||[39m [][33m;[39m[0m
+[0m [90m 31 |[39m     [36mconst[39m startResendTimer [33m=[39m () [33m=>[39m {[0m
+[0m [90m 32 |[39m         [36mconst[39m interval [33m=[39m setInterval(() [33m=>[39m {[0m
+Next.js build worker exited with code: 1 and signal: null
+[1m[31mBuild process exited due to code 1  [39m[22m
+
+> nx run @eshop/user-ui:build
+
+> next build
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+[31mFailed to compile.
+[39m
+[36m./src/app/(routes)/stripe/success/page.tsx[39m:[33m4[39m:[33m23[39m
+[31m[1mType error[22m[39m: 'ArrowRight' is declared but its value is never read.
+
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m [33mReact[39m [36mfrom[39m [32m'react'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { [33mCheckCircle[39m[33m,[39m [33mArrowRight[39m[33m,[39m [33mStore[39m } [36mfrom[39m [32m'lucide-react'[39m[33m;[39m[0m
+[0m [90m   |[39m                       [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m [33mLink[39m [36mfrom[39m [32m'next/link'[39m[33m;[39m[0m
+[0m [90m 6 |[39m [36mimport[39m { motion } [36mfrom[39m [32m'framer-motion'[39m[33m;[39m[0m
+[0m [90m 7 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+> next build
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+[31mFailed to compile.
+[39m
+[36m./src/app/(routes)/stripe/success/page.tsx[39m:[33m4[39m:[33m23[39m
+[31m[1mType error[22m[39m: 'ArrowRight' is declared but its value is never read.
+
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m [33mReact[39m [36mfrom[39m [32m'react'[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { [33mCheckCircle[39m[33m,[39m [33mArrowRight[39m[33m,[39m [33mStore[39m } [36mfrom[39m [32m'lucide-react'[39m[33m;[39m[0m
+[0m [90m   |[39m                       [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m [33mLink[39m [36mfrom[39m [32m'next/link'[39m[33m;[39m[0m
+[0m [90m 6 |[39m [36mimport[39m { motion } [36mfrom[39m [32m'framer-motion'[39m[33m;[39m[0m
+[0m [90m 7 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+Warning: command "next build" exited with non-zero status code
+
+
+ NX   Running targets test, build, typecheck for 15 projects failed
+
+Tasks not run because their dependencies failed or --nx-bail=true:
+
+- @eshop/auth-service-e2e:typecheck
+
+Failed tasks:
+
+- @eshop/auth-service:typecheck
+- admin-ui:build:production
+- seller-ui:build:production
+- @eshop/user-ui:build
+
+View structured, searchable error logs at https://nx.app/runs/gxqXaNHAhK
+

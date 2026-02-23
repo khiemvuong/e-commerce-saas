@@ -12,7 +12,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 const Page = () => {
     const searchParams = useSearchParams();
-    const { user, isLoading: userLoading } = useRequiredAuth();
+    const { user } = useRequiredAuth();
     const router = useRouter();
     const messageContainerRef = useRef<HTMLDivElement | null>(null);
     const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -25,7 +25,7 @@ const Page = () => {
     const [page, setPage] = useState(1);
     const [message, setMessage] = useState("");
     const [isSending, setIsSending] = useState(false);
-    const conversationId = searchParams.get("conversationId");
+    const conversationId = searchParams?.get("conversationId") ?? null;
     const { ws, onlineUsers, lastSeenUpdate } = useWebSocket() || {};
     const [isMessageSeen, setIsMessageSeen] = useState(false);
     const { data: messages = [] } = useQuery({

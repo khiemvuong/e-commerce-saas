@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import type { AxiosInstanceConfig, CustomAxiosRequestConfig } from './axios.types';
 
+declare var window: any;
 
 export function createAxiosInstance(config: AxiosInstanceConfig): AxiosInstance {
   const {

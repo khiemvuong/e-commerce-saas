@@ -10,7 +10,7 @@ const statuses = ['Ordered', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered
 
 const Page = () => {
     const params = useParams();
-    const orderId = params.id as string;
+    const orderId = params?.id as string;
 
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);

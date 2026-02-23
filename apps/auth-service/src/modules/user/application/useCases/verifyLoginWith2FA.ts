@@ -5,7 +5,6 @@
  */
 
 import { Response } from 'express';
-import { User } from '../../domain/User';
 import { UserRepository } from '../../domain/UserRepository';
 import { TokenService } from '../../../_shared/services/TokenService';
 import { TOTPService } from '../../../_shared/services/TOTPService';

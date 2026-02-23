@@ -1,0 +1,362 @@
+﻿
+ NX   Running targets test, build, typecheck for 15 projects:
+
+- @eshop/recommendation-service
+- @eshop/kafka-service-e2e
+- @eshop/auth-service-e2e
+- @eshop/chatting-service
+- @eshop/product-service
+- @eshop/logger-service
+- @eshop/seller-service
+- @eshop/admin-service
+- @eshop/kafka-service
+- @eshop/order-service
+- @eshop/auth-service
+- @eshop/api-gateway
+- seller-ui
+- admin-ui
+- @eshop/user-ui
+
+
+node.exe : 
+(node:42172) 
+[DEP0169] 
+DeprecationWarning: 
+`url.parse()` 
+behavior is not 
+standardized and 
+prone to errors that 
+have security 
+implications. Use 
+the WHATWG URL API 
+instead. CVEs are 
+not issued for 
+`url.parse()` 
+vulnerabilities.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/
+node.exe" "C:\nvm4w\n
+odejs/node_modules/np
+m/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ((node:4   
+ 2172) [D...ulner    
+abilities.:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+
+> nx run @eshop/auth-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 174 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (ea75c4576ef0244f)
+
+> nx run @eshop/auth-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/kafka-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/auth-service:test  [remote cache]
+
+> jest --passWithNoTests=true
+
+[1mNo tests found, exiting with code 0[22m
+
+> nx run @eshop/kafka-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 11.1 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (940ec6ee0b046086)
+
+> nx run @eshop/kafka-service-e2e:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/api-gateway:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 10 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (4b81ad1e48de650e)
+
+> nx run @eshop/user-ui:build  [remote cache]
+
+> next build
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+NX: Next.js SVGR support is deprecated. If used with turbopack, it may not work as expected and is not recommended. Please configure SVGR manually.
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+ [37m[1m [22m[39m Collecting page data ...
+ [37m[1m [22m[39m Generating static pages (0/22) ...
+ [37m[1m [22m[39m Generating static pages (5/22) 
+ [37m[1m [22m[39m Generating static pages (10/22) 
+ [37m[1m [22m[39m Generating static pages (16/22) 
+ [32m[1mâœ“[22m[39m Generating static pages (22/22)
+ [37m[1m [22m[39m Finalizing page optimization ...
+ [37m[1m [22m[39m Collecting build traces ...
+
+[4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
+â”Œ â—‹ /                                    11.8 kB         [37m[1m218 kB[22m[39m
+â”œ â—‹ /_not-found                            143 B         [37m[1m101 kB[22m[39m
+â”œ â—‹ /about                               2.94 kB         [37m[1m107 kB[22m[39m
+â”œ Æ’ /api/hello                             143 B         [37m[1m101 kB[22m[39m
+â”œ â—‹ /cart                                6.05 kB         [37m[1m179 kB[22m[39m
+â”œ â—‹ /checkout                            8.32 kB         [37m[1m134 kB[22m[39m
+â”œ â—‹ /contact                             2.71 kB         [37m[1m109 kB[22m[39m
+â”œ â—‹ /faq                                 2.93 kB         [37m[1m107 kB[22m[39m
+â”œ â—‹ /forgot-password                     3.07 kB         [37m[1m146 kB[22m[39m
+â”œ â—‹ /inbox                               7.09 kB         [37m[1m146 kB[22m[39m
+â”œ â—‹ /login                               4.79 kB         [37m[1m151 kB[22m[39m
+â”œ â—‹ /offers                              4.16 kB         [37m[1m218 kB[22m[39m
+â”œ Æ’ /order/[id]                          4.21 kB         [37m[1m129 kB[22m[39m
+â”œ â—‹ /payment-success                     8.69 kB         [37m[1m110 kB[22m[39m
+â”œ â—‹ /privacy                              1.5 kB         [37m[1m103 kB[22m[39m
+â”œ Æ’ /product/[slug]                        16 kB         [37m[1m222 kB[22m[39m
+â”œ â—‹ /products                            4.86 kB         [37m[1m218 kB[22m[39m
+â”œ â—‹ /profile                             41.1 kB         [37m[1m195 kB[22m[39m
+â”œ Æ’ /shop/[id]                           4.52 kB         [37m[1m211 kB[22m[39m
+â”œ â—‹ /shops                               6.82 kB         [37m[1m185 kB[22m[39m
+â”œ â—‹ /signup                              4.81 kB         [37m[1m143 kB[22m[39m
+â”œ â—‹ /stripe/success                       1.8 kB         [37m[1m143 kB[22m[39m
+â”œ â—‹ /terms                               1.44 kB         [37m[1m103 kB[22m[39m
+â”œ â—‹ /track-order                         4.74 kB         [37m[1m130 kB[22m[39m
+â”” â—‹ /wishlist                            1.54 kB         [37m[1m208 kB[22m[39m
++ First Load JS shared by all             [37m[1m101 kB[22m[39m
+  â”œ chunks/8315-d312c41eab7c7e7b.js        46 kB
+  â”œ chunks/87c73c54-b4030fb22680b767.js  53.3 kB
+  â”” other shared chunks (total)          2.08 kB
+
+
+â—‹  (Static)   prerendered as static content
+Æ’  (Dynamic)  server-rendered on demand
+
+
+> nx run @eshop/order-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/seller-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/admin-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/logger-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/product-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/chatting-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/recommendation-service:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/recommendation-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 86.2 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (e5c9c82f1f9f4c43)
+
+> nx run @eshop/chatting-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 38.6 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (b302d945fbeec78e)
+
+> nx run @eshop/product-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 186 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (0f6074d95dd5e36b)
+
+> nx run @eshop/logger-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 3.76 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (6c6b3a45bfe5f82f)
+
+> nx run @eshop/seller-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 41.2 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (5f6adf59ffc4973c)
+
+> nx run @eshop/admin-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 54.1 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (56725a8e9d203677)
+
+> nx run @eshop/order-service:build  [remote cache]
+
+> webpack-cli build --node-env=production
+
+chunk (runtime: main) [1m[32mmain.js[39m[22m (main) 48.4 KiB [1m[33m[entry][39m[22m [1m[32m[rendered][39m[22m
+webpack compiled [1m[32msuccessfully[39m[22m (dca2ac90a1e5dec3)
+
+> nx run @eshop/api-gateway:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run @eshop/auth-service-e2e:typecheck  [remote cache]
+
+> tsc --build --emitDeclarationOnly
+
+
+> nx run seller-ui:build:production
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+ [37m[1m [22m[39m Collecting page data ...
+ [37m[1m [22m[39m Generating static pages (0/20) ...
+ [37m[1m [22m[39m Generating static pages (5/20) 
+ [37m[1m [22m[39m Generating static pages (10/20) 
+ [37m[1m [22m[39m Generating static pages (15/20) 
+ [32m[1mâœ“[22m[39m Generating static pages (20/20)
+ [37m[1m [22m[39m Finalizing page optimization ...
+ [37m[1m [22m[39m Collecting build traces ...
+
+[4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
+â”Œ â—‹ /                                    46.2 kB         [37m[1m190 kB[22m[39m
+â”œ â—‹ /_not-found                            983 B         [37m[1m102 kB[22m[39m
+â”œ Æ’ /api/hello                             143 B         [37m[1m102 kB[22m[39m
+â”œ â—‹ /dashboard                            108 kB         [37m[1m250 kB[22m[39m
+â”œ â—‹ /dashboard/all-events                4.22 kB         [37m[1m175 kB[22m[39m
+â”œ â—‹ /dashboard/all-products              8.04 kB         [37m[1m208 kB[22m[39m
+â”œ â—‹ /dashboard/create-events             3.85 kB         [37m[1m156 kB[22m[39m
+â”œ â—‹ /dashboard/create-products           5.21 kB         [37m[1m187 kB[22m[39m
+â”œ â—‹ /dashboard/discount-codes            5.72 kB         [37m[1m155 kB[22m[39m
+â”œ â—‹ /dashboard/inbox                     7.14 kB         [37m[1m146 kB[22m[39m
+â”œ â—‹ /dashboard/notifications             4.48 kB         [37m[1m148 kB[22m[39m
+â”œ â—‹ /dashboard/orders                    4.47 kB         [37m[1m154 kB[22m[39m
+â”œ â—‹ /dashboard/payments                  4.06 kB         [37m[1m154 kB[22m[39m
+â”œ â—‹ /dashboard/settings                  14.9 kB         [37m[1m145 kB[22m[39m
+â”œ â—‹ /forgot-password                     4.82 kB         [37m[1m149 kB[22m[39m
+â”œ â—‹ /login                               2.65 kB         [37m[1m153 kB[22m[39m
+â”œ Æ’ /order/[id]                          4.58 kB         [37m[1m135 kB[22m[39m
+â”œ â—‹ /signup                              4.69 kB         [37m[1m155 kB[22m[39m
+â”” â—‹ /success                             7.39 kB         [37m[1m141 kB[22m[39m
++ First Load JS shared by all             [37m[1m101 kB[22m[39m
+  â”œ chunks/8315-c84bf08794b080f1.js        46 kB
+  â”œ chunks/87c73c54-e71237e57c1aeb51.js  53.3 kB
+  â”” other shared chunks (total)          2.13 kB
+
+
+â—‹  (Static)   prerendered as static content
+Æ’  (Dynamic)  server-rendered on demand
+
+
+> nx run admin-ui:build:production
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ [22m[39m TypeScript project references are not fully supported. Attempting to build in incremental mode.
+ [37m[1m [22m[39m Collecting page data ...
+ [37m[1m [22m[39m Generating static pages (0/19) ...
+ [37m[1m [22m[39m Generating static pages (4/19) 
+ [37m[1m [22m[39m Generating static pages (9/19) 
+ [37m[1m [22m[39m Generating static pages (14/19) 
+ [32m[1mâœ“[22m[39m Generating static pages (19/19)
+ [37m[1m [22m[39m Finalizing page optimization ...
+ [37m[1m [22m[39m Collecting build traces ...
+
+[4mRoute (app)[24m                                 [4mSize[24m  [4mFirst Load JS[24m  [4m[24m  [4m[24m
+â”Œ â—‹ /                                    5.95 kB         [37m[1m148 kB[22m[39m
+â”œ â—‹ /_not-found                            980 B         [37m[1m102 kB[22m[39m
+â”œ Æ’ /api/hello                             140 B         [37m[1m101 kB[22m[39m
+â”œ â—‹ /dashboard                            153 kB         [37m[1m299 kB[22m[39m
+â”œ â—‹ /dashboard/customization             30.3 kB         [37m[1m163 kB[22m[39m
+â”œ â—‹ /dashboard/events                    3.74 kB         [37m[1m159 kB[22m[39m
+â”œ â—‹ /dashboard/loggers                   2.07 kB         [37m[1m106 kB[22m[39m
+â”œ â—‹ /dashboard/management                4.38 kB         [37m[1m154 kB[22m[39m
+â”œ â—‹ /dashboard/notifications             4.04 kB         [37m[1m154 kB[22m[39m
+â”œ â—‹ /dashboard/orders                    4.15 kB         [37m[1m154 kB[22m[39m
+â”œ â—‹ /dashboard/payments                  3.74 kB         [37m[1m153 kB[22m[39m
+â”œ â—‹ /dashboard/performance                6.4 kB         [37m[1m142 kB[22m[39m
+â”œ â—‹ /dashboard/products                   4.2 kB         [37m[1m159 kB[22m[39m
+â”œ â—‹ /dashboard/sellers                   3.56 kB         [37m[1m159 kB[22m[39m
+â”œ â—‹ /dashboard/settings                  14.9 kB         [37m[1m145 kB[22m[39m
+â”œ â—‹ /dashboard/users                     3.67 kB         [37m[1m153 kB[22m[39m
+â”œ â—‹ /forgot-password                     3.17 kB         [37m[1m146 kB[22m[39m
+â”” Æ’ /order/[id]                          7.42 kB         [37m[1m129 kB[22m[39m
++ First Load JS shared by all             [37m[1m101 kB[22m[39m
+  â”œ chunks/315-7e910dff637f3ce4.js         46 kB
+  â”œ chunks/87c73c54-605e657c5c8d68d5.js  53.3 kB
+  â”” other shared chunks (total)          2.06 kB
+
+
+â—‹  (Static)   prerendered as static content
+Æ’  (Dynamic)  server-rendered on demand
+
+
+
+
+ NX   Successfully ran targets test, build, typecheck for 15 projects
+
+Nx read the output from the cache instead of running the command for 24 out of 26 tasks.
+
+View logs and investigate cache misses at https://nx.app/runs/YA7AKrOq0u
+

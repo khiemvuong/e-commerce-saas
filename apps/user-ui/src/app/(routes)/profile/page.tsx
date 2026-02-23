@@ -46,7 +46,7 @@ const Page = () => {
     const totalOrders = orders.length;
     const processingOrders = orders.filter((order:any) => order?.deliveryStatus !== 'Delivered' && order?.deliveryStatus !== 'Cancelled').length;
     const completedOrders = orders.filter((order:any) => order.deliveryStatus === 'Delivered').length;
-    const queryTab=searchParams.get('active') || 'Profile';
+    const queryTab = searchParams?.get('active') ?? 'Profile';
     const [activeTab, setActiveTab] = useState(queryTab);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editName, setEditName] = useState('');
@@ -57,7 +57,7 @@ const Page = () => {
 
     useEffect(() => {
         if(activeTab!==queryTab){
-            const newParams = new URLSearchParams(searchParams.toString());
+            const newParams = new URLSearchParams(searchParams?.toString());
             newParams.set('active', activeTab);
             router.replace(`/profile?${newParams.toString()}`,{scroll:false} );
         }

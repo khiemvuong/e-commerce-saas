@@ -1,0 +1,198 @@
+﻿node.exe : 
+(node:10080) 
+[DEP0169] 
+DeprecationWarning: 
+`url.parse()` 
+behavior is not 
+standardized and 
+prone to errors that 
+have security 
+implications. Use 
+the WHATWG URL API 
+instead. CVEs are 
+not issued for 
+`url.parse()` 
+vulnerabilities.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/
+node.exe" "C:\nvm4w\n
+odejs/node_modules/np
+m/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ((node:1   
+ 0080) [D...ulner    
+abilities.:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+
+> nx run @eshop/user-ui:build
+
+> next build
+
+   [1m[38;2;173;127;168mâ–² Next.js 15.2.8[39m[22m
+   - Environments: .env
+
+ [37m[1m [22m[39m Creating an optimized production build ...
+NX: Next.js SVGR 
+support is 
+deprecated. If used 
+with turbopack, it 
+may not work as 
+expected and is not 
+recommended. Please 
+configure SVGR 
+manually.
+NX: Next.js SVGR 
+support is 
+deprecated. If used 
+with turbopack, it 
+may not work as 
+expected and is not 
+recommended. Please 
+configure SVGR 
+manually.
+NX: Next.js SVGR 
+support is 
+deprecated. If used 
+with turbopack, it 
+may not work as 
+expected and is not 
+recommended. Please 
+configure SVGR 
+manually.
+ [32m[1mâœ“[22m[39m Compiled successfully
+ [37m[1m [22m[39m Skipping linting
+ [37m[1m [22m[39m Checking validity of types ...
+ [33m[1mâ
+[22m[39m 
+TypeScript project 
+references are not 
+fully supported. 
+Attempting to build 
+in incremental mode.
+ [37m[1m [22m[39m Collecting page data ...
+ [37m[1m [22m[39m Generating static pages (0/24) ...
+TypeError: Cannot 
+read properties of 
+null (reading 
+'useContext')
+    at g 
+[90m(D:\ILAN Shop\e-
+commerce-saas\apps\us
+er-ui\[39m.next\serv
+er\pages\_error.js:1:
+4413[90m)[39m
+Error occurred 
+prerendering page 
+"/404". Read more: ht
+tps://nextjs.org/docs
+/messages/prerender-e
+rror
+TypeError: Cannot 
+read properties of 
+null (reading 
+'useContext')
+    at 
+exports.useContext 
+(D:\ILAN Shop\e-comme
+rce-saas\apps\user-ui
+\node_modules\react\c
+js\react.production.j
+s:488:33)
+    at g (D:\ILAN Sho
+p\e-commerce-saas\app
+s\user-ui\.next\serve
+r\pages\_error.js:1:4
+413)
+    at 
+renderWithHooks 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:4747:18)
+    at renderElement 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:4885:14)
+    at retryNode 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:5603:16)
+    at renderNodeDest
+ructive (D:\ILAN Shop
+\e-commerce-saas\node
+_modules\react-dom\cj
+s\react-dom-server.ed
+ge.production.js:5397
+:7)
+    at renderNode 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:5964:14)
+    at 
+renderChildrenArray 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:5746:7)
+    at retryNode 
+(D:\ILAN Shop\e-comme
+rce-saas\node_modules
+\react-dom\cjs\react-
+dom-server.edge.produ
+ction.js:5617:9)
+    at renderNodeDest
+ructive (D:\ILAN Shop
+\e-commerce-saas\node
+_modules\react-dom\cj
+s\react-dom-server.ed
+ge.production.js:5397
+:7)
+Export encountered 
+an error on /_error: 
+/404, exiting the 
+build.
+ [31m[1mâ¨¯[22m[3
+9m Next.js build 
+worker exited with 
+code: 1 and signal: 
+null
+
+
+
+ NX   Running target build for project @eshop/user-ui failed
+
+Failed tasks:
+
+- @eshop/user-ui:build
+
+Hint: run the command with --verbose for more details.
+
+View structured, searchable error logs at https://nx.app/runs/L8ELaF9MSJ
+
+Warning: command 
+"next build" exited 
+with non-zero status 
+code

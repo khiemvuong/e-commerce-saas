@@ -19,7 +19,7 @@ const CheckoutContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const sessionId = searchParams.get('sessionId');
+    const sessionId = searchParams?.get('sessionId') ?? null;
 
     useEffect(() => {
         const fetchSessionAndClientSecret = async () => {

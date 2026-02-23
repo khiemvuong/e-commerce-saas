@@ -28,6 +28,9 @@ export const makeResetPassword = ({ userRepository }: ResetPasswordDeps): ResetP
         }
 
         // 3. Check if new password is same as old
+        if (!user.password) {
+            throw new ValidationError('Password is not set for this account');
+        }
         const isSamePassword = await PasswordService.compare(input.newPassword, user.password);
         if (isSamePassword) {
             throw new ValidationError('New password must be different from the old password');

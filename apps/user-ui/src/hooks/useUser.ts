@@ -16,7 +16,7 @@ const fetchUser = async () => {
 
 
 const useUser = () => {
-    const { setLoggedIn, isLoggedIn } = useAuthStore();
+    const { setLoggedIn } = useAuthStore();
     const { data: user, isPending, isError } = useQuery({
         queryKey: queryKeys.user,
         queryFn: fetchUser,

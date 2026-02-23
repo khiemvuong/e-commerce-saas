@@ -9,9 +9,9 @@ import confetti from 'canvas-confetti';
 const PaymentSuccessContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const sessionId = searchParams.get('sessionId');
-    const orderId = searchParams.get('orderId');
-    const paymentMethod = searchParams.get('method') || 'stripe';
+    const sessionId = searchParams?.get('sessionId') ?? null;
+    const orderId = searchParams?.get('orderId') ?? null;
+    const paymentMethod = searchParams?.get('method') ?? 'stripe';
     const isCOD = paymentMethod === 'cod';
 
     useEffect(() => {

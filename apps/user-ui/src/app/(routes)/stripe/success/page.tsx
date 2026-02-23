@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { CheckCircle, ArrowRight, Store } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 

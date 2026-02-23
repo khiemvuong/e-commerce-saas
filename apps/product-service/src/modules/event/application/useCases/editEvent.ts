@@ -55,7 +55,7 @@ export const editEvent = async (input: EditEventInput) => {
         starting_date,
         ending_date,
         sale_price: salePrice,
-        regular_price: product.regular_price,
+        regular_price: product.regular_price ?? undefined,
     });
 
     if (!validation.valid) {

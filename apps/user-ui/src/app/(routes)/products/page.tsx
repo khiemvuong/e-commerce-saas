@@ -82,12 +82,12 @@ const ProductsContent = () => {
     // Initialize from URL params on mount
     useEffect(() => {
         // Get search keyword from URL
-        const urlSearch = searchParams.get('search');
+        const urlSearch = searchParams?.get('search');
         if (urlSearch) {
             setSearchKeyword(urlSearch);
         }
         
-        const urlPriceRange = searchParams.get('priceRange');
+        const urlPriceRange = searchParams?.get('priceRange');
         if (urlPriceRange) {
             const range = urlPriceRange.split(',').map(Number);
             if (range.length === 2) {
@@ -96,28 +96,28 @@ const ProductsContent = () => {
             }
         }
         
-        const urlCategories = searchParams.get('categories');
+        const urlCategories = searchParams?.get('categories');
         if (urlCategories) {
             const cats = urlCategories.split(',');
             setSelectedCategories(cats);
             setTempCategories(cats);
         }
         
-        const urlColors = searchParams.get('colors');
+        const urlColors = searchParams?.get('colors');
         if (urlColors) {
             const cols = urlColors.split(',');
             setSelectedColors(cols);
             setTempColors(cols);
         }
         
-        const urlSizes = searchParams.get('sizes');
+        const urlSizes = searchParams?.get('sizes');
         if (urlSizes) {
             const szs = urlSizes.split(',');
             setSelectedSizes(szs);
             setTempSizes(szs);
         }
         
-        const urlPage = searchParams.get('page');
+        const urlPage = searchParams?.get('page');
         if (urlPage) {
             setPage(Number(urlPage));
         }
