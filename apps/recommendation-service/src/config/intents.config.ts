@@ -216,6 +216,44 @@ export const RESPONSE_TEMPLATES: Record<Intent, string[]> = {
     "We have several categories to explore:\n• 👟 Shoes & Sneakers\n• 👕 Clothing & Apparel\n• 👜 Bags & Accessories\n• 📱 Electronics\n• 🏋️ Sports & Fitness\n• 💄 Beauty & Skincare\n• 🏠 Home & Living\n\nWhat interests you? Tell me a category or just describe what you need!",
   ],
   [Intent.UNKNOWN]: [
-    "I'm not sure I understand. Try asking me things like:\n• \"Show me Nike shoes\"\n• \"I need a laptop under $1000\"\n• \"Recommend popular bags\"\n\nOr tap one of the quick replies below!",
+    "Hmm, I'm not quite sure what you mean. You can try:\n• \"Show me Nike shoes\"\n• \"Recommend popular bags\"\n• \"Compare Adidas vs Nike\"\n\nOr tap a quick reply below!",
+    "I didn't catch that. Here are some things I can help with:\n• Search for products by brand, category or color\n• Get personalized recommendations\n• Compare two products side by side",
+    "I'm not sure I understand — could you rephrase that? For example:\n• \"I need a laptop under $1000\"\n• \"What's trending in shoes?\"\n• \"Best rated electronics\"",
+  ],
+};
+
+/**
+ * Response templates for enhanced features
+ */
+export const ENHANCED_TEMPLATES = {
+  /** Shown when typo is corrected */
+  TYPO_CORRECTION: [
+    "Showing results for **{corrected}** (instead of \"{original}\"):",
+    "Did you mean **{corrected}**? Here's what I found:",
+    "I think you meant **{corrected}** — here are the results:",
+  ],
+  /** Shown when asking for clarification */
+  CLARIFICATION: [
+    "I'd love to help! Could you tell me more about what you're looking for?",
+    "Let me narrow things down for you:",
+    "To find the best match, I have a quick question:",
+  ],
+  /** Shown for comparison results */
+  COMPARISON: [
+    "Here's a side-by-side comparison:",
+    "Let me compare these for you:",
+    "Here's how they stack up:",
+  ],
+  /** Shown when context is resolved from follow-up */
+  CONTEXT_RESOLVED: [
+    "Got it! Updating your search:",
+    "Sure thing! Here's what I found with that filter:",
+    "Updated results:",
+  ],
+  /** Shown for generic fallback with trending products */
+  TRENDING_FALLBACK: [
+    "Meanwhile, check out what's trending right now:",
+    "In the meantime, here are some popular picks:",
+    "While you're here, these are our top products:",
   ],
 };

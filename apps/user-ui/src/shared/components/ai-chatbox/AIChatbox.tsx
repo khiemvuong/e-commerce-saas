@@ -25,6 +25,14 @@ interface ChatMessage {
   recommendations?: ProductRecommendation[];
   quickReplies?: string[];
   intent?: string;
+  /** Comparison table data */
+  comparison?: ComparisonData;
+  /** Clarification options */
+  clarification?: ClarificationData;
+  /** Fallback/typo correction info */
+  fallback?: FallbackData;
+  /** Whether this was a follow-up resolution */
+  isFollowUp?: boolean;
 }
 
 interface ProductRecommendation {
@@ -35,6 +43,38 @@ interface ProductRecommendation {
   slug?: string;
   score: number;
   matchReasons: string[];
+}
+
+interface ComparisonData {
+  products: Array<{
+    id: string;
+    title: string;
+    brand: string;
+    price: number;
+    image: string;
+    rating: number;
+  }>;
+  comparisonTable: Array<{
+    field: string;
+    values: (string | number)[];
+    winner?: number;
+    icon?: string;
+  }>;
+  verdict: string;
+}
+
+interface ClarificationData {
+  question: string;
+  options: Array<{ label: string; value: string; description?: string }>;
+  clarificationType: string;
+}
+
+interface FallbackData {
+  correctedQuery?: string;
+  originalTerm?: string;
+  fallbackType: string;
+  confidence: number;
+  suggestions: string[];
 }
 
 interface Suggestion {
@@ -136,6 +176,93 @@ const ChatProductCard = ({
   </div>
 );
 
+/** Comparison table component */
+const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => (
+  <div className="mt-2 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm max-w-[320px]">
+    {/* Product headers */}
+    <div className="flex border-b border-gray-100">
+      <div className="w-20 flex-shrink-0 bg-gray-50 p-2" />
+      {comparison.products.map((p, i) => (
+        <div key={i} className="flex-1 p-2 text-center border-l border-gray-100">
+          {p.image && (
+            <img src={p.image} alt={p.title} className="w-10 h-10 rounded-lg mx-auto mb-1 object-cover" />
+          )}
+          <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.title}</p>
+        </div>
+      ))}
+    </div>
+    {/* Comparison rows */}
+    {comparison.comparisonTable.map((row, i) => (
+      <div key={i} className={`flex border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+        <div className="w-20 flex-shrink-0 p-2 text-[10px] font-medium text-gray-500 flex items-center gap-1">
+          {row.icon && <span>{row.icon}</span>}
+          {row.field}
+        </div>
+        {row.values.map((val, vi) => (
+          <div
+            key={vi}
+            className={`flex-1 p-2 text-xs text-center border-l border-gray-100 ${
+              row.winner === vi ? 'text-green-600 font-semibold bg-green-50/50' : 'text-gray-700'
+            }`}
+          >
+            {typeof val === 'number' && row.field === 'Price' ? `$${val.toLocaleString()}` : String(val)}
+            {row.winner === vi && <span className="ml-0.5 text-green-500">✓</span>}
+          </div>
+        ))}
+      </div>
+    ))}
+    {/* Verdict */}
+    {comparison.verdict && (
+      <div className="px-3 py-2 bg-gradient-to-r from-[#C9A86C]/5 to-transparent">
+        <p className="text-[11px] text-gray-600 italic">{comparison.verdict}</p>
+      </div>
+    )}
+  </div>
+);
+
+/** Clarification options component */
+const ClarificationOptions = ({
+  clarification,
+  onSelect,
+}: {
+  clarification: ClarificationData;
+  onSelect: (value: string) => void;
+}) => (
+  <div className="mt-2 space-y-1.5 max-w-[280px]">
+    {clarification.options.map((opt, i) => (
+      <button
+        key={i}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left text-xs bg-white border border-gray-200 rounded-xl hover:border-[#C9A86C] hover:bg-[#C9A86C]/5 transition-all group"
+        onClick={() => onSelect(opt.value || opt.label)}
+      >
+        <span className="w-5 h-5 rounded-full bg-[#C9A86C]/10 text-[#C9A86C] flex items-center justify-center text-[10px] font-bold flex-shrink-0 group-hover:bg-[#C9A86C]/20">
+          {i + 1}
+        </span>
+        <div>
+          <span className="font-medium text-gray-800">{opt.label}</span>
+          {opt.description && (
+            <p className="text-[10px] text-gray-400 mt-0.5">{opt.description}</p>
+          )}
+        </div>
+      </button>
+    ))}
+  </div>
+);
+
+/** Correction banner — shows when typo was corrected */
+const CorrectionBanner = ({ fallback }: { fallback: FallbackData }) => {
+  if (!fallback.correctedQuery || !fallback.originalTerm) return null;
+  return (
+    <div className="mt-1.5 mb-1 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-lg flex items-center gap-1.5 max-w-[280px]">
+      <span className="text-amber-500 text-xs">✏️</span>
+      <p className="text-[11px] text-amber-700">
+        Showing results for <strong>{fallback.correctedQuery}</strong>
+        {' '}(instead of &quot;{fallback.originalTerm}&quot;)
+      </p>
+    </div>
+  );
+};
+
 
 
 /** Simple markdown-lite renderer for chat messages */
@@ -197,6 +324,24 @@ const MessageBubble = ({
         >
           {isUser ? message.content : formatMessage(message.content)}
         </div>
+
+        {/* Correction banner (typo correction notice) */}
+        {!isUser && message.fallback && (
+          <CorrectionBanner fallback={message.fallback} />
+        )}
+
+        {/* Comparison table */}
+        {!isUser && message.comparison && (
+          <ComparisonTable comparison={message.comparison} />
+        )}
+
+        {/* Clarification options */}
+        {!isUser && message.clarification && (
+          <ClarificationOptions
+            clarification={message.clarification}
+            onSelect={(value) => onQuickReply(value)}
+          />
+        )}
 
         {/* Product recommendations */}
         {message.recommendations && message.recommendations.length > 0 && (
@@ -359,6 +504,10 @@ const AIChatbox = () => {
               recommendations: res.data.recommendations,
               quickReplies: res.data.quickReplies,
               intent: res.data.intent,
+              comparison: res.data.comparison,
+              clarification: res.data.clarification,
+              fallback: res.data.fallback,
+              isFollowUp: res.data.isFollowUp,
             };
             setMessages((prev) => [...prev, aiMsg]);
           }
