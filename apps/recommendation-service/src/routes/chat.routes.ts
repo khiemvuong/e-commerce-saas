@@ -200,6 +200,35 @@ router.post('/message', async (req: Request, res: Response): Promise<void> => {
         })),
         intent: response.intent,
         extractedKeywords: response.keywords,
+        // ===== Enhanced response fields =====
+        comparison: response.comparison ? {
+          products: response.comparison.products.map(p => ({
+            id: p.id,
+            title: p.title,
+            brand: p.brand,
+            price: p.price,
+            image: p.image || '',
+            rating: p.rating,
+          })),
+          comparisonTable: response.comparison.comparisonTable,
+          verdict: response.comparison.verdict,
+        } : undefined,
+        clarification: response.clarification ? {
+          question: response.clarification.question,
+          options: response.clarification.options,
+          clarificationType: response.clarification.clarificationType,
+          showPreview: response.clarification.showPreview,
+          previewCount: response.clarification.previewCount,
+        } : undefined,
+        fallback: response.fallback ? {
+          correctedQuery: response.fallback.correctedQuery,
+          originalTerm: response.fallback.originalTerm,
+          fallbackType: response.fallback.fallbackType,
+          confidence: response.fallback.confidence,
+          suggestions: response.fallback.suggestions,
+        } : undefined,
+        isFollowUp: response.isFollowUp || false,
+        originalMessage: response.originalMessage,
       },
     });
   } catch (error) {

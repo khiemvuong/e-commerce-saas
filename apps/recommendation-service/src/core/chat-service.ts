@@ -14,6 +14,11 @@ import { extractKeywords, ExtractedKeywords } from './keyword-extractor';
 import { scoreProducts, getTopRecommendations, UserContext, ScoredProduct } from './recommendation-engine';
 import { loadUserContext, createAnonymousContext } from '../data/user-context-loader';
 import { loadProducts } from '../data/product-loader';
+import { resolveContext, ContextualMessage } from './context-resolver';
+import { compareProducts, ComparisonResult } from './comparison-engine';
+import { shouldClarify, parseClarificationResponse, ClarificationResult } from './clarification-engine';
+import { FallbackResult } from './smart-fallback';
+import { Intent, ENHANCED_TEMPLATES } from '../config/intents.config';
 
 /**
  * Chat message structure
@@ -44,6 +49,9 @@ export interface ConversationState {
   detectedIntents: string[];
   // Merged user context (DB + chat session)
   userContext: UserContext;
+  // Clarification tracking
+  pendingClarification?: ClarificationResult;
+  clarificationCount: number;
 }
 
 /**
@@ -55,6 +63,16 @@ export interface AIResponse {
   recommendations?: ScoredProduct[];
   intent: string;
   keywords: ExtractedKeywords;
+  /** Comparison table data (for COMPARE intent) */
+  comparison?: ComparisonResult;
+  /** Clarification options (when asking follow-up questions) */
+  clarification?: ClarificationResult;
+  /** Fallback correction info (when typo was corrected) */
+  fallback?: FallbackResult;
+  /** Whether this was resolved from a follow-up message */
+  isFollowUp?: boolean;
+  /** The original message before context resolution */
+  originalMessage?: string;
 }
 
 /**
@@ -149,6 +167,7 @@ export async function startConversation(userId?: string): Promise<ConversationSt
     },
     detectedIntents: [],
     userContext,
+    clarificationCount: 0,
   };
   
   conversationStore.set(conversationId, state);
@@ -166,16 +185,20 @@ export function getConversation(conversationId: string): ConversationState | und
 /**
  * Process user message and generate AI response.
  * 
- * Flow:
- * 1. Detect intent
- * 2. Extract keywords
- * 3. Save user message
- * 4. Accumulate keywords into session context
- * 5. Merge session context with DB context
- * 6. Load relevant products from DB
- * 7. Score products using Unified Hybrid Scoring
- * 8. Generate response
- * 9. Save AI message
+ * Enhanced Flow:
+ * 0. Check if this is a clarification response
+ * 1. Resolve context (follow-up detection)
+ * 2. Detect intent (with smart fallback)
+ * 3. Extract keywords
+ * 4. Save user message
+ * 5. Accumulate keywords into session context
+ * 6. Check if clarification is needed
+ * 7. Handle COMPARE intent specially
+ * 8. Merge session context with DB context
+ * 9. Load relevant products from DB
+ * 10. Score products using Unified Hybrid Scoring
+ * 11. Generate response
+ * 12. Save AI message
  */
 export async function processMessage(
   conversationId: string,
@@ -185,14 +208,38 @@ export async function processMessage(
   if (!state) {
     throw new Error(`Conversation ${conversationId} not found`);
   }
+
+  // ===== Step 0: Check if this is a response to a pending clarification =====
+  if (state.pendingClarification) {
+    const clarificationOptions = state.pendingClarification.options;
+    const parsed = parseClarificationResponse(userMessage, clarificationOptions);
+    
+    if (parsed.isClarificationResponse && parsed.value) {
+      // User answered clarification — merge the selected value into the search
+      state.pendingClarification = undefined;
+      // Combine the clarification value with the original message for a richer search
+      const enhancedMessage = `${parsed.value} ${userMessage}`;
+      return processMessage(conversationId, enhancedMessage);
+    }
+    // Not a valid clarification response — clear and process normally
+    state.pendingClarification = undefined;
+  }
+
+  // ===== Step 1: Resolve context (follow-up detection) =====
+  const contextResult: ContextualMessage = resolveContext(userMessage, state);
+  const effectiveMessage = contextResult.resolvedMessage;
+
+  // ===== Step 2: Detect intent (now with smart fallback integration) =====
+  const intentResult = detectIntent(
+    effectiveMessage,
+    state.accumulatedKeywords,
+    state.detectedIntents,
+  );
   
-  // Step 1: Detect intent
-  const intentResult = detectIntent(userMessage);
+  // ===== Step 3: Extract keywords =====
+  const keywords = extractKeywords(effectiveMessage);
   
-  // Step 2: Extract keywords
-  const keywords = extractKeywords(userMessage);
-  
-  // Step 3: Save user message
+  // ===== Step 4: Save user message =====
   const userMsg: ChatMessage = {
     id: generateId(),
     conversationId,
@@ -204,20 +251,104 @@ export async function processMessage(
   };
   state.messages.push(userMsg);
   
-  // Step 4: Accumulate keywords into session context
+  // ===== Step 5: Accumulate keywords into session context =====
   accumulateKeywords(state.accumulatedKeywords, keywords);
   
   if (!state.detectedIntents.includes(intentResult.intent)) {
     state.detectedIntents.push(intentResult.intent);
   }
 
-  // Step 5: Merge session context with DB context
+  // ===== Step 6: Check if clarification is needed =====
+  if (intentResult.intent !== Intent.UNKNOWN && intentResult.intent !== Intent.GREETING && intentResult.intent !== Intent.HELP) {
+    const estimatedCount = await estimateResultCount(keywords, state);
+    const clarification = shouldClarify(
+      intentResult.intent,
+      keywords,
+      state.accumulatedKeywords,
+      state.messages,
+      estimatedCount,
+    );
+    
+    if (clarification.needsClarification) {
+      state.pendingClarification = clarification;
+      state.clarificationCount++;
+
+      const templates = ENHANCED_TEMPLATES.CLARIFICATION;
+      const prefix = templates[Math.floor(Math.random() * templates.length)];
+      
+      // Save AI clarification message
+      const aiMsg: ChatMessage = {
+        id: generateId(),
+        conversationId,
+        senderType: 'ai',
+        content: `${prefix}\n\n${clarification.question}`,
+        timestamp: new Date(),
+      };
+      state.messages.push(aiMsg);
+      state.lastMessageAt = new Date();
+
+      return {
+        message: `${prefix}\n\n${clarification.question}`,
+        quickReplies: clarification.options?.map(o => o.label) || [],
+        intent: intentResult.intent,
+        keywords,
+        clarification,
+        isFollowUp: contextResult.isFollowUp,
+        originalMessage: contextResult.isFollowUp ? userMessage : undefined,
+      };
+    }
+  }
+
+  // ===== Step 7: Handle COMPARE intent =====
+  if (intentResult.intent === Intent.COMPARE) {
+    const comparisonResult = await compareProducts(effectiveMessage);
+    
+    const aiMsg: ChatMessage = {
+      id: generateId(),
+      conversationId,
+      senderType: 'ai',
+      content: comparisonResult.message,
+      timestamp: new Date(),
+    };
+    state.messages.push(aiMsg);
+    state.lastMessageAt = new Date();
+
+    return {
+      message: comparisonResult.message,
+      quickReplies: comparisonResult.quickReplies,
+      intent: intentResult.intent,
+      keywords,
+      comparison: comparisonResult.success ? comparisonResult : undefined,
+      isFollowUp: contextResult.isFollowUp,
+      originalMessage: contextResult.isFollowUp ? userMessage : undefined,
+    };
+  }
+
+  // ===== Step 8: Merge session context with DB context =====
   const mergedContext = mergeContexts(state.userContext, state.accumulatedKeywords);
 
-  // Step 6-8: Generate response (loads products & scores internally)
+  // ===== Step 9-11: Generate response (loads products & scores internally) =====
   const response = await generateResponse(intentResult, keywords, mergedContext, state);
-  
-  // Step 9: Save AI message
+
+  // Attach follow-up info
+  if (contextResult.isFollowUp) {
+    response.isFollowUp = true;
+    response.originalMessage = userMessage;
+    
+    // Prepend context-resolved message if it changed
+    if (effectiveMessage !== userMessage) {
+      const templates = ENHANCED_TEMPLATES.CONTEXT_RESOLVED;
+      const prefix = templates[Math.floor(Math.random() * templates.length)];
+      response.message = `${prefix}\n\n${response.message}`;
+    }
+  }
+
+  // Attach fallback data if present
+  if (intentResult.fallback) {
+    response.fallback = intentResult.fallback;
+  }
+
+  // ===== Step 12: Save AI message =====
   const aiMsg: ChatMessage = {
     id: generateId(),
     conversationId,
@@ -231,6 +362,28 @@ export async function processMessage(
   state.lastMessageAt = new Date();
   
   return response;
+}
+
+/**
+ * Quick estimate of how many product results would match the current keywords.
+ * Used to decide if clarification is needed (too many results = vague query).
+ */
+async function estimateResultCount(
+  keywords: ExtractedKeywords,
+  state: ConversationState,
+): Promise<number> {
+  try {
+    const searchKeyword = keywords.rawKeywords.join(' ') || undefined;
+    const products = await loadProducts({
+      keyword: searchKeyword,
+      categories: keywords.categories.length > 0 ? keywords.categories : undefined,
+      brands: keywords.brands.length > 0 ? keywords.brands : undefined,
+      limit: 50,
+    });
+    return products.length;
+  } catch {
+    return 0;
+  }
 }
 
 /**
@@ -286,8 +439,12 @@ async function generateResponse(
   
   // Intents that should trigger product recommendations
   const recommendIntents = ['SEARCH_PRODUCT', 'RECOMMEND', 'ASK_PRICE', 'ASK_STOCK', 'BROWSE'];
+
+  // UNKNOWN intent with generic fallback — still show trending products
+  const isGenericFallback = intentResult.intent === 'UNKNOWN' 
+    && intentResult.fallback?.shouldSearchProducts === true;
   
-  if (recommendIntents.includes(intentResult.intent)) {
+  if (recommendIntents.includes(intentResult.intent) || isGenericFallback) {
     // Build search parameters from intent + keywords + context
     const searchKeyword = intentResult.extractedText
       || keywords.rawKeywords.join(' ')

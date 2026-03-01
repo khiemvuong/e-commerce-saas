@@ -380,3 +380,30 @@ model message {
 
   @@unique([conversationId, senderId, content, createdAt])
 }
+
+// AI Chatbox Analytics - Track chatbox conversations, feedback, and performance
+model chatAnalytics {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId     String    @unique
+  userId             String?   @db.ObjectId
+  messageCount       Int       @default(0)
+  intents            String[]  @default([])
+  // Feedback per message: [{messageId, rating, intent, timestamp}]
+  feedbacks          Json[]    @default([])
+  productClicks      Int       @default(0)
+  // Which products were clicked
+  clickedProducts    String[]  @default([])
+  // Track fallback metrics
+  fallbackCount      Int       @default(0)
+  correctionCount    Int       @default(0)
+  clarificationCount Int       @default(0)
+  comparisonCount    Int       @default(0)
+  // Session timing
+  startedAt          DateTime  @default(now())
+  endedAt            DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}

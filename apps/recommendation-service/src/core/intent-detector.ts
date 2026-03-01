@@ -5,9 +5,10 @@
  * Uses pattern matching without external AI APIs.
  */
 
-import { Intent, INTENT_PATTERNS, QUICK_REPLIES, RESPONSE_TEMPLATES } from '../config/intents.config';
+import { Intent, INTENT_PATTERNS, QUICK_REPLIES, RESPONSE_TEMPLATES, ENHANCED_TEMPLATES } from '../config/intents.config';
 import { BRAND_KEYWORDS, CATEGORY_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
-import { fuzzyMatch } from './keyword-extractor';
+import { fuzzyMatch, ExtractedKeywords } from './keyword-extractor';
+import { smartFallback, FallbackResult } from './smart-fallback';
 
 export interface DetectionResult {
   intent: Intent;
@@ -15,13 +16,23 @@ export interface DetectionResult {
   extractedText?: string;
   quickReplies: string[];
   responseTemplate: string;
+  /** Fallback data when smart-fallback recovered from UNKNOWN */
+  fallback?: FallbackResult;
 }
 
 /**
- * Detect intent from user message
- * Uses priority-based pattern matching
+ * Detect intent from user message.
+ * Uses priority-based pattern matching, then implicit detection, then smart fallback.
+ * 
+ * @param message - The user message
+ * @param sessionKeywords - Accumulated keywords from session (for context-aware fallback)
+ * @param recentIntents - Recently detected intents in conversation
  */
-export function detectIntent(message: string): DetectionResult {
+export function detectIntent(
+  message: string,
+  sessionKeywords?: ExtractedKeywords,
+  recentIntents?: string[],
+): DetectionResult {
   const trimmed = message.trim();
   
   // Handle empty messages
@@ -58,7 +69,33 @@ export function detectIntent(message: string): DetectionResult {
     return implicitResult;
   }
 
-  return createResult(Intent.UNKNOWN, 0);
+  // =========================================================
+  // Smart Fallback: before returning UNKNOWN, try to recover
+  // using typo correction, phonetic matching, etc.
+  // =========================================================
+  const fallbackResult = smartFallback(trimmed, sessionKeywords, recentIntents);
+
+  if (fallbackResult.shouldSearchProducts && fallbackResult.correctedQuery) {
+    // Fallback successfully corrected the query — treat as SEARCH_PRODUCT
+    const templates = ENHANCED_TEMPLATES.TYPO_CORRECTION;
+    const template = templates[Math.floor(Math.random() * templates.length)]
+      .replace('{corrected}', fallbackResult.correctedQuery)
+      .replace('{original}', fallbackResult.originalTerm || trimmed);
+
+    return {
+      intent: Intent.SEARCH_PRODUCT,
+      confidence: fallbackResult.confidence,
+      extractedText: fallbackResult.correctedQuery,
+      quickReplies: QUICK_REPLIES[Intent.SEARCH_PRODUCT],
+      responseTemplate: template,
+      fallback: fallbackResult,
+    };
+  }
+
+  // Could not recover — return UNKNOWN with fallback suggestions attached
+  const unknownResult = createResult(Intent.UNKNOWN, 0);
+  unknownResult.fallback = fallbackResult;
+  return unknownResult;
 }
 
 /**
@@ -71,6 +108,8 @@ function detectImplicitProductSearch(message: string): DetectionResult | null {
   const words = lower.split(/\s+/);
   let hasProductSignal = false;
   let confidence = 0;
+
+  let fuzzyCorrections: { original: string; corrected: string }[] = [];
 
   // Check for brand mentions (exact or fuzzy)
   for (const brand of BRAND_KEYWORDS) {
@@ -86,6 +125,9 @@ function detectImplicitProductSearch(message: string): DetectionResult | null {
       if (match) {
         hasProductSignal = true;
         confidence += 35; // Slightly lower for fuzzy match
+        if (match.toLowerCase() !== word.toLowerCase()) {
+          fuzzyCorrections.push({ original: word, corrected: match });
+        }
         break;
       }
     }
@@ -113,6 +155,9 @@ function detectImplicitProductSearch(message: string): DetectionResult | null {
       if (match) {
         hasProductSignal = true;
         confidence += 30;
+        if (match.toLowerCase() !== word.toLowerCase()) {
+          fuzzyCorrections.push({ original: word, corrected: match });
+        }
         break;
       }
     }
@@ -130,7 +175,24 @@ function detectImplicitProductSearch(message: string): DetectionResult | null {
 
   if (hasProductSignal) {
     confidence = Math.min(confidence, 85); // Cap at 85 (explicit patterns can reach higher)
-    return createResult(Intent.SEARCH_PRODUCT, confidence, message);
+    const result = createResult(Intent.SEARCH_PRODUCT, confidence, message);
+
+    // If we corrected a typo via fuzzy match, attach fallback info
+    // so the frontend can show "Showing results for X (instead of Y)"
+    if (fuzzyCorrections.length > 0) {
+      const corrected = fuzzyCorrections.map(c => c.corrected).join(', ');
+      const original = fuzzyCorrections.map(c => c.original).join(', ');
+      result.fallback = {
+        correctedQuery: corrected,
+        originalTerm: original,
+        suggestions: [],
+        confidence,
+        fallbackType: 'typo_correction',
+        shouldSearchProducts: true,
+        message: `Showing results for "**${corrected}**"`,
+      };
+    }
+    return result;
   }
 
   return null;
@@ -174,7 +236,7 @@ function createResult(intent: Intent, confidence: number, extractedText?: string
  * Batch detect intents for multiple messages
  */
 export function detectIntents(messages: string[]): DetectionResult[] {
-  return messages.map(detectIntent);
+  return messages.map(msg => detectIntent(msg));
 }
 
 /**
