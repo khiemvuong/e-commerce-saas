@@ -40,11 +40,11 @@ USER nextjs
 # COPY apps/user-ui/.env ./apps/user-ui/.env
 
 # Copy các thư viện public và các asset cần thiết
-COPY --from=builder /app/dist/apps/user-ui/public ./dist/apps/user-ui/public
+COPY --from=builder /app/apps/user-ui/public ./apps/user-ui/public
 
 # Copy mã nguồn Standalone đã được minify
-COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/user-ui/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/dist/apps/user-ui/.next/static ./dist/apps/user-ui/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/user-ui/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/user-ui/.next/static ./apps/user-ui/.next/static
 
 # Chạy server
 CMD ["node", "apps/user-ui/server.js"]
