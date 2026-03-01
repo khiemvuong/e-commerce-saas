@@ -19,7 +19,7 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
     return (
         <QueryClientProvider client={queryClient}>
             <Toaster
-                position="top-right"
+                position="top-center"
                 toastOptions={{
                     duration: 2000,
                     style: {
@@ -53,12 +53,15 @@ const ProvidersWithWebSocket = ({
 }: {
     children: React.ReactNode;
 }) => {
-    const { user,isLoading } = useUser();
-    if (isLoading) return null;
+    const { user } = useUser();
+    
     return (
         <>
-            {user && <WebSocketProvider user={user}>{children}</WebSocketProvider>}
-            {!user && children}
+            {user ? (
+                <WebSocketProvider user={user}>{children}</WebSocketProvider>
+            ) : (
+                children
+            )}
         </>
     );
 };

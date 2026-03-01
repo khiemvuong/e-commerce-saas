@@ -14,7 +14,7 @@ const Providers = ({children}: {children: React.ReactNode}) => {
 return (
     <QueryClientProvider client={queryClient}>
         <Toaster 
-            position="top-right"
+            position="top-center"
             toastOptions={{
                 duration: 2000,
                 style: {

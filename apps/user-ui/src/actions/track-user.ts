@@ -1,10 +1,9 @@
 "use server";
-import { Kafka } from 'kafkajs';
-const kafka = new Kafka({
-    clientId: 'kafka-service',
-    brokers: ['localhost:9092'], // Local Docker broker
-});
-const producer = kafka.producer();
+import { Redis } from '@upstash/redis';
+
+// Note: Upstash Redis over HTTP is perfect for Server Actions in Next.js
+// It doesn't require maintaining a persistent connection like ioredis does.
+const redis = Redis.fromEnv();
 
 export async function sendKafkaEvent(eventData:{
     userId?:string;
@@ -16,18 +15,8 @@ export async function sendKafkaEvent(eventData:{
     city?: string;
 }){
     try {
-        await producer.connect();
-        await producer.send({
-            topic: 'user-events',
-            messages: [
-                {
-                    value: JSON.stringify(eventData),
-                },
-            ],
-        });
+        await redis.publish('user-events', JSON.stringify(eventData));
     } catch (error) {
-        console.error('Error sending Kafka event:', error);
-    } finally {
-        await producer.disconnect();
+        console.error('Error sending Redis event:', error);
     }
 };

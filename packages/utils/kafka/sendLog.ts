@@ -1,15 +1,14 @@
-import { kafka } from '../kafka';
+import redis from '../../libs/redis/index';
 
-const producer = kafka.producer();
 export async function sendLog({
     type = 'info',
-    message ,
+    message,
     source = 'unknown-service',
-}:{
+}: {
     type?: 'success' | 'error' | 'info' | 'warning' | 'debug';
     message: string;
     source?: string;
-}){
+}) {
     const logPayload = {
         type,
         message,
@@ -18,17 +17,8 @@ export async function sendLog({
     };
 
     try {
-        await producer.connect();
-        await producer.send({
-            topic: 'logs',
-            messages: [
-                {
-                    value: JSON.stringify(logPayload),
-                },
-            ],
-        });
-        await producer.disconnect();
+        await redis.publish('logs', JSON.stringify(logPayload));
     } catch (error) {
-        console.error('Failed to send log to Kafka:', error);
+        console.error('Failed to send log to Redis:', error);
     }
 }

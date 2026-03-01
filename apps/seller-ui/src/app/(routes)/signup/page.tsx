@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import React, {useState} from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useForm} from 'react-hook-form';
 import { Eye, EyeOff} from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -21,11 +21,34 @@ const Signup = () => {
     const [timer, setTimer] = useState(60);
     const [otp,setOtp] = useState(["", "", "", ""]);
     const [sellerData, setSellerData] = useState<FormData | null>(null);
-    const inputRefs = React.useRef<Array<HTMLInputElement | null>>([]);
+    const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
     const {register, handleSubmit, formState: {errors}} = useForm();
     const [sellerId, setSellerId] = useState("");
     const [isStripeLoading, setIsStripeLoading] = useState(false);
     
+    // Add isMounted to prevent hydration mismatch with localStorage
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Initialize state from localStorage
+    useEffect(() => {
+        setIsMounted(true);
+        const savedStep = localStorage.getItem('seller_signup_step');
+        const savedSellerId = localStorage.getItem('seller_signup_id');
+        const savedSellerData = localStorage.getItem('seller_signup_data');
+        
+        if (savedStep) setActiveStep(parseInt(savedStep));
+        if (savedSellerId) setSellerId(savedSellerId);
+        if (savedSellerData) setSellerData(JSON.parse(savedSellerData));
+    }, []);
+
+    // Save state to localStorage whenever it changes (only after mount)
+    useEffect(() => {
+        if (!isMounted) return;
+        localStorage.setItem('seller_signup_step', activeStep.toString());
+        if (sellerId) localStorage.setItem('seller_signup_id', sellerId);
+        if (sellerData) localStorage.setItem('seller_signup_data', JSON.stringify(sellerData));
+    }, [activeStep, sellerId, sellerData, isMounted]);
+
     const { data: siteConfig } = useSiteConfig();
     const countries = siteConfig?.countries || [];
     const startResendTimer = () => {
@@ -72,6 +95,8 @@ const Signup = () => {
         onSuccess: (data) => {
             setSellerId(data?.seller?.id);
             setActiveStep(2);
+            // Clear OTP state on success
+            setShowOtp(false);
         },
         onError: (error: any) => {
             console.error('OTP verification error:', error);
@@ -130,7 +155,17 @@ const Signup = () => {
     };
 
 return (
-    <div className="w-full flex flex-col items-center pt-10 min-h-screen">
+    <div className="w-full flex flex-col items-center min-h-screen bg-gray-50 pb-10">
+        {/* Top Navigation Bar */}
+        <div className="w-full bg-white shadow-sm px-6 py-4 flex justify-between items-center mb-10">
+            <a href={process.env.NEXT_PUBLIC_USER_UI_URL || "http://localhost:3000"} className="text-gray-600 hover:text-black font-medium flex items-center gap-2 transition">
+                ← Back to ILAN Shop
+            </a>
+            <Link href="/login" className="text-gray-600 hover:text-black font-medium transition cursor-pointer">
+                Login as Seller
+            </Link>
+        </div>
+
         {/*<Stepper/>*/}
         <div className="relative flex items-center justify-between md:w-[50%] mb-8">
             <div className ="absolute top-[25%] left-0 w-[80%] md:w-[90%] h-1 bg-gray-300 -z-10"/>
@@ -148,15 +183,19 @@ return (
             ))}
         </div>
         {/*Steps content */}
-        <div className="md:w-[480px] p-8 ng-white shadow rounded-lg">
-            {activeStep === 1 && (
+        <div className="md:w-[480px] w-[95%] p-8 bg-white shadow-lg rounded-xl border border-gray-100 relative">
+            {!isMounted ? (
+                <div className="flex justify-center items-center h-64">
+                    <PageLoader text="Loading form..." />
+                </div>
+            ) : activeStep === 1 && (
                 <>
                 {!showOtp ? (
                     <form method="post" action="" onSubmit={handleSubmit(onSubmit)}>
-                        <h3 className ="text-2xl font-semibold text-center mb-4">
+                        <h3 className ="text-2xl font-bold text-center mb-6 text-gray-800">
                             Create your account
                         </h3>
-                    <label className="block text-gray-700 mb-1">
+                    <label className="block text-gray-700 font-medium mb-1">
                         Name
                     </label>
                     <input 
@@ -285,10 +324,10 @@ return (
                 </form>
                 ):(
                     <div>
-                        <div className="bg-green-100 border border-green-400 text-green-700 px-4 justify-center py-3 rounded mb-4 text-center">
+                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 justify-center py-3 rounded-lg mb-6 text-center">
                             Please check your email for the verification code.
                         </div>
-                        <h3 className="text-xl font-semibold text-center mb-4">
+                        <h3 className="text-xl font-bold text-center mb-6 text-gray-800">
                         Enter the 4-digit code sent to your email
                         </h3>
                         <div className="flex justify-center gap-2 mb-4">
@@ -332,8 +371,6 @@ return (
                                 <p className="text-red-600 text-sm text-center">{serverError}</p>
                             </div>
                         )}
-                        
-
                     </div>
                 )}
                 </>
@@ -342,6 +379,7 @@ return (
                 <CreateShop
                     sellerId={sellerId}
                     setActiveStep={setActiveStep}
+                    onBack={() => setActiveStep(1)}
                 />
             )}
             {activeStep === 3 && (
@@ -359,12 +397,22 @@ return (
                                 </>
                         )}
                     </button>
+                    <button
+                        onClick={() => {
+                            localStorage.removeItem('seller_signup_step');
+                            localStorage.removeItem('seller_signup_id');
+                            localStorage.removeItem('seller_signup_data');
+                            window.location.href = '/dashboard';
+                        }}
+                        className="w-full mt-4 justify-center flex items-center gap-3 p-2 bg-white text-gray-700 border border-gray-300 font-Roboto text-lg hover:bg-gray-50 transition rounded-xl"
+                    >
+                        I'll do this later
+                    </button>
                 </div>
             )}
-
         </div>
     </div>
-);
-}
+  );
+};
 
 export default Signup;

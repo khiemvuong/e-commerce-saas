@@ -33,7 +33,8 @@ import {
 } from '../../application/useCases';
 
 // Queries
-import { makeGetUser } from '../../application/queries';
+import { sendLog } from '@packages/utils/kafka';
+import { User } from '../../domain/User';
 
 // Infrastructure
 import { getUserRepository } from '../../infrastructure/PrismaUserRepository';
@@ -51,7 +52,6 @@ const updateProfile = makeUpdateProfile({ userRepository });
 const updatePassword = makeUpdatePassword({ userRepository });
 const uploadAvatar = makeUploadAvatar();
 const refreshToken = makeRefreshToken();
-const getUser = makeGetUser({ userRepository });
 
 // 2FA Use Cases
 const enable2FA = makeEnable2FA({ userRepository });
@@ -142,13 +142,24 @@ export const userController = {
      */
     async getLoggedInUser(req: any, res: Response, next: NextFunction) {
         try {
-            const userId = req.user?.id;
-            if (!userId) {
+            const user = req.user;
+            if (!user) {
                 return next(new AuthError('User not authenticated'));
             }
 
-            const result = await getUser({ userId });
-            res.status(201).json(result);
+            // Fire and forget log, don't await so we don't block the UI
+            sendLog({
+                type: 'success',
+                message: `User data fetched for user ID: ${user.id}`,
+                source: 'auth-service',
+            }).catch(console.error);
+
+            // The 'isAuthenticated' middleware already fetched the user with avatar! 
+            // We just need to format it and return. No second DB hit.
+            res.status(200).json({
+                success: true,
+                user: User.toPublic(user),
+            });
         } catch (error) {
             next(error);
         }

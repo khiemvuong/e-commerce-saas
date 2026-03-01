@@ -15,7 +15,7 @@ import { UserContext } from '../core/recommendation-engine';
 const MAX_RECENT_ACTIONS = 50;
 
 /** Action types we care about for recommendations */
-type ActionType = 'product_view' | 'add_to_cart' | 'add_to_wishlist' | 'purchase';
+type ActionType = 'product_view' | 'add_to_cart' | 'add_to_wishlist' | 'purchase' | 'remove_from_cart' | 'remove_from_wishlist';
 
 interface UserAction {
   action: ActionType;
@@ -149,9 +149,25 @@ function buildContextFromActions(
         if (product?.brand) cartBrands.push(product.brand);
         break;
 
+      case 'remove_from_cart': {
+        const index = cartProductIds.indexOf(action.productId);
+        if (index > -1) {
+          cartProductIds.splice(index, 1);
+        }
+        break;
+      }
+
       case 'add_to_wishlist':
         wishlistProductIds.push(action.productId);
         break;
+
+      case 'remove_from_wishlist': {
+        const index = wishlistProductIds.indexOf(action.productId);
+        if (index > -1) {
+          wishlistProductIds.splice(index, 1);
+        }
+        break;
+      }
 
       case 'purchase':
         // Purchases validate interest — boost category & brand
@@ -159,6 +175,13 @@ function buildContextFromActions(
           viewedCategories.push(product.category);
           if (product.brand) cartBrands.push(product.brand);
         }
+        // Purchased items shouldn't be recommended as heavily, so remove from active "in cart/wishlist" signals 
+        // to free up score space for complementary items
+        const cIdx = cartProductIds.indexOf(action.productId);
+        if (cIdx > -1) cartProductIds.splice(cIdx, 1);
+        
+        const wIdx = wishlistProductIds.indexOf(action.productId);
+        if (wIdx > -1) wishlistProductIds.splice(wIdx, 1);
         break;
     }
   }

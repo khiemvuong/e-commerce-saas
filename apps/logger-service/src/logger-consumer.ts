@@ -1,6 +1,10 @@
-import { kafka } from "@packages/utils/kafka";
+import Redis from "ioredis";
 import { clients } from "./main";
-const consumer = kafka.consumer({ groupId: "log-events-group" });
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL 
+    ? process.env.UPSTASH_REDIS_REST_URL.replace('https://', 'rediss://').replace('http://', 'redis://')
+    : process.env.REDIS_URL || 'redis://localhost:6379';
+const subscriber = new Redis(process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || redisUrl);
 const logQueue:string[] = [];
 
 //websocket processing function for logs
@@ -20,18 +24,22 @@ const processLogs = () => {
 
 setInterval(processLogs, 3000); // Process logs every 3 seconds
 
-// consume log messages from Kafka
-export const consumerKafkaMessages = async () => {
-    await consumer.connect();
-    await consumer.subscribe({ topic: "logs", fromBeginning: false });
-    await consumer.run({
-        eachMessage: async ({message}) => {
-            if (!message.value) return;
-            const log =message.value.toString();
-            logQueue.push(log);
+// consume log messages from Redis
+export const consumerRedisMessages = async () => {
+    subscriber.subscribe("logs", (err, count) => {
+        if (err) {
+            console.error('Failed to subscribe: %s', err.message);
+        } else {
+            console.log(`Subscribed to ${count} channels. Listening for logs...`);
+        }
+    });
+
+    subscriber.on("message", (channel, message) => {
+        if (channel === "logs" && message) {
+            logQueue.push(message);
         }
     });
 }
 
-// Start kafka consumer
-consumerKafkaMessages().catch(console.error);
+// Start Redis consumer
+consumerRedisMessages().catch(console.error);

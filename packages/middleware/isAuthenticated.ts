@@ -36,7 +36,15 @@ const getAnyToken = (req: any): string | undefined => {
  */
 const loadAccount = async (id: string, role: Role) => {
     if (role === "user" || role === "admin") {
-        return prisma.users.findUnique({ where: { id } });
+        return prisma.users.findUnique({ 
+            where: { id },
+            include: {
+                avatar: {
+                    take: 1,
+                    select: { file_url: true }
+                }
+            } 
+        });
     } else if (role === "seller") {
         return prisma.sellers.findUnique({ 
             where: { id },

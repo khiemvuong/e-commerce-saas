@@ -116,12 +116,32 @@ function scoreProduct(
   const priceScore = calculatePriceScore(product, context, currentKeywords, matchReasons);
   
   // ========== Final Score ==========
-  const score = Math.round(
+  let score = Math.round(
     chatScore * WEIGHTS.alpha +
     behaviorScore * WEIGHTS.beta +
     popularityScore * WEIGHTS.gamma +
     priceScore * WEIGHTS.delta
   );
+  
+  // ========== Exact Title Match Boost ==========
+  // Prevents popular items (like a best-selling jacket) from outranking an exact match (like "White Running Shoes")
+  if (currentKeywords && currentKeywords.rawKeywords.length > 0) {
+    const titleLower = product.title.toLowerCase();
+    const titleMatches = currentKeywords.rawKeywords.filter(kw => 
+      titleLower.includes(kw.toLowerCase())
+    );
+    
+    if (titleMatches.length > 0) {
+      const matchRatio = titleMatches.length / currentKeywords.rawKeywords.length;
+      // If at least 50% of the search keywords are in the title, boost it heavily
+      if (matchRatio >= 0.5) {
+        score += Math.round(matchRatio * 500); // Massive boost guarantees top placement
+        if (!matchReasons.includes('Exact search match')) {
+          matchReasons.unshift('Exact search match'); // Put it at the top of reasons
+        }
+      }
+    }
+  }
   
   return {
     product,
@@ -177,12 +197,12 @@ function calculateChatScore(
       matchReasons?.push('Color match');
     }
     
-    // Raw keyword match in title (0-20)
+    // Raw keyword match in title (0-40)
     const titleMatches = currentKeywords.rawKeywords.filter(kw => 
       titleLower.includes(kw.toLowerCase())
     );
     if (titleMatches.length > 0) {
-      score += Math.min(titleMatches.length * 10, 20);
+      score += Math.min(titleMatches.length * 15, 40);
       matchReasons?.push('Title match');
     }
     
