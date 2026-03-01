@@ -24,6 +24,7 @@ const Header = () => {
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    handleScroll(); // Check on mount
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -68,7 +69,7 @@ const Header = () => {
                 <img 
                   src={logoUrl} 
                   alt="Logo" 
-                  className={`object-contain transition-all duration-300 ${!isTransparent ? 'h-16' : 'h-20'}`}
+                  className={`object-contain transition-all duration-300 ${!isTransparent ? 'h-20' : 'h-24'}`}
                 />
               ) : (
                 /* Skeleton Logo Placeholder */

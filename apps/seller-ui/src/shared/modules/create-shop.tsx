@@ -6,10 +6,12 @@ import { useSiteConfig } from '../../hooks/useSiteConfig';
 
 const CreateShop = ({
     sellerId,
-    setActiveStep
+    setActiveStep,
+    onBack,
 }:{
     sellerId: string;
     setActiveStep: (step: number) => void;
+    onBack: () => void;
 }) => {
     const {
         register,
@@ -44,8 +46,15 @@ const CreateShop = ({
 
     ;
 
-    return (<div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-2xl font-semibold mb-4 text-center">Create Your Shop</h2>
+    return (<div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md relative">
+        <button 
+            type="button" 
+            onClick={onBack}
+            className="absolute top-6 left-6 text-gray-400 hover:text-black transition flex items-center gap-1 text-sm font-medium"
+        >
+            ← Back
+        </button>
+        <h2 className="text-2xl font-semibold mb-4 text-center mt-6">Create Your Shop</h2>
         <form onSubmit={handleSubmit(OnSubmit)}>
             <input type="hidden" value={sellerId} {...register("sellerId")} />
             <div className="mb-4">

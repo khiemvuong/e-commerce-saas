@@ -1,6 +1,5 @@
-import { kafka } from '@packages/utils/kafka';
+import Redis from 'ioredis';
 import prisma from '@packages/libs/prisma';
-import {Consumer, EachMessagePayload} from 'kafkajs';
 import { incrementUnseenCount } from '@packages/libs/redis/message.redis';
 
 
@@ -13,7 +12,7 @@ interface BufferedMessage{
 }
 
 const TOPIC = 'chat.new_messages';
-const GROUP_ID = 'chat-message-db-writer';
+
 const BATCH_INTERVAL_MS = 3000; // 3 seconds
 
 const RECEIVER_TYPE_MAPPING: Record<string, string> = {
@@ -24,30 +23,41 @@ const RECEIVER_TYPE_MAPPING: Record<string, string> = {
 let buffer: BufferedMessage[] = [];
 let flushTimer: NodeJS.Timeout | null = null;
 
-//Initialize kafka consumer
+//Initialize redis subscriber
 
 export async function startConsumer(){
-    const consumer:Consumer = kafka.consumer({groupId: GROUP_ID});
-    await consumer.connect();
-    await consumer.subscribe({topic: TOPIC, fromBeginning: false});
+    // Use UPSTASH_REDIS_REST_URL as UPSTASH_REDIS_URL to connect via ioredis (needs adjusting to standard redis:// format if using Upstash, or just REDIS_URL)
+    const redisUrl = process.env.UPSTASH_REDIS_REST_URL 
+        ? process.env.UPSTASH_REDIS_REST_URL.replace('https://', 'rediss://').replace('http://', 'redis://')
+        : process.env.REDIS_URL || 'redis://localhost:6379';
+    
+    // Upstash REST URL looks like https://YOUR_ENDPOINT.upstash.io.
+    // However, Upstash also provides a direct Redis endpoint (e.g. YOUR_ENDPOINT.upstash.io:6379).
+    // For now, if UPSTASH_REDIS_URL is provided by the user/system, we use that.
+    const subscriber = new Redis(process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || redisUrl);
 
-    console.log('Chat Message Consumer is connected and subcribed to topic:', TOPIC);
-    await consumer.run({
-        eachMessage: async({message}:EachMessagePayload) => {
-            if(!message.value) return;
+    subscriber.subscribe(TOPIC, (err, count) => {
+        if (err) {
+            console.error('Failed to subscribe: %s', err.message);
+        } else {
+            console.log(`Chat Message Consumer is connected and subscribed to ${count} channels. Topic:`, TOPIC);
+        }
+    });
 
-            try {
-                const parsed: BufferedMessage = JSON.parse(message.value.toString());
-                buffer.push(parsed);
+    subscriber.on('message', (channel, message) => {
+        if (channel !== TOPIC || !message) return;
 
-                // if This is the first message in an empty array then start the timer
-                if(buffer.length === 1 && !flushTimer){
-                    flushTimer = setTimeout(flushBufferToDb, BATCH_INTERVAL_MS)
-                }
-                        
-            } catch (error) {
-                console.error('Error parsing message:', error);
+        try {
+            const parsed: BufferedMessage = JSON.parse(message.toString());
+            buffer.push(parsed);
+
+            // if This is the first message in an empty array then start the timer
+            if(buffer.length === 1 && !flushTimer){
+                flushTimer = setTimeout(flushBufferToDb, BATCH_INTERVAL_MS)
             }
+                    
+        } catch (error) {
+            console.error('Error parsing message:', error);
         }
     });
 }

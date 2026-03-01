@@ -1,9 +1,7 @@
-import { kafka } from "@packages/utils/kafka";
 import redis from "@packages/libs/redis";
 import prisma from "@packages/libs/prisma";
 import { Server as HttpServer } from "http";
 import WebSocket, { WebSocketServer } from "ws";
-const producer = kafka.producer();
 const connectedUsers: Map<string, WebSocket> = new Map();
 const unseenCounts: Map<string, number> = new Map();
 
@@ -108,7 +106,6 @@ async function notifyMessageSeen(conversationId: string, seenByUserId: string, s
 
 export async function createWebsocketServer(server: HttpServer) {
     const wss = new WebSocketServer({ server });
-    await producer.connect();
     console.log("WebSocket server is running");
     wss.on("connection", (ws: WebSocket) => {
         console.log("New client connected");
@@ -220,16 +217,8 @@ export async function createWebsocketServer(server: HttpServer) {
                     console.log(`User ${senderKey} not connected, skipping real-time delivery`);
                 }
 
-                //Push to Kafka consumer
-                await producer.send({
-                    topic: "chat.new_messages",
-                    messages: [
-                        {
-                            key: conversationId,
-                            value: JSON.stringify(messagePayload),
-                        },
-                    ],
-                });
+                //Push to Redis Pub/Sub
+                await redis.publish("chat.new_messages", JSON.stringify(messagePayload));
                 console.log(`Message sent to Kafka : ${conversationId}`);
             } catch (error) {
                 console.error("Error processing message:", error);

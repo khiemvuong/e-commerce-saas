@@ -1,7 +1,10 @@
-import {kafka} from '@packages/utils/kafka';
+import Redis from "ioredis";
 import { updateShopAnalytics, updateUserAnalytics } from './services/analytics.service';
 
-const consumer = kafka.consumer({groupId: 'user-events-group'});
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL 
+    ? process.env.UPSTASH_REDIS_REST_URL.replace('https://', 'rediss://').replace('http://', 'redis://')
+    : process.env.REDIS_URL || 'redis://localhost:6379';
+const subscriber = new Redis(process.env.UPSTASH_REDIS_URL || process.env.REDIS_URL || redisUrl);
 
 const eventQueue: any[] = [];
 
@@ -37,20 +40,27 @@ const processQueue = async () => {
 setInterval(processQueue, 3000); // Process queue every 3 seconds
 
 
-//Kafka consume for user events
-export const consumeKafkaMessages = async () => {
-  //Connect the kafka broker
-  await consumer.connect();
-  await consumer.subscribe({topic: 'user-events', fromBeginning: false});
-  
-  await consumer.run({
-    eachMessage: async ({  message }) => {
-      if (!message.value) return;
-      const event = JSON.parse(message.value.toString());
-      eventQueue.push(event);
-    },
+//Redis consume for user events
+export const consumeRedisMessages = async () => {
+  subscriber.subscribe('user-events', (err, count) => {
+    if (err) {
+      console.error('Failed to subscribe to user-events:', err.message);
+    } else {
+      console.log(`Subscribed to ${count} channels. Listening for user-events...`);
+    }
+  });
+
+  subscriber.on('message', (channel, message) => {
+    if (channel === 'user-events' && message) {
+      try {
+        const event = JSON.parse(message);
+        eventQueue.push(event);
+      } catch(e) {
+        console.error("Error parsing user-event:", e);
+      }
+    }
   });
 };
 
 
-consumeKafkaMessages().catch(console.error);
+consumeRedisMessages().catch(console.error);

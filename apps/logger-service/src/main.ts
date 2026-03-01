@@ -1,7 +1,7 @@
 import WebSocket from "ws";
 import express from "express";
 import http from "http";
-import { consumerKafkaMessages } from "./logger-consumer";
+import { consumerRedisMessages } from "./logger-consumer";
 const app = express();
 
 const wsServer = new WebSocket.Server({ noServer: true });
@@ -28,5 +28,5 @@ server.listen(process.env.PORT || 6008, () => {
   console.log(`Logger service is running on port ${process.env.PORT || 6008}`);
 });
 
-// Start kafka consumer
-consumerKafkaMessages();
+// Start redis consumer
+consumerRedisMessages();

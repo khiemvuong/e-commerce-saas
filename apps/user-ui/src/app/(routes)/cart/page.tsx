@@ -31,6 +31,11 @@ const CartPage = () => {
     const [error, setError] = useState("");
     const [storedCouponCode, setStoredCouponCode] = useState("");
     const [paymentMethod, setPaymentMethod] = useState<"stripe" | "cod">("stripe");
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Check if all products in cart support COD
     const codStatus = useMemo(() => {
@@ -182,6 +187,7 @@ const CartPage = () => {
             const res = await axiosInstance("/api/shipping-addresses");
             return res.data.addresses;
         },
+        staleTime: 1000 * 60 * 5, // Cache for 5 minutes (lưu cache để không cần load lại)
     });
 
     useEffect(() => {
@@ -213,9 +219,62 @@ const CartPage = () => {
                     <span className="inline-block p-[1.5px] mx-1 bg-[#a8acbo] rounded-full">
                         .
                     </span>
-                    <span className="text-[16px] text-gray-500">Cart</span>
                 </div>
-                {cart.length === 0 ? (
+                {!isMounted ? (
+                    // Skeleton Loading View
+                    <div className="lg:flex items-start gap-10">
+                        <div className="lg:hidden space-y-4 mb-6 w-full">
+                            {[1, 2].map((i) => (
+                                <div key={i} className="bg-white border text-transparent border-gray-200 rounded-lg p-4 animate-pulse">
+                                    <div className="flex gap-4">
+                                        <div className="w-20 h-20 bg-gray-200 rounded-md flex-shrink-0"></div>
+                                        <div className="flex-1 space-y-2 py-1">
+                                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                                        <div className="h-5 bg-gray-200 rounded w-16"></div>
+                                        <div className="h-8 bg-gray-200 rounded w-24"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <table className="hidden lg:table w-full lg:w-[70%] border-collapse">
+                            <thead className="bg-[#f1f3f4] rounded">
+                                <tr className="border-b border-gray-300">
+                                    <th className="text-left p-4 text-gray-500 font-medium">Product</th>
+                                    <th className="text-left p-4 text-gray-500 font-medium">Price</th>
+                                    <th className="text-center p-4 text-gray-500 font-medium">Quantity</th>
+                                    <th className="text-left p-4 text-gray-500 font-medium"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[1, 2, 3].map((i) => (
+                                    <tr key={i} className="border-b border-gray-200 animate-pulse">
+                                        <td className="p-4 flex items-center gap-4">
+                                            <div className="w-20 h-20 bg-gray-200 rounded-md"></div>
+                                            <div className="space-y-2 flex-1">
+                                                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                                                <div className="h-3 bg-gray-100 rounded w-1/3"></div>
+                                            </div>
+                                        </td>
+                                        <td className="p-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                                        <td className="p-4"><div className="h-8 bg-gray-200 rounded w-20 mx-auto"></div></td>
+                                        <td className="p-4"><div className="h-4 bg-gray-200 rounded w-16"></div></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        <div className="p-6 shadow-md w-full lg:w-[30%] bg-[#f9f9f9] rounded-lg mt-4 lg:mt-0 animate-pulse">
+                            <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
+                            <hr className="mx-4 text-slate-200 my-4" />
+                            <div className="h-10 bg-gray-200 rounded w-full mb-4"></div>
+                            <div className="h-20 bg-gray-200 rounded w-full mb-4"></div>
+                            <div className="h-12 bg-gray-300 rounded w-full mt-6"></div>
+                        </div>
+                    </div>
+                ) : cart.length === 0 ? (
                     <div className="flex flex-col items-center justify-center min-h-[300px]">
                         <h2 className="text-2xl font-semibold mb-4">Your cart is empty</h2>
                         <p className="text-gray-600 mb-6">

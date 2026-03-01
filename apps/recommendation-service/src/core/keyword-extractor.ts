@@ -339,12 +339,21 @@ function extractRawKeywords(message: string): string[] {
     // Intent verbs — should not be search keywords
     'recommend', 'suggest', 'compare', 'browse', 'check', 'tell', 'give',
     'best', 'good', 'great', 'nice', 'like', 'something', 'anything', 'products', 'items',
+    ...Object.keys(PRICE_MODIFIERS),
+    ...Object.keys(GENDER_KEYWORDS),
   ]);
   
   const words = message
     .replace(/[^\w\s]/g, ' ')
     .split(/\s+/)
-    .filter(word => word.length > 2 && !stopWords.has(word));
+    .filter(word => word.length > 2 && !stopWords.has(word))
+    .map(word => {
+      // Basic stemming: "shirts" -> "shirt", "shoes" -> "shoe"
+      if (word.endsWith('s') && word.length > 3 && !word.endsWith('ss')) {
+        return word.slice(0, -1);
+      }
+      return word;
+    });
   
   return [...new Set(words)];
 }

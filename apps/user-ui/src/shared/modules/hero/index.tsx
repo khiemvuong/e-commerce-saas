@@ -51,7 +51,7 @@ const Hero = () => {
   return (
     <section
       aria-label="Hero"
-      className="relative min-h-[90vh] overflow-hidden bg-[#1a0f1a]"
+      className="relative h-screen flex items-center justify-center overflow-hidden bg-[#1a0f1a]"
     >
       {/* Luxury Background Layers - Deep Purple/Brown Theme */}
       <div className="absolute inset-0">
@@ -69,8 +69,8 @@ const Hero = () => {
         <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-        <div className="py-20 md:py-24 lg:py-32">
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+        <div className="pt-32 pb-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left Content */}
             <div className="text-center lg:text-left order-2 lg:order-1">
