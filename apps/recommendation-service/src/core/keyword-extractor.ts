@@ -16,6 +16,7 @@ import {
   GENDER_KEYWORDS,
   PRICE_PATTERNS,
   SIZE_PATTERNS,
+  OCCASION_KEYWORDS,
 } from '../config/keywords.config';
 
 // ========== Fuzzy Matching Utilities ==========
@@ -85,6 +86,9 @@ export function getAllSuggestionTerms(): { brands: string[]; categories: string[
   };
 }
 
+/** Re-export for use in other modules (e.g. comparison-engine) */
+export { BRAND_KEYWORDS };
+
 export interface PriceRange {
   min?: number;
   max?: number;
@@ -99,10 +103,23 @@ export interface ExtractedKeywords {
   priceModifier?: 'cheap' | 'mid' | 'expensive';
   gender?: 'men' | 'women' | 'unisex' | 'kids';
   rawKeywords: string[];
+  /**
+   * True when the query looks like a specific product title (e.g. 4+ descriptive words).
+   * When set, brand/category extraction is skipped and the full phrase is used
+   * as a literal product-title search in the DB.
+   */
+  isProductTitleSearch?: boolean;
 }
 
 /**
- * Extract all keywords from a message
+ * Extract all keywords from a message.
+ *
+ * Design principle:
+ *   SHORT query (1-3 words) → brand/category extraction + fuzzy matching
+ *   LONG query (4+ non-stop words) → treat as product title search, skip brand/category extraction
+ *
+ * This prevents 4-word product descriptions like "Vintage Camel Vegan Leather Briefcase"
+ * from triggering false brand fuzzy matches (e.g. "camel" → "Chanel").
  */
 export function extractKeywords(message: string): ExtractedKeywords {
   const normalizedMessage = message.toLowerCase().trim();
@@ -115,10 +132,33 @@ export function extractKeywords(message: string): ExtractedKeywords {
     rawKeywords: [],
   };
 
-  if (!normalizedMessage) {
+  if (!normalizedMessage) return result;
+
+  // ── Product Title Search Detection ──
+  // Strip known intent prefixes before counting words
+  const withoutIntent = normalizedMessage
+    .replace(/^(?:find\s+me|show\s+me|search\s+for|search|find|get|buy|i\s+want|looking\s+for|recommend|suggest)\s+/i, '')
+    .trim();
+  const meaningfulWords = withoutIntent
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !FUZZY_BLOCKLIST.has(w.toLowerCase()));
+
+  // If 4+ meaningful words and no explicit brand/price signal → product title search
+  const hasPriceSignal = PRICE_PATTERNS.under.test(normalizedMessage)
+    || PRICE_PATTERNS.over.test(normalizedMessage)
+    || PRICE_PATTERNS.range.test(normalizedMessage)
+    || PRICE_PATTERNS.between.test(normalizedMessage);
+  const hasExplicitBrand = BRAND_KEYWORDS.some(b => normalizedMessage.includes(b.toLowerCase()));
+
+  if (meaningfulWords.length >= 4 && !hasPriceSignal && !hasExplicitBrand) {
+    result.isProductTitleSearch = true;
+    result.rawKeywords = meaningfulWords.slice(0, 8); // cap to avoid over-narrow DB query
+    // Still extract price + gender since they can coexist with a product title
+    result.priceRange = extractPriceRange(normalizedMessage);
+    result.gender = extractGender(normalizedMessage);
     return result;
   }
-
   // Extract categories
   result.categories = extractCategories(normalizedMessage);
   
@@ -140,6 +180,17 @@ export function extractKeywords(message: string): ExtractedKeywords {
   // Extract gender
   result.gender = extractGender(normalizedMessage);
   
+  // Extract occasion → categories + gender
+  for (const [phrase, mapping] of Object.entries(OCCASION_KEYWORDS)) {
+    if (normalizedMessage.includes(phrase)) {
+      for (const cat of mapping.categories) {
+        if (!result.categories.includes(cat)) result.categories.push(cat);
+      }
+      if (mapping.gender && !result.gender) result.gender = mapping.gender as any;
+      break;
+    }
+  }
+  
   // Extract raw keywords (all meaningful words)
   result.rawKeywords = extractRawKeywords(normalizedMessage);
 
@@ -147,56 +198,85 @@ export function extractKeywords(message: string): ExtractedKeywords {
 }
 
 /**
+ * Words that must NEVER fuzzy-match a category OR brand keyword.
+ * Materials, textures and descriptors often have small edit-distances
+ * to real keywords (e.g. "camel" → "chanel" dist=2, "best" → "belt" dist=1).
+ */
+const FUZZY_BLOCKLIST = new Set([
+  // Intent/qualifier words
+  'best', 'most', 'rest', 'last', 'next', 'test', 'just', 'fast', 'past',
+  'list', 'cost', 'lost', 'post', 'host', 'vest', 'west', 'nest', 'pest',
+  'all', 'any', 'one', 'top', 'hot', 'new', 'old', 'big', 'good', 'bad',
+  'product', 'item', 'thing', 'stuff', 'some', 'more', 'less',
+  'show', 'find', 'get', 'give', 'want', 'need', 'like',
+  // Material & texture words that collide with brand names
+  'camel', 'vegan', 'vintage', 'leather', 'suede', 'canvas', 'velvet',
+  'linen', 'denim', 'cotton', 'nylon', 'mesh', 'wool', 'silk', 'satin',
+  'fleece', 'faux', 'genuine', 'patent', 'woven', 'knit',
+  // Colors that might false-match
+  'beige', 'ivory', 'coral', 'lilac', 'olive', 'teal', 'khaki', 'taupe',
+  // Numbers
+  '1', '2', '3', '4', '5',
+]);
+
+/**
  * Extract category from message
  */
 function extractCategories(message: string): string[] {
   const found: string[] = [];
   const words = message.split(/\s+/);
-  
+
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     // Exact match first
     for (const keyword of keywords) {
       if (message.includes(keyword)) {
-        if (!found.includes(category)) {
-          found.push(category);
-        }
+        if (!found.includes(category)) found.push(category);
         break;
       }
     }
-    
-    // Fuzzy match if no exact match found for this category
+
+    // Fuzzy match — skip blocklisted words
     if (!found.includes(category)) {
       for (const word of words) {
+        if (FUZZY_BLOCKLIST.has(word.toLowerCase())) continue;
         const match = fuzzyMatch(word, keywords, 2);
-        if (match) {
-          found.push(category);
-          break;
-        }
+        if (match) { found.push(category); break; }
       }
     }
   }
-  
+
   return found;
 }
+
 
 /**
  * Extract brand from message
  */
 function extractBrands(message: string): string[] {
   const found: string[] = [];
-  const words = message.split(/\s+/);
+  
+  // Normalize H&M variants before brand matching
+  let normalized = message
+    .replace(/h\s*&amp;\s*m/gi, 'h&m')
+    .replace(/h\s*&\s*m/gi, 'h&m')
+    .replace(/h\s+and\s+m\b/gi, 'h&m')
+    .replace(/\bhm\b/gi, 'h&m');
+  
+  const words = normalized.split(/\s+/);
   
   // Exact match first
   for (const brand of BRAND_KEYWORDS) {
-    if (message.includes(brand.toLowerCase())) {
+    if (normalized.includes(brand.toLowerCase())) {
       found.push(brand);
     }
   }
   
-  // Fuzzy match for remaining words (typo correction)
+  // Fuzzy match for typo correction only — threshold=1 (catches 'adisdas'→'adidas')
+  // NOT threshold=2, which causes false positives like 'camel'→'chanel' (dist=2)
   if (found.length === 0) {
     for (const word of words) {
-      const match = fuzzyMatch(word, BRAND_KEYWORDS, 2);
+      if (FUZZY_BLOCKLIST.has(word.toLowerCase())) continue;
+      const match = fuzzyMatch(word, BRAND_KEYWORDS, 1);
       if (match && !found.includes(match)) {
         found.push(match);
       }
@@ -339,6 +419,8 @@ function extractRawKeywords(message: string): string[] {
     // Intent verbs — should not be search keywords
     'recommend', 'suggest', 'compare', 'browse', 'check', 'tell', 'give',
     'best', 'good', 'great', 'nice', 'like', 'something', 'anything', 'products', 'items',
+    // Generic nouns that add no search value
+    'product', 'item', 'thing', 'things', 'stuff', 'one', 'type', 'kind', 'way',
     ...Object.keys(PRICE_MODIFIERS),
     ...Object.keys(GENDER_KEYWORDS),
   ]);

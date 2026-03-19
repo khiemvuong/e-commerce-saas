@@ -36,16 +36,18 @@ const Page = () => {
     const queryClient = useQueryClient();
     const { logout, isLoggingOut } = useLogout();
     const{user,isLoading} = useRequiredAuth();
-    const { data: orders = [] } = useQuery({
-        queryKey: ['user-orders'],
+    const { data: orderStats } = useQuery({
+        queryKey: ['user-order-stats'],
         queryFn: async () => {
-            const res = await axiosInstance.get('/order/api/get-user-orders');
-            return res.data.orders;
-        }
+            const res = await axiosInstance.get('/order/api/get-order-stats');
+            return res.data.stats as { total: number; processing: number; completed: number };
+        },
+        staleTime: 60_000, // re-fetch at most once per minute
     });
-    const totalOrders = orders.length;
-    const processingOrders = orders.filter((order:any) => order?.deliveryStatus !== 'Delivered' && order?.deliveryStatus !== 'Cancelled').length;
-    const completedOrders = orders.filter((order:any) => order.deliveryStatus === 'Delivered').length;
+    const totalOrders = orderStats?.total ?? 0;
+    const processingOrders = orderStats?.processing ?? 0;
+    const completedOrders = orderStats?.completed ?? 0;
+
     const queryTab = searchParams?.get('active') ?? 'Profile';
     const [activeTab, setActiveTab] = useState(queryTab);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);

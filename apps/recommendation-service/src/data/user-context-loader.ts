@@ -15,12 +15,13 @@ import { UserContext } from '../core/recommendation-engine';
 const MAX_RECENT_ACTIONS = 50;
 
 /** Action types we care about for recommendations */
-type ActionType = 'product_view' | 'add_to_cart' | 'add_to_wishlist' | 'purchase' | 'remove_from_cart' | 'remove_from_wishlist';
+type ActionType = 'product_view' | 'add_to_cart' | 'add_to_wishlist' | 'purchase' | 'remove_from_cart' | 'remove_from_wishlist' | 'search_intent';
 
 interface UserAction {
   action: ActionType;
   productId?: string;
   shopId?: string;
+  keyword?: string; // used by search_intent
   timestamp: Date | string;
 }
 
@@ -129,7 +130,18 @@ function buildContextFromActions(
   const preferredColors: string[] = [];
   const prices: number[] = [];
 
+  const searchKeywords: string[] = [];
+
   for (const action of actions) {
+    // search_intent carries keyword, not productId
+    if (action.action === 'search_intent') {
+      if (action.keyword) {
+        // Split multi-word keywords so each word enriches scoring
+        searchKeywords.push(...action.keyword.toLowerCase().split(/\s+/).filter(w => w.length >= 2));
+      }
+      continue;
+    }
+
     if (!action.productId) continue;
 
     const product = productLookup.get(action.productId);
@@ -199,7 +211,7 @@ function buildContextFromActions(
 
   return {
     userId,
-    chatKeywords: [],
+    chatKeywords: [...new Set(searchKeywords)],
     chatCategories: [],
     chatBrands: [],
     viewedProductIds: [...new Set(viewedProductIds)],

@@ -12,7 +12,8 @@
  */
 
 import { ConversationState } from './chat-service';
-import { ExtractedKeywords } from './keyword-extractor';
+import { ExtractedKeywords, extractKeywords } from './keyword-extractor';
+import { RELATIVE_PRICE_PATTERNS } from '../config/keywords.config';
 
 // ========== Types ==========
 
@@ -52,8 +53,8 @@ const SWITCH_PATTERNS = [
 
 /** Price modifier patterns */
 const MODIFIER_PATTERNS = [
-  /^(?:cheaper|less expensive|more affordable)/i,
-  /^(?:more expensive|pricier|premium|luxury)/i,
+  RELATIVE_PRICE_PATTERNS.cheaper,
+  RELATIVE_PRICE_PATTERNS.moreExpensive,
   /^(?:bigger|larger|plus size)/i,
   /^(?:smaller|mini|compact)/i,
   /^(?:under|below|less than|up to|max)\s*\$?\d+/i,  // "under $100"
@@ -230,25 +231,42 @@ export function resolveContext(
 
   // Detect follow-up type
   const { type, extractedPart } = detectFollowUpType(trimmed);
+  const standalone = extractKeywords(trimmed);
+
+  const hasStandaloneSignal =
+    standalone.categories.length > 0 ||
+    standalone.brands.length > 0 ||
+    !!standalone.priceRange ||
+    !!standalone.priceModifier;
+
+  const hasEnoughStandaloneDetail =
+    hasStandaloneSignal && (standalone.rawKeywords.length >= 1 || standalone.categories.length > 0 || standalone.brands.length > 0);
 
   if (!type) {
-    // Not a follow-up — check if it's a very short message (1-2 words)
-    // that could be contextual (e.g., just "red" or "$50")
-    const words = trimmed.split(/\s+/);
-    if (words.length <= 2 && trimmed.length <= 20) {
-      // Short message with existing context = likely contextual
-      const resolvedMessage = buildResolvedMessage('refinement', trimmed, accumulated, trimmed);
-      if (resolvedMessage !== trimmed) {
-        return {
-          originalMessage: trimmed,
-          resolvedMessage,
-          isFollowUp: true,
-          followUpType: 'refinement',
-          referenceIntent: getLastProductIntent(state),
-        };
-      }
+    // Standalone query with explicit product signal should not inherit old context.
+    // Example: "affordable shoes" should stay independent, not become "bags affordable shoes".
+    if (hasStandaloneSignal) {
+      return {
+        originalMessage: trimmed,
+        resolvedMessage: trimmed,
+        isFollowUp: false,
+      };
     }
 
+    // Short messages without follow-up patterns are treated as standalone queries.
+    // This prevents stale keyword injection when users switch topics
+    // (e.g., "bags" → "watches" should NOT resolve to "bags watches").
+    return {
+      originalMessage: trimmed,
+      resolvedMessage: trimmed,
+      isFollowUp: false,
+    };
+  }
+
+  // Smart guard: only use previous context when the new message is underspecified.
+  // - "cheaper" => underspecified, keep context
+  // - "affordable shoes" => specific enough, do NOT keep context
+  if ((type === 'modifier' || type === 'refinement') && hasEnoughStandaloneDetail) {
     return {
       originalMessage: trimmed,
       resolvedMessage: trimmed,

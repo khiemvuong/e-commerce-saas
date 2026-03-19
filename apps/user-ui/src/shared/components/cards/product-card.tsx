@@ -181,7 +181,8 @@ const ProductCard = ({ product, isEvent: isEventProp }: { product: any; isEvent?
                     <Link
                         href={`/product/${product?.slug}`}
                         onClick={handleProductClick}
-                        className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-[#C9A86C] transition-colors mb-3 leading-snug cursor-pointer block truncate"
+                        className="text-base font-semibold text-gray-900 line-clamp-2 hover:text-[#C9A86C] transition-colors mb-3 leading-snug cursor-pointer block"
+                        title={product?.title}
                     >
                         {product?.title}
                     </Link>

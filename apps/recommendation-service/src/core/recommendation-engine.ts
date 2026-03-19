@@ -50,10 +50,14 @@ export interface ProductForScoring {
   slug?: string;
   rating: number;
   totalSales: number;
+  /** Sales in the last 30 days — populated by product-loader enrichWithRecentSales() */
+  recentSalesCount?: number;
   // From productAnalytics
   views?: number;
   cartAdds?: number;
   purchases?: number;
+  // Structured technical specs (from custom_specifications)
+  customSpecs?: Record<string, any>;
 }
 
 /**
@@ -80,6 +84,21 @@ const WEIGHTS = {
   gamma: 0.20,  // S_popularity — product metrics
   delta: 0.15,  // S_price — price compatibility
 };
+
+/**
+ * Check whether `keyword` appears as a **whole word** inside `text`.
+ * e.g. matchesWholeWord('phone', 'xperia phone 5g') → true
+ *      matchesWholeWord('phone', 'headphone')        → false
+ * Falls back to simple includes() for keywords containing special regex chars.
+ */
+function matchesWholeWord(keyword: string, text: string): boolean {
+  try {
+    const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(text);
+  } catch {
+    return text.toLowerCase().includes(keyword.toLowerCase());
+  }
+}
 
 /**
  * Score all products and sort by score descending.
@@ -124,22 +143,30 @@ function scoreProduct(
   );
   
   // ========== Exact Title Match Boost ==========
-  // Prevents popular items (like a best-selling jacket) from outranking an exact match (like "White Running Shoes")
+  // Uses WHOLE-WORD matching to prevent "headphone" from ranking above "phone".
+  // Only counts a keyword if it appears as an independent word in the title.
   if (currentKeywords && currentKeywords.rawKeywords.length > 0) {
     const titleLower = product.title.toLowerCase();
-    const titleMatches = currentKeywords.rawKeywords.filter(kw => 
-      titleLower.includes(kw.toLowerCase())
+    const wholeWordMatches = currentKeywords.rawKeywords.filter(kw =>
+      matchesWholeWord(kw.toLowerCase(), titleLower)
     );
-    
-    if (titleMatches.length > 0) {
-      const matchRatio = titleMatches.length / currentKeywords.rawKeywords.length;
-      // If at least 50% of the search keywords are in the title, boost it heavily
+    // Substring-only matches (e.g. 'phone' in 'headphone') get a minor benefit
+    const substringOnlyMatches = currentKeywords.rawKeywords.filter(kw => {
+      const kwLower = kw.toLowerCase();
+      return titleLower.includes(kwLower) && !matchesWholeWord(kwLower, titleLower);
+    });
+
+    if (wholeWordMatches.length > 0) {
+      const matchRatio = wholeWordMatches.length / currentKeywords.rawKeywords.length;
       if (matchRatio >= 0.5) {
-        score += Math.round(matchRatio * 500); // Massive boost guarantees top placement
+        score += Math.round(matchRatio * 500); // Massive boost for true matches
         if (!matchReasons.includes('Exact search match')) {
-          matchReasons.unshift('Exact search match'); // Put it at the top of reasons
+          matchReasons.unshift('Exact search match');
         }
       }
+    } else if (substringOnlyMatches.length > 0) {
+      // Partial substring: tiny boost so it still surfaces if nothing better exists
+      score += 20;
     }
   }
   
@@ -197,18 +224,24 @@ function calculateChatScore(
       matchReasons?.push('Color match');
     }
     
-    // Raw keyword match in title (0-40)
-    const titleMatches = currentKeywords.rawKeywords.filter(kw => 
-      titleLower.includes(kw.toLowerCase())
-    );
-    if (titleMatches.length > 0) {
-      score += Math.min(titleMatches.length * 15, 40);
+    // Raw keyword match in title (0-40) — whole-word preferred over substring
+    let kwScore = 0;
+    for (const kw of currentKeywords.rawKeywords) {
+      const kwLower = kw.toLowerCase();
+      if (matchesWholeWord(kwLower, titleLower)) {
+        kwScore += 15; // Full credit: word boundary match
+      } else if (titleLower.includes(kwLower)) {
+        kwScore += 4;  // Reduced: substring-only match ("headphone" for "phone")
+      }
+    }
+    if (kwScore > 0) {
+      score += Math.min(kwScore, 40);
       matchReasons?.push('Title match');
     }
-    
-    // Tag/keyword match (0-15)
+
+    // Tag/keyword match (0-15) — word-boundary preferred
     const tagMatches = product.tags.filter(tag =>
-      currentKeywords.rawKeywords.some(kw => tag.toLowerCase().includes(kw.toLowerCase()))
+      currentKeywords.rawKeywords.some(kw => matchesWholeWord(kw.toLowerCase(), tag.toLowerCase()))
     );
     if (tagMatches.length > 0) {
       score += Math.min(tagMatches.length * 5, 15);
@@ -298,15 +331,15 @@ function calculateBehaviorScore(
 
 // =====================================================================
 // S_popularity — Product Popularity Score (0–100)
-// Data-driven score based on product metrics
+// Weights recent sales 3x more than all-time totalSales
 // =====================================================================
 function calculatePopularityScore(
   product: ProductForScoring,
   matchReasons?: string[]
 ): number {
   let score = 0;
-  
-  // Rating score (0-30) — logarithmic scaling
+
+  // Rating score (0-30)
   if (product.rating >= 4.5) {
     score += 30;
     matchReasons?.push('Highly rated');
@@ -317,35 +350,42 @@ function calculatePopularityScore(
   } else if (product.rating >= 3.0) {
     score += 8;
   }
-  
-  // Sales score (0-25) — logarithmic scaling  
-  const salesLog = product.totalSales > 0 ? Math.log10(product.totalSales + 1) : 0;
-  const salesScore = Math.min(salesLog * 10, 25);
-  score += Math.round(salesScore);
-  if (product.totalSales >= 100) {
-    matchReasons?.push('Best seller');
+
+  // Recent sales score (0-30) — primary trending signal
+  // Uses recentSalesCount (last 30d) if available, otherwise falls back to totalSales
+  if (product.recentSalesCount != null && product.recentSalesCount > 0) {
+    // recentSalesCount: 1→score≈5, 10→score≈15, 50→score≈25, 200+→capped at 30
+    const recentLog = Math.log10(product.recentSalesCount + 1);
+    score += Math.min(Math.round(recentLog * 16), 30);
+    if (product.recentSalesCount >= 20) matchReasons?.push('Trending now');
+  } else {
+    // Fallback to totalSales (legacy)
+    const salesLog = product.totalSales > 0 ? Math.log10(product.totalSales + 1) : 0;
+    score += Math.min(Math.round(salesLog * 10), 20); // lower weight than recentSalesCount
+    if (product.totalSales >= 100) matchReasons?.push('Best seller');
   }
-  
+
+  // Historical sales bonus (0-10) — longevity signal, always included
+  if (product.totalSales >= 50) {
+    const histLog = Math.log10(product.totalSales + 1);
+    score += Math.min(Math.round(histLog * 3), 10);
+  }
+
   // View-based score (0-20)
   if (product.views) {
     const viewsLog = Math.log10(product.views + 1);
     score += Math.min(Math.round(viewsLog * 5), 20);
     if (product.views >= 500) matchReasons?.push('Popular');
   }
-  
-  // Conversion rate bonus (0-25)
-  // cartAdds/views ratio — high conversion = high quality product
+
+  // Conversion rate bonus (0-10)
   if (product.views && product.views > 10 && product.cartAdds) {
     const conversionRate = product.cartAdds / product.views;
-    if (conversionRate >= 0.15) {
-      score += 25;
-    } else if (conversionRate >= 0.08) {
-      score += 15;
-    } else if (conversionRate >= 0.03) {
-      score += 8;
-    }
+    if (conversionRate >= 0.15) score += 10;
+    else if (conversionRate >= 0.08) score += 6;
+    else if (conversionRate >= 0.03) score += 3;
   }
-  
+
   return Math.min(score, 100);
 }
 

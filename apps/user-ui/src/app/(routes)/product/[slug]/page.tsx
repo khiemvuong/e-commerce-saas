@@ -1,11 +1,15 @@
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
-import React from 'react'
+import React, { cache } from 'react'
 import { Metadata } from 'next';
 import ProductDetails from 'apps/user-ui/src/shared/modules/product/product-details';
-async function fetchProductDetails(slug: string) {
+
+// React cache() deduplicates this call within a single request lifecycle.
+// generateMetadata and the component both call this, but the API is hit only once.
+const fetchProductDetails = cache(async (slug: string) => {
     const res = await axiosInstance.get(`/product/api/get-product/${slug}`);
     return res.data.product;
-}
+});
+
 export async function generateMetadata({
     params,
     }:{
@@ -14,18 +18,18 @@ export async function generateMetadata({
     const { slug } = await params;
     const product = await fetchProductDetails(slug);
     return {
-        title: `${product?.title} || 'Ilan E-commerce'`,
+        title: product?.title || 'Ilan E-commerce',
         description: product?.short_description || 
         'Discover Ilan E-commerce - your ultimate destination for a wide range of products. Shop now for unbeatable deals and quality items!',
         openGraph:{
-            title: `${product?.title} || 'Ilan E-commerce'`,
+            title: product?.title || 'Ilan E-commerce',
             description: product?.short_description || ' ',
             images:[product?.images?.[0].file_url || '/default-product-image.jpg'],
             type:"website",
         },
         twitter:{
             card:"summary_large_image",
-            title: `${product?.title} || 'Ilan E-commerce'`,
+            title: product?.title || 'Ilan E-commerce',
             description: product?.short_description || ' ',
             images:[product?.images?.[0].file_url || '/default-product-image.jpg'],
         },
