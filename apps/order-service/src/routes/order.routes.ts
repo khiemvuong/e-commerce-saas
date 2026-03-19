@@ -1,6 +1,6 @@
 import isAuthenticated from '@packages/middleware/isAuthenticated';
 import express, { Router } from 'express';
-import { createCODOrder, createPaymentIntent, createPaymentSession, getAdminOrders, getUserOrders,  verifyCouponCode, verifyPaymentSession } from '../controllers/order.controller';
+import { createCODOrder, createPaymentIntent, createPaymentSession, getAdminOrders, getUserOrderStats, getUserOrders, verifyCouponCode, verifyPaymentSession } from '../controllers/order.controller';
 import { isAuthenticatedAdmin } from '@packages/middleware/authorizeRoles';
 const router:Router = express.Router();
 
@@ -16,6 +16,7 @@ router.get(
 
 router.put('/verify-coupon', isAuthenticated,verifyCouponCode );
 router.get('/get-user-orders', isAuthenticated, getUserOrders);
+router.get('/get-order-stats', isAuthenticated, getUserOrderStats);
 router.get('/get-admin-orders', isAuthenticatedAdmin, getAdminOrders);
 
 // COD (Cash on Delivery) order route

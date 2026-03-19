@@ -12,6 +12,7 @@ import {
   User,
   Loader2,
   ChevronDown,
+  RotateCcw,
 } from 'lucide-react';
 import useUser from '../../../hooks/useUser';
 import axiosInstance from '../../../utils/axiosInstance';
@@ -43,6 +44,31 @@ interface ProductRecommendation {
   slug?: string;
   score: number;
   matchReasons: string[];
+  specs?: Record<string, any>;
+}
+
+/** Pick 2 most relevant spec badges for display */
+const SPEC_BADGE_PRIORITY: Array<{ key: string; label: (v: any) => string; icon: string }> = [
+  { key: 'ram_gb', label: (v) => `${v}GB RAM`, icon: '🧠' },
+  { key: 'storage_gb', label: (v) => v >= 1024 ? `${(v/1024).toFixed(0)}TB` : `${v}GB`, icon: '💾' },
+  { key: 'battery_hours', label: (v) => `${v}h Battery`, icon: '🔋' },
+  { key: 'battery_mah', label: (v) => `${v}mAh`, icon: '🔋' },
+  { key: 'camera_mp', label: (v) => `${v}MP Camera`, icon: '📷' },
+  { key: 'display_size', label: (v) => `${v}`, icon: '📱' },
+  { key: 'cpu', label: (v) => String(v).split(' ').slice(0, 2).join(' '), icon: '💻' },
+  { key: 'driver_mm', label: (v) => `${v}mm Driver`, icon: '🔊' },
+];
+
+function getSpecBadges(specs?: Record<string, any>): Array<{ text: string; icon: string }> {
+  if (!specs) return [];
+  const badges: Array<{ text: string; icon: string }> = [];
+  for (const { key, label, icon } of SPEC_BADGE_PRIORITY) {
+    if (specs[key] !== undefined && specs[key] !== null) {
+      badges.push({ text: label(specs[key]), icon });
+      if (badges.length >= 2) break;
+    }
+  }
+  return badges;
 }
 
 interface ComparisonData {
@@ -92,6 +118,11 @@ async function startChatSession(userId?: string) {
 
 async function sendChatMessage(conversationId: string, message: string) {
   const res = await axiosInstance.post('/ai-chat/api/chat/message', { conversationId, message });
+  return res.data;
+}
+
+async function resetChat(conversationId: string) {
+  const res = await axiosInstance.post('/ai-chat/api/chat/reset', { conversationId });
   return res.data;
 }
 
@@ -152,6 +183,19 @@ const ChatProductCard = ({
     <p className="text-sm font-bold text-[#C9A86C]">
       ${product.price?.toLocaleString('en-US')}
     </p>
+    {/* Spec badges for electronics */}
+    {(() => {
+      const badges = getSpecBadges(product.specs);
+      return badges.length > 0 ? (
+        <div className="flex flex-wrap gap-1 mt-1">
+          {badges.map((badge, i) => (
+            <span key={i} className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium">
+              {badge.icon} {badge.text}
+            </span>
+          ))}
+        </div>
+      ) : null;
+    })()}
     {product.matchReasons && product.matchReasons.length > 0 && (
       <div className="flex flex-wrap gap-1 mt-1.5">
         {product.matchReasons.slice(0, 2).map((reason, i) => (
@@ -211,10 +255,20 @@ const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => (
         ))}
       </div>
     ))}
-    {/* Verdict */}
+    {/* Verdict — split into individual insight cards */}
     {comparison.verdict && (
-      <div className="px-3 py-2 bg-gradient-to-r from-[#C9A86C]/5 to-transparent">
-        <p className="text-[11px] text-gray-600 italic">{comparison.verdict}</p>
+      <div className="px-3 py-2.5 bg-gradient-to-r from-[#C9A86C]/5 to-transparent space-y-1.5">
+        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">💡 Key Insights</p>
+        {comparison.verdict
+          .split(/\.\s+/)
+          .filter(s => s.trim().length > 0)
+          .map((sentence, i) => (
+            <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-700 leading-snug">
+              <span className="text-[#C9A86C] mt-0.5 flex-shrink-0">▸</span>
+              <span dangerouslySetInnerHTML={{ __html: sentence.replace(/\.$/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '.' }} />
+            </div>
+          ))
+        }
       </div>
     )}
   </div>
@@ -391,6 +445,46 @@ const AIChatbox = () => {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevUserIdRef = useRef<string | undefined>(undefined);
+  const persistedRef = useRef(false); // guard to avoid double-restore
+
+  const STORAGE_KEY = 'ilan_chat_session';
+
+  /** Serialize messages to localStorage */
+  const persistSession = useCallback((cid: string, msgs: ChatMessage[]) => {
+    try {
+      // Only keep last 60 messages to stay within localStorage quota
+      const toSave = msgs.slice(-60);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ conversationId: cid, messages: toSave }));
+    } catch { /* quota exceeded — silently ignore */ }
+  }, []);
+
+  /** Clear persisted session (called on New Conversation) */
+  const clearPersistedSession = useCallback(() => {
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+  }, []);
+
+  /** Restore session from localStorage on mount */
+  useEffect(() => {
+    if (persistedRef.current) return;
+    persistedRef.current = true;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { conversationId: string; messages: ChatMessage[] };
+      if (!parsed.conversationId || !Array.isArray(parsed.messages)) return;
+      // Revive Date objects (JSON.parse returns strings)
+      const revived = parsed.messages.map(m => ({ ...m, timestamp: new Date(m.timestamp) }));
+      setConversationId(parsed.conversationId);
+      setMessages(revived);
+    } catch { /* corrupt storage — ignore */ }
+  }, []);
+
+  /** Persist every time messages or conversationId changes */
+  useEffect(() => {
+    if (conversationId && messages.length > 0) {
+      persistSession(conversationId, messages);
+    }
+  }, [messages, conversationId, persistSession]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -401,12 +495,14 @@ const AIChatbox = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedSuggestionIdx, setSelectedSuggestionIdx] = useState(-1);
   const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isResetting, setIsResetting] = useState(false);
 
   // Re-initialize conversation when user logs in/out
   useEffect(() => {
     const currentUserId = user?.id;
     if (prevUserIdRef.current !== currentUserId && conversationId) {
-      // User changed — reset conversation to load new context
+      // User identity changed — clear stored session and start fresh
+      clearPersistedSession();
       setConversationId(null);
       setMessages([]);
       if (isOpen) {
@@ -431,6 +527,32 @@ const AIChatbox = () => {
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     setShowScrollButton(scrollHeight - scrollTop - clientHeight > 100);
   }, []);
+
+  const handleNewConversation = useCallback(async () => {
+    if (isResetting || isLoading || !conversationId) return;
+    setIsResetting(true);
+    try {
+      const res = await resetChat(conversationId);
+      if (res.success) {
+        clearPersistedSession();
+        setConversationId(res.data.conversationId);
+        const freshMsg: ChatMessage = {
+          id: `reset-${Date.now()}`,
+          senderType: 'ai',
+          content: res.data.message,
+          timestamp: new Date(),
+          quickReplies: res.data.quickReplies,
+        };
+        setMessages([freshMsg]);
+        setInputValue('');
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error('Failed to reset conversation:', err);
+    } finally {
+      setIsResetting(false);
+    }
+  }, [conversationId, isResetting, isLoading, clearPersistedSession]);
 
   // Initialize conversation when chat opens
   // Passes userId so backend can load behavior data for logged-in users
@@ -642,12 +764,29 @@ const AIChatbox = () => {
                 </div>
               </div>
             </div>
-            <button
-              onClick={toggleChat}
-              className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            >
-              <X size={16} className="text-white" />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* New Conversation button */}
+              <button
+                onClick={handleNewConversation}
+                disabled={isResetting || isLoading || !conversationId}
+                title="New conversation"
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <RotateCcw
+                  size={15}
+                  className={`text-white transition-transform duration-500 ${
+                    isResetting ? 'animate-spin' : 'hover:-rotate-45'
+                  }`}
+                />
+              </button>
+              {/* Close button */}
+              <button
+                onClick={toggleChat}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}

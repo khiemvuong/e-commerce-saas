@@ -156,11 +156,11 @@ export const createPaymentSession = async (req:any,res:Response,next:NextFunctio
             console.error("[DEBUG] Redis setex FAILED:", redisError);
             throw redisError;
         }
-        await sendLog({
+        sendLog({
             type: 'info',
             message: `Payment session created: ${sessionId} for user: ${userId}`,
             source: 'order-service'
-        });
+        }).catch(() => {});
         console.log("[DEBUG] Returning sessionId to client:", sessionId);
         res.status(201).json({ sessionId });
     } catch (error) {
@@ -298,163 +298,123 @@ export const createOrder = async (req:Request,res:Response,next:NextFunction) =>
                         },
                     },
                 });
-                await sendLog({
-                    type: 'success',
-                    message: `Order created: ${order.id} for user: ${userId}, shop: ${shopId}`,
-                    source: 'order-service'
-                });
-                //Update product & analystics
+                // Update stock immediately (critical — prevents oversell)
                 for(const item of orderItems){
-                    const {id: productId, quantity} = item;
-
                     await prisma.products.update({
-                        where: {id: productId},
+                        where: {id: item.id},
                         data: {
-                            stock: {decrement: quantity},
-                            totalSales: {increment: quantity},
+                            stock: {decrement: item.quantity},
+                            totalSales: {increment: item.quantity},
                         },
                     });
-
-                    await prisma.productAnalytics.upsert({
-                        where: { productId },
-                        create:{
-                            productId,
-                            shopId,
-                            purchases: quantity,
-                            lastViewedAt: new Date(),
-                        },
-                        update:{
-                            purchases: {increment: quantity},
-                        },
-                    });
-
-                    const existingAnalystics = await prisma.userAnalytics.findUnique({
-                        where: {userId},
-                    });
-
-                    const newAction = {
-                        productId,
-                        shopId,
-                        action: 'purchase',
-                        timestamp: Date.now(),
-                    };
-                    const currentActions = Array.isArray(existingAnalystics?.actions)
-                    ? (existingAnalystics?.actions as Prisma.JsonArray)
-                    : [];
-
-                    if (existingAnalystics) {
-                        await prisma.userAnalytics.update({
-                            where: {userId},
-                            data: {
-                                lastVisited: new Date(),
-                                actions: [...currentActions, newAction],
-                            },
-                        });
-                    } else {
-                        await prisma.userAnalytics.create({
-                            data: {
-                                userId,
-                                lastVisited: new Date(),
-                                actions: [newAction],
-                            },
-                        });
-                    }
-                }
-
-                try {
-                    await sendEmail(
-                        email,
-                        'Order Confirmation',
-                        "order-confirmation",
-                        {
-                            name,
-                            cart,
-                            totalAmount: coupon?.discountAmount
-                                ? (totalAmount - coupon.discountAmount)
-                                : totalAmount,
-                            trackingUrl :`https://ilan.com/order/${sessionId}`,
-                        }
-                    )
-                } catch (error: any) {
-                    console.error("Failed to send order confirmation email:", error);
-                    await sendLog({
-                        type: 'error',
-                        message: `Failed to send email for order ${sessionId}: ${error.message}`,
-                        source: 'order-service'
-                    });
-                    // Không throw error ở đây để tránh Stripe retry webhook gây trùng đơn hàng
-                }
-
-                //Create notifications for sellers
-                const createdShopIds = Object.keys(shopGrouped);
-                const sellerShops = await prisma.shops.findMany({
-                    where: {
-                        id: { in : createdShopIds },
-                    },
-                    select: {
-                        id: true,
-                        sellerId: true,
-                        name:true
-                    }
-                });
-
-                //Notification for sellers
-                for(const shop of sellerShops){
-                    const firstProduct = shopGrouped[shop.id][0];
-                    const productTitle = firstProduct?.title || "new item";
-                    try {
-                        await prisma.notifications.create({
-                            data: {
-                                type:"Order",
-                                title:"New Order Received",
-                                message:`You have a new order for ${productTitle} in your shop - ${shop.name}.`,
-                                creatorId: userId,
-                                receiverId: shop.sellerId,
-                                redirect_link:`https://ilan.com/order/${sessionId}`,
-                            },
-                        });
-                    } catch (err) {
-                        console.error("Seller notification error:", err);
-                    }
-                }
-
-                // Get all admin users and send notifications to them
-                try {
-                    const adminUsers = await prisma.users.findMany({
-                        where: { role: "admin" },
-                        select: { id: true },
-                    });
-
-                    // Create notification for each admin user
-                    for (const admin of adminUsers) {
-                        try {
-                            await prisma.notifications.create({
-                                data: {
-                                    type: "Order",
-                                    title: "Platform Order Alert",
-                                    message: `A new order has been placed. Order ID: ${sessionId}.`,
-                                    creatorId: userId,
-                                    receiverId: admin.id,
-                                    redirect_link: `https://ilan.com/orders/${sessionId}`,
-                                },
-                            });
-                        } catch (err) {
-                            console.error(`Failed to create notification for admin ${admin.id}:`, err);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Error fetching admin users for notifications:", err);
                 }
             }
+
+            // Respond to Stripe FIRST (must be fast to avoid webhook retry)
+            res.status(200).json({received: true});
+
+            // ── Fire-and-forget: analytics, email, notifications, logs ──
+            const sideEffects = async () => {
+                try {
+                    await Promise.allSettled([
+                        // Log
+                        sendLog({
+                            type: 'success',
+                            message: `Stripe order created for user: ${userId}, session: ${sessionId}`,
+                            source: 'order-service'
+                        }),
+
+                        // Email
+                        sendEmail(
+                            email,
+                            'Order Confirmation',
+                            "order-confirmation",
+                            {
+                                name,
+                                cart,
+                                totalAmount: coupon?.discountAmount
+                                    ? (totalAmount - coupon.discountAmount)
+                                    : totalAmount,
+                                trackingUrl: `https://ilan.com/order/${sessionId}`,
+                            }
+                        ),
+
+                        // Product analytics (parallel per item)
+                        ...Object.entries(shopGrouped).flatMap(([shopId, items]: [string, any]) =>
+                            items.map((item: any) =>
+                                prisma.productAnalytics.upsert({
+                                    where: { productId: item.id },
+                                    create: { productId: item.id, shopId, purchases: item.quantity, lastViewedAt: new Date() },
+                                    update: { purchases: { increment: item.quantity } },
+                                })
+                            )
+                        ),
+
+                        // User analytics (single update with all purchase actions)
+                        (async () => {
+                            const existingAnalytics = await prisma.userAnalytics.findUnique({ where: { userId } });
+                            const newActions = cart.map((item: any) => ({
+                                productId: item.id,
+                                shopId: item.shopId,
+                                action: 'purchase',
+                                timestamp: Date.now(),
+                            }));
+                            const currentActions = Array.isArray(existingAnalytics?.actions)
+                                ? (existingAnalytics?.actions as Prisma.JsonArray)
+                                : [];
+                            if (existingAnalytics) {
+                                await prisma.userAnalytics.update({
+                                    where: { userId },
+                                    data: { lastVisited: new Date(), actions: [...currentActions, ...newActions] },
+                                });
+                            } else {
+                                await prisma.userAnalytics.create({
+                                    data: { userId, lastVisited: new Date(), actions: newActions },
+                                });
+                            }
+                        })(),
+
+                        // Seller notifications
+                        (async () => {
+                            const createdShopIds = Object.keys(shopGrouped);
+                            const sellerShops = await prisma.shops.findMany({
+                                where: { id: { in: createdShopIds } },
+                                select: { id: true, sellerId: true, name: true }
+                            });
+                            await Promise.allSettled(
+                                sellerShops.map(shop => {
+                                    const firstProduct = shopGrouped[shop.id]?.[0];
+                                    return prisma.notifications.create({
+                                        data: {
+                                            type: "Order",
+                                            title: "New Order Received",
+                                            message: `You have a new order for ${firstProduct?.title || 'new item'} in your shop - ${shop.name}.`,
+                                            creatorId: userId,
+                                            receiverId: shop.sellerId,
+                                            redirect_link: `/dashboard/orders`,
+                                        },
+                                    });
+                                })
+                            );
+                        })(),
+                    ]);
+                } catch (err) {
+                    console.error("Side-effect error (non-blocking):", err);
+                }
+            };
+            sideEffects();
         }
-        res.status(200).json({received: true});
+        // If not payment_intent.succeeded, just acknowledge
+        if (!res.headersSent) {
+            res.status(200).json({received: true});
+        }
     } catch (error: any) {
         console.error("Error processing order creation:", error);
-        await sendLog({
+        sendLog({
             type: 'error',
             message: `Error processing order creation: ${error.message}`,
             source: 'order-service'
-        });
+        }).catch(() => {});
         return next(error);
     }
 }
@@ -560,6 +520,31 @@ export const getUserOrders = async (req:any,res:Response,next:NextFunction) => {
         next(error);
     }
 }
+
+/**
+ * GET /get-order-stats
+ * Returns ONLY order counts (total, processing, completed) for the profile stat cards.
+ * Much lighter than get-user-orders — no joins, no item data, just 3 counts.
+ */
+export const getUserOrderStats = async (req:any, res:Response, next:NextFunction) => {
+    try {
+        const userId = req.user.id;
+        const [total, processing, completed] = await Promise.all([
+            prisma.orders.count({ where: { userId } }),
+            prisma.orders.count({
+                where: {
+                    userId,
+                    deliveryStatus: { notIn: ['Delivered', 'Cancelled'] },
+                },
+            }),
+            prisma.orders.count({ where: { userId, deliveryStatus: 'Delivered' } }),
+        ]);
+        res.status(200).json({ success: true, stats: { total, processing, completed } });
+    } catch (error) {
+        next(error);
+    }
+}
+
 
 // Get admin orders
 export const getAdminOrders = async (req:any,res:Response,next:NextFunction) => {
@@ -723,170 +708,135 @@ export const createCODOrder = async (req: any, res: Response, next: NextFunction
 
             createdOrders.push(order);
 
-            await sendLog({
-                type: 'success',
-                message: `COD Order created: ${order.id} for ${userId ? `user: ${userId}` : `guest: ${guestEmail}`}, shop: ${shopId}`,
-                source: 'order-service'
-            });
-
-            // Update product stock & analytics
+            // Update stock immediately (critical — prevents oversell)
             for (const item of orderItems) {
-                const { id: productId, quantity } = item;
-
                 await prisma.products.update({
-                    where: { id: productId },
+                    where: { id: item.id },
                     data: {
-                        stock: { decrement: quantity },
-                        totalSales: { increment: quantity },
+                        stock: { decrement: item.quantity },
+                        totalSales: { increment: item.quantity },
                     },
                 });
-
-                await prisma.productAnalytics.upsert({
-                    where: { productId },
-                    create: {
-                        productId,
-                        shopId,
-                        purchases: quantity,
-                        lastViewedAt: new Date(),
-                    },
-                    update: {
-                        purchases: { increment: quantity },
-                    },
-                });
-
-                // Update user analytics if logged in
-                if (userId) {
-                    const existingAnalytics = await prisma.userAnalytics.findUnique({
-                        where: { userId },
-                    });
-
-                    const newAction = {
-                        productId,
-                        shopId,
-                        action: 'purchase',
-                        paymentMethod: 'cod',
-                        timestamp: Date.now(),
-                    };
-
-                    const currentActions = Array.isArray(existingAnalytics?.actions)
-                        ? (existingAnalytics?.actions as Prisma.JsonArray)
-                        : [];
-
-                    if (existingAnalytics) {
-                        await prisma.userAnalytics.update({
-                            where: { userId },
-                            data: {
-                                lastVisited: new Date(),
-                                actions: [...currentActions, newAction],
-                            },
-                        });
-                    } else {
-                        await prisma.userAnalytics.create({
-                            data: {
-                                userId,
-                                lastVisited: new Date(),
-                                actions: [newAction],
-                            },
-                        });
-                    }
-                }
             }
         }
 
-        // Send COD confirmation email
-        try {
-            const finalAmount = coupon?.discountAmount
-                ? (totalAmount - coupon.discountAmount)
-                : totalAmount;
+        // ── Response FIRST, side-effects AFTER (fire-and-forget) ──
+        // Delete session + respond immediately
+        redis.del(sessionKey).catch(() => {});
 
-            await sendEmail(
-                userEmail,
-                'Xác nhận đơn hàng COD',
-                "order-confirmation",
-                {
-                    name: userName,
-                    cart,
-                    totalAmount: finalAmount,
-                    paymentMethod: 'cod',
-                    trackingUrl: `${process.env.USER_UI_URL || 'https://ilan.com'}/order/${createdOrders[0]?.id}`,
-                    codNote: `Vui lòng chuẩn bị ${finalAmount.toLocaleString('vi-VN')}đ khi nhận hàng.`,
-                }
-            );
-        } catch (error: any) {
-            console.error("Failed to send COD confirmation email:", error);
-            await sendLog({
-                type: 'error',
-                message: `Failed to send COD email for order ${sessionId}: ${error.message}`,
-                source: 'order-service'
-            });
-        }
-
-        // Create notifications for sellers
-        const createdShopIds = Object.keys(shopGrouped);
-        const sellerShops = await prisma.shops.findMany({
-            where: { id: { in: createdShopIds } },
-            select: { id: true, sellerId: true, name: true }
-        });
-
-        for (const shop of sellerShops) {
-            const firstProduct = shopGrouped[shop.id][0];
-            const productTitle = firstProduct?.title || "new item";
-            try {
-                await prisma.notifications.create({
-                    data: {
-                        type: "Order",
-                        title: "Đơn hàng COD mới",
-                        message: `Bạn có đơn hàng COD mới cho ${productTitle} tại shop ${shop.name}.`,
-                        creatorId: userId || undefined,
-                        receiverId: shop.sellerId,
-                        redirect_link: `/dashboard/orders`,
-                    },
-                });
-            } catch (err) {
-                console.error("Seller notification error:", err);
-            }
-        }
-
-        // Create notifications for admins  
-        try {
-            const adminUsers = await prisma.users.findMany({
-                where: { role: "admin" },
-                select: { id: true },
-            });
-
-            for (const admin of adminUsers) {
-                await prisma.notifications.create({
-                    data: {
-                        type: "Order",
-                        title: "Đơn hàng COD mới trên platform",
-                        message: `Đơn hàng COD mới. Order ID: ${createdOrders[0]?.id}.`,
-                        creatorId: userId || undefined,
-                        receiverId: admin.id,
-                        redirect_link: `/dashboard/orders`,
-                    },
-                });
-            }
-        } catch (err) {
-            console.error("Admin notification error:", err);
-        }
-
-        // Delete payment session from Redis
-        await redis.del(sessionKey);
-
-        return res.status(201).json({
+        res.status(201).json({
             success: true,
             message: "COD order created successfully",
             orders: createdOrders,
             orderId: createdOrders[0]?.id,
         });
 
+        // ── Fire-and-forget: analytics, email, notifications, logs ──
+        const sideEffects = async () => {
+            try {
+                const finalAmount = coupon?.discountAmount
+                    ? (totalAmount - coupon.discountAmount)
+                    : totalAmount;
+
+                // All side-effects run in parallel
+                await Promise.allSettled([
+                    // Log
+                    sendLog({
+                        type: 'success',
+                        message: `COD Order created: ${createdOrders.map(o => o.id).join(', ')} for ${userId ? `user: ${userId}` : `guest: ${guestEmail}`}`,
+                        source: 'order-service'
+                    }),
+
+                    // Email
+                    sendEmail(
+                        userEmail,
+                        'Xác nhận đơn hàng COD',
+                        "order-confirmation",
+                        {
+                            name: userName,
+                            cart,
+                            totalAmount: finalAmount,
+                            paymentMethod: 'cod',
+                            trackingUrl: `${process.env.USER_UI_URL || 'https://ilan.com'}/order/${createdOrders[0]?.id}`,
+                            codNote: `Vui lòng chuẩn bị ${finalAmount.toLocaleString('vi-VN')}đ khi nhận hàng.`,
+                        }
+                    ),
+
+                    // Product & User analytics (parallel per item)
+                    ...Object.entries(shopGrouped).flatMap(([shopId, items]: [string, any]) =>
+                        items.map((item: any) =>
+                            prisma.productAnalytics.upsert({
+                                where: { productId: item.id },
+                                create: { productId: item.id, shopId, purchases: item.quantity, lastViewedAt: new Date() },
+                                update: { purchases: { increment: item.quantity } },
+                            })
+                        )
+                    ),
+
+                    // User analytics (single update with all purchase actions)
+                    ...(userId ? [
+                        (async () => {
+                            const existingAnalytics = await prisma.userAnalytics.findUnique({ where: { userId } });
+                            const newActions = cart.map((item: any) => ({
+                                productId: item.id,
+                                shopId: item.shopId,
+                                action: 'purchase',
+                                paymentMethod: 'cod',
+                                timestamp: Date.now(),
+                            }));
+                            const currentActions = Array.isArray(existingAnalytics?.actions)
+                                ? (existingAnalytics?.actions as Prisma.JsonArray)
+                                : [];
+                            if (existingAnalytics) {
+                                await prisma.userAnalytics.update({
+                                    where: { userId },
+                                    data: { lastVisited: new Date(), actions: [...currentActions, ...newActions] },
+                                });
+                            } else {
+                                await prisma.userAnalytics.create({
+                                    data: { userId, lastVisited: new Date(), actions: newActions },
+                                });
+                            }
+                        })()
+                    ] : []),
+
+                    // Seller notifications
+                    (async () => {
+                        const createdShopIds = Object.keys(shopGrouped);
+                        const sellerShops = await prisma.shops.findMany({
+                            where: { id: { in: createdShopIds } },
+                            select: { id: true, sellerId: true, name: true }
+                        });
+                        await Promise.allSettled(
+                            sellerShops.map(shop => {
+                                const firstProduct = shopGrouped[shop.id]?.[0];
+                                return prisma.notifications.create({
+                                    data: {
+                                        type: "Order",
+                                        title: "Đơn hàng COD mới",
+                                        message: `Bạn có đơn hàng COD mới cho ${firstProduct?.title || 'new item'} tại shop ${shop.name}.`,
+                                        creatorId: userId || undefined,
+                                        receiverId: shop.sellerId,
+                                        redirect_link: `/dashboard/orders`,
+                                    },
+                                });
+                            })
+                        );
+                    })(),
+                ]);
+            } catch (err) {
+                console.error("Side-effect error (non-blocking):", err);
+            }
+        };
+        sideEffects();
+
     } catch (error: any) {
         console.error("Error creating COD order:", error);
-        await sendLog({
+        sendLog({
             type: 'error',
             message: `Error creating COD order: ${error.message}`,
             source: 'order-service'
-        });
+        }).catch(() => {});
         return next(error);
     }
 };

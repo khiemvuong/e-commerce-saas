@@ -2,6 +2,11 @@ import prisma from "@packages/libs/prisma";
 
 export const  updateUserAnalytics = async (event: any) => {
     try {
+        // Skip user analytics for anonymous visitors (no userId)
+        if (!event.userId) {
+            return;
+        }
+
         const existingData = await prisma.userAnalytics.findUnique({
             where: { 
                 userId: event.userId
@@ -93,10 +98,7 @@ export const  updateUserAnalytics = async (event: any) => {
             }
         });
 
-        //Update product analytics
-        if (event.productId) {
-            await updateProductAnalytics(event);
-        }
+
     } catch (error) {
         console.log('Error in updateUserAnalytics:', error);
     }

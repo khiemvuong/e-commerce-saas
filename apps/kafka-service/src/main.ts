@@ -1,5 +1,5 @@
 import Redis from "ioredis";
-import { updateShopAnalytics, updateUserAnalytics } from './services/analytics.service';
+import { updateShopAnalytics, updateUserAnalytics, updateProductAnalytics } from './services/analytics.service';
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL 
     ? process.env.UPSTASH_REDIS_REST_URL.replace('https://', 'rediss://').replace('http://', 'redis://')
@@ -30,9 +30,16 @@ const processQueue = async () => {
       console.log(`Invalid action: ${event.action}`);
       continue;
     }
-    try {
-      await updateUserAnalytics(event);
-    } catch (error) {
+      try {
+        // Track product analytics for ALL users (including anonymous)
+        if (event.productId) {
+          await updateProductAnalytics(event);
+        }
+        // Track user analytics ONLY for logged-in users
+        if (event.userId) {
+          await updateUserAnalytics(event);
+        }
+      } catch (error) {
       console.log('Error updating user analytics:', error);
     }
   }

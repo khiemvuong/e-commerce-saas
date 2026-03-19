@@ -13,7 +13,7 @@
  */
 
 import { Intent } from '../config/intents.config';
-import { BRAND_KEYWORDS } from '../config/keywords.config';
+import { BRAND_KEYWORDS, getPopularBrandsForDomain } from '../config/keywords.config';
 import { ExtractedKeywords } from './keyword-extractor';
 import { ChatMessage } from './chat-service';
 
@@ -60,25 +60,6 @@ function countClarificationsInSession(messages: ChatMessage[]): number {
     }
   }
   return count;
-}
-
-// ========== Helper: Get Popular Brands for Category ==========
-
-function getPopularBrandsForCategory(category: string): string[] {
-  const categoryBrandMap: Record<string, string[]> = {
-    shoes: ['Nike', 'Adidas', 'Puma', 'New Balance', 'Converse'],
-    clothing: ['Zara', 'H&M', 'Uniqlo', 'Nike', 'Adidas'],
-    bags: ['Gucci', 'Louis Vuitton', 'Prada', 'Zara', 'H&M'],
-    electronics: ['Apple', 'Samsung', 'Sony', 'Dell', 'HP'],
-    accessories: ['Rolex', 'Casio', 'Ray-Ban', 'Fossil', 'Oakley'],
-    sports: ['Nike', 'Adidas', 'Puma', 'Reebok', 'Under Armour'],
-    beauty: ['Chanel', 'Gucci', 'Prada', 'Zara', 'H&M'],
-    home: ['IKEA', 'Zara Home', 'H&M Home'],
-  };
-
-  return categoryBrandMap[category.toLowerCase()] || BRAND_KEYWORDS.slice(0, 5).map(
-    b => b.charAt(0).toUpperCase() + b.slice(1)
-  );
 }
 
 // ========== Main Logic ==========
@@ -131,7 +112,7 @@ export function shouldClarify(
 
     if (hasCategory && !hasBrand && !hasPrice && !hasColor) {
       const category = keywords.categories[0] || accumulatedKeywords.categories[0];
-      const popularBrands = getPopularBrandsForCategory(category);
+      const popularBrands = getPopularBrandsForDomain(category);
 
       const options: ClarOption[] = [
         ...popularBrands.map(b => ({ label: b, value: b.toLowerCase(), type: 'brand' as const })),
@@ -195,7 +176,7 @@ export function shouldClarify(
         needsClarification: true,
         clarificationType: 'brand',
         question: `Which **${category}** product specifically? Here are popular brands:`,
-        options: getPopularBrandsForCategory(category).map(b => ({
+        options: getPopularBrandsForDomain(category).map((b: string) => ({
           label: b,
           value: b.toLowerCase(),
           type: 'brand' as const,
@@ -235,6 +216,49 @@ export function parseClarificationResponse(
         isClarificationResponse: true,
         value: option.value,
         type: option.type,
+      };
+    }
+  }
+
+  // Check if message is a free-form price answer (e.g. "around 200", "about $50", "under 100")
+  const hasPriceOptions = previousOptions.some(o => o.type === 'price_range');
+  if (hasPriceOptions) {
+    const pricePatterns = [
+      /(?:around|about|roughly|approximately)\s*\$?(\d+)/i,
+      /(?:under|below|less than)\s*\$?(\d+)/i,
+      /(?:over|above|more than)\s*\$?(\d+)/i,
+      /\$(\d+)\s*(?:to|-|–)\s*\$?(\d+)/i,
+      /(\d+)\s*(?:to|-|–)\s*(\d+)/i,
+      /^\$?(\d+)$/,  // Just a number like "200" or "$200"
+    ];
+
+    for (const pattern of pricePatterns) {
+      const match = lower.match(pattern);
+      if (match) {
+        // Convert to a price filter value
+        let value = message.trim();
+        if (/around|about|roughly|approximately/i.test(lower)) {
+          const price = parseInt(match[1]);
+          value = `${Math.floor(price * 0.7)} to ${Math.ceil(price * 1.3)}`;
+        }
+        return {
+          isClarificationResponse: true,
+          value,
+          type: 'price_range',
+        };
+      }
+    }
+  }
+
+  // Check if message is a short brand name that matches a known brand
+  const isBrandOption = previousOptions.some(o => o.type === 'brand');
+  if (isBrandOption && lower.length < 30) {
+    const knownBrands = BRAND_KEYWORDS.map(b => b.toLowerCase());
+    if (knownBrands.includes(lower)) {
+      return {
+        isClarificationResponse: true,
+        value: lower,
+        type: 'brand',
       };
     }
   }

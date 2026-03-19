@@ -1,15 +1,14 @@
 /**
  * Smart Fallback Engine
  * 
- * Phase 1: Handles UNKNOWN intent with 5 layers of intelligent recovery
+ * Handles UNKNOWN intent with 4 layers of intelligent recovery
  * instead of returning a static "I don't understand" message.
  * 
  * Layers:
  * 1. Fuzzy dictionary match (Levenshtein) — typo correction
  * 2. Phonetic similarity (Soundex) — sound-alike words
  * 3. Partial/substring match — incomplete words
- * 4. Context-aware guess — use session history to infer meaning
- * 5. Graceful generic fallback — trending/popular products + helpful suggestions
+ * 4. Graceful generic fallback — trending/popular products + helpful suggestions
  */
 
 import { BRAND_KEYWORDS, CATEGORY_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
@@ -21,7 +20,6 @@ export type FallbackType =
   | 'typo_correction'
   | 'phonetic_match'
   | 'partial_match'
-  | 'context_guess'
   | 'generic_suggestions';
 
 export interface FallbackResult {
@@ -296,58 +294,11 @@ function tryPartialMatch(words: string[]): FallbackResult | null {
   return null;
 }
 
-// ========== Layer 4: Context-Aware Guess ==========
+// Layer 4 (context-aware guess) was removed to prevent stale keyword injection
+// when users switch topics. Short unknown messages are now treated as standalone
+// queries instead of inheriting previous session keywords.
 
-function tryContextGuess(
-  message: string,
-  sessionKeywords: ExtractedKeywords,
-  recentIntents: string[]
-): FallbackResult | null {
-  const lower = message.toLowerCase().trim();
-  const words = lower.split(/\s+/);
-
-  // If session has accumulated keywords and message is short (1-3 words),
-  // treat it as a refinement of previous search
-  if (words.length <= 3 && sessionKeywords.rawKeywords.length > 0) {
-    const hasSessionContext =
-      sessionKeywords.categories.length > 0 ||
-      sessionKeywords.brands.length > 0;
-
-    if (hasSessionContext) {
-      // Combine with existing session context
-      const contextParts: string[] = [];
-      if (sessionKeywords.brands.length > 0) contextParts.push(sessionKeywords.brands[sessionKeywords.brands.length - 1]);
-      if (sessionKeywords.categories.length > 0) contextParts.push(sessionKeywords.categories[sessionKeywords.categories.length - 1]);
-
-      const correctedQuery = `${contextParts.join(' ')} ${lower}`.trim();
-
-      return {
-        correctedQuery,
-        suggestions: [],
-        confidence: 40,
-        fallbackType: 'context_guess',
-        shouldSearchProducts: true,
-        message: `Based on your previous search, showing "**${correctedQuery}**":`,
-      };
-    }
-  }
-
-  // If recent intent was SEARCH_PRODUCT, treat unknown as a product name
-  if (recentIntents.includes('SEARCH_PRODUCT') && words.length <= 4) {
-    return {
-      correctedQuery: lower,
-      suggestions: [],
-      confidence: 30,
-      fallbackType: 'context_guess',
-      shouldSearchProducts: true,
-      message: `Searching for "**${lower}**":`,
-    };
-  }
-
-  return null;
-}
-
-// ========== Layer 5: Generic Fallback ==========
+// ========== Layer 4: Generic Fallback ==========
 
 function genericFallback(): FallbackResult {
   const helpMessages = [
@@ -371,7 +322,7 @@ function genericFallback(): FallbackResult {
 
 /**
  * Run smart fallback when intent detection returns UNKNOWN.
- * Goes through 5 layers of recovery before giving up.
+ * Goes through 4 layers of recovery before giving up.
  * 
  * @param message - The original user message
  * @param sessionKeywords - Accumulated keywords from the conversation session
@@ -389,7 +340,7 @@ export function smartFallback(
   const words = trimmed.toLowerCase().split(/\s+/).filter(w => w.length > 1);
   if (words.length === 0) return genericFallback();
 
-  console.log(`[SmartFallback] Processing "${trimmed}" through 5 fallback layers...`);
+  console.log(`[SmartFallback] Processing "${trimmed}" through 4 fallback layers...`);
 
   // Layer 1: Fuzzy dictionary match (typo correction)
   const fuzzyResult = tryFuzzyCorrection(words);
@@ -412,16 +363,7 @@ export function smartFallback(
     return partialResult;
   }
 
-  // Layer 4: Context-aware guess (only if session context is available)
-  const safeKeywords = sessionKeywords || { categories: [], brands: [], colors: [], sizes: [], rawKeywords: [] };
-  const safeIntents = recentIntents || [];
-  const contextResult = tryContextGuess(trimmed, safeKeywords, safeIntents);
-  if (contextResult) {
-    console.log(`[SmartFallback] Layer 4 (context): guessed "${contextResult.correctedQuery}"`);
-    return contextResult;
-  }
-
-  // Layer 5: Generic fallback
-  console.log(`[SmartFallback] Layer 5 (generic): no correction found, showing popular products`);
+  // Layer 4: Generic fallback
+  console.log(`[SmartFallback] Layer 4 (generic): no correction found, showing popular products`);
   return genericFallback();
 }

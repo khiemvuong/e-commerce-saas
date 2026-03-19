@@ -227,9 +227,9 @@ export const enhancedSearchProducts = async (
 export const getSearchSuggestions = async (
     keyword: string,
     limit = 8
-): Promise<{ suggestions: string[]; products: any[] }> => {
+): Promise<{ suggestions: string[]; products: any[]; didYouMean: string | null }> => {
     if (!keyword || keyword.length < 2) {
-        return { suggestions: [], products: [] };
+        return { suggestions: [], products: [], didYouMean: null };
     }
     
     const kw = keyword.toLowerCase().trim();
@@ -246,7 +246,6 @@ export const getSearchSuggestions = async (
         where: {
             AND: [
                 { isDeleted: false },
-                // Allow searching events/offers too
                 // Each word must be found in title
                 ...titleConditions,
             ],
@@ -256,7 +255,10 @@ export const getSearchSuggestions = async (
             id: true,
             title: true,
             slug: true,
+            price: true,
             sale_price: true,
+            regular_price: true,
+            compareAtPrice: true,
             images: { take: 1, select: { file_url: true } },
         },
         orderBy: { totalSales: 'desc' },
@@ -279,7 +281,10 @@ export const getSearchSuggestions = async (
                 id: true,
                 title: true,
                 slug: true,
+                price: true,
                 sale_price: true,
+                regular_price: true,
+                compareAtPrice: true,
                 images: { take: 1, select: { file_url: true } },
             },
             orderBy: { totalSales: 'desc' },
@@ -323,10 +328,19 @@ export const getSearchSuggestions = async (
             }
         }
     });
+
+    // Inline "Did you mean?" — only compute when no products found
+    let didYouMean: string | null = null;
+    if (finalProducts.length === 0) {
+        const popularTerms = await getPopularSearchTerms();
+        didYouMean = findClosestMatch(keyword, popularTerms);
+    }
     
     return {
         suggestions: Array.from(suggestions).slice(0, limit),
         products: finalProducts,
+        didYouMean,
     };
 };
+
 

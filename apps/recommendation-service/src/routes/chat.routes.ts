@@ -13,11 +13,13 @@ import {
   getConversationHistory,
   getAccumulatedKeywords,
   getActiveSessionKeywords,
+  resetConversation,
 } from '../core/chat-service';
 import { loadUserContext } from '../data/user-context-loader';
 import { loadProducts } from '../data/product-loader';
 import { scoreProducts, getTopRecommendations } from '../core/recommendation-engine';
 import { getAllSuggestionTerms, fuzzyMatch } from '../core/keyword-extractor';
+import prisma from '@packages/libs/prisma';
 
 const router = Router();
 
@@ -101,6 +103,149 @@ router.get('/suggest', (req: Request, res: Response) => {
     success: true,
     suggestions: suggestions.slice(0, 8),
   });
+});
+
+// ========== Search → Recommendation Bridge ==========
+
+/**
+ * POST /api/chat/search-intent
+ * Fire-and-forget: records a search keyword in userAnalytics so future
+ * recommendations are influenced by what the user searched for.
+ * 
+ * Body: { userId: string, keyword: string }
+ */
+router.post('/search-intent', async (req: Request, res: Response) => {
+  try {
+    const { userId, keyword } = req.body;
+    if (!userId || !keyword || typeof keyword !== 'string' || keyword.trim().length < 2) {
+      res.status(200).json({ success: true }); // silently ignore invalid
+      return;
+    }
+
+    const trimmed = keyword.trim().substring(0, 100); // cap at 100 chars
+
+    // Upsert: push search_intent action into userAnalytics.actions
+    // Deduplicate: don't store same keyword within 5 minutes
+    const analytics = await prisma.userAnalytics.findUnique({ where: { userId } });
+    const now = new Date();
+    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
+    const existingActions = (analytics?.actions as any[]) || [];
+    const isDuplicate = existingActions.some(
+      (a: any) => a.action === 'search_intent' && a.keyword === trimmed &&
+        new Date(a.timestamp) > fiveMinAgo
+    );
+
+    if (!isDuplicate) {
+      const newAction = { action: 'search_intent', keyword: trimmed, timestamp: now.toISOString() };
+      await prisma.userAnalytics.upsert({
+        where: { userId },
+        create: { userId, actions: [newAction] },
+        update: { actions: { push: newAction } },
+      });
+    }
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[SearchIntent] Error:', err);
+    res.status(200).json({ success: true }); // never block the client
+  }
+});
+
+/** In-memory cache for search recommendations (30s TTL per userId) */
+const searchRecsCache = new Map<string, { data: any; ts: number }>();
+
+/**
+ * GET /api/chat/search-recommendations
+ * Returns top AI-scored product recommendations based on user behavior.
+ * Used by the Command Palette empty state ("Based on your views").
+ * 
+ * Query: ?userId=xxx&limit=6
+ */
+router.get('/search-recommendations', async (req: Request, res: Response) => {
+  try {
+    const userId = req.query.userId as string;
+    const limit = Math.min(parseInt(req.query.limit as string) || 6, 12);
+
+    // Cache check (30s TTL)
+    const cacheKey = `${userId || 'anon'}:${limit}`;
+    const cached = searchRecsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < 30_000) {
+      res.json(cached.data);
+      return;
+    }
+
+    // Load user context + products + score
+    const userContext = userId
+      ? (await loadUserContext(userId)) || { userId, chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] }
+      : { chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] };
+
+    const products = await loadProducts({ limit: 30 });
+    const scored = scoreProducts(products, userContext);
+    const top = getTopRecommendations(scored, limit, 0);
+
+    const response = {
+      success: true,
+      recommendations: top.map(sp => ({
+        productId: sp.product.id,
+        title: sp.product.title,
+        price: sp.product.price,
+        image: sp.product.image,
+        slug: sp.product.slug,
+        score: sp.score,
+        matchReasons: sp.matchReasons.slice(0, 2),
+        brand: sp.product.brand,
+        rating: sp.product.rating,
+      })),
+    };
+
+    // Cache result
+    searchRecsCache.set(cacheKey, { data: response, ts: Date.now() });
+    // Evict old entries
+    if (searchRecsCache.size > 100) {
+      for (const [k, v] of searchRecsCache) {
+        if (Date.now() - v.ts > 60_000) searchRecsCache.delete(k);
+      }
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error('[SearchRecommendations] Error:', err);
+    res.status(500).json({ success: false, recommendations: [] });
+  }
+});
+
+/**
+ * POST /api/chat/reset
+ * Reset conversation — creates a fresh session, preserving user identity.
+ * Old session is destroyed, new one starts with a clean slate.
+ *
+ * Body: { conversationId: string }
+ */
+router.post('/reset', async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.body;
+
+    if (!conversationId) {
+      res.status(400).json({ success: false, error: 'conversationId is required' });
+      return;
+    }
+
+    const newConversation = await resetConversation(conversationId);
+
+    res.json({
+      success: true,
+      data: {
+        conversationId: newConversation.conversationId,
+        isAuthenticated: newConversation.isAuthenticated,
+        message: newConversation.isAuthenticated
+          ? `Fresh start! I still remember your preferences. How can I help you today?`
+          : 'Starting fresh! How can I help you today?',
+        quickReplies: ['Search products', 'Get recommendations', 'Browse categories'],
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
 });
 
 /**
@@ -197,6 +342,7 @@ router.post('/message', async (req: Request, res: Response): Promise<void> => {
           score: r.score,
           scoreBreakdown: r.scoreBreakdown,
           matchReasons: r.matchReasons,
+          specs: r.product.customSpecs || undefined,
         })),
         intent: response.intent,
         extractedKeywords: response.keywords,
