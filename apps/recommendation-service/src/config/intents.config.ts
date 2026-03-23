@@ -210,7 +210,7 @@ export const RESPONSE_TEMPLATES: Record<Intent, string[]> = {
     "I can help you with:\n• **Search products** — tell me what you're looking for\n• **Get recommendations** — I'll suggest popular items\n• **Check prices** — ask about any product's cost\n• **Browse categories** — explore shoes, clothing, electronics & more\n\nJust type naturally, like \"show me Nike shoes under $100\"!",
   ],
   [Intent.ORDER_STATUS]: [
-    "To check your order status, please visit your **Account → Orders** page. I can help you find products or get recommendations while you're here!",
+    "To check your order status, please visit your **Account → My Orders** page. I can help you find products or get recommendations while you're here!",
   ],
   [Intent.BROWSE]: [
     "We have several categories to explore:\n• 👟 Shoes & Sneakers\n• 👕 Clothing & Apparel\n• 👜 Bags & Accessories\n• 📱 Electronics\n• 🏋️ Sports & Fitness\n• 💄 Beauty & Skincare\n• 🏠 Home & Living\n\nWhat interests you? Tell me a category or just describe what you need!",

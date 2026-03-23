@@ -3,7 +3,13 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "test:phase1": "npx ts-node src/__tests__/run-phase1-tests.ts"
+    "test:phase1": "npx ts-node src/__tests__/run-phase1-tests.ts",
+    "test:tc": "npx ts-node --transpile-only src/__tests__/test-tc-all.ts",
+    "test:tc:a": "npx ts-node --transpile-only src/__tests__/test-tc-a-single-turn.ts",
+    "test:tc:b": "npx ts-node --transpile-only src/__tests__/test-tc-b-comparison.ts",
+    "test:tc:c": "npx ts-node --transpile-only src/__tests__/test-tc-c-multi-turn.ts",
+    "test:tc:d": "npx ts-node --transpile-only src/__tests__/test-tc-d-edge-cases.ts",
+    "test:tc:e": "npx ts-node --transpile-only src/__tests__/test-tc-e-stress.ts"
   },
   "nx": {
     "targets": {
@@ -64,7 +70,8 @@
     }
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

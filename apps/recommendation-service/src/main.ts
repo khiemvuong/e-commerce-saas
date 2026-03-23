@@ -5,6 +5,7 @@
 import express from 'express';
 import * as path from 'path';
 import chatRoutes from './routes/chat.routes';
+import { initScoreWebSocket } from './websocket/score-websocket';
 
 const app = express();
 
@@ -29,3 +30,6 @@ const server = app.listen(port, () => {
   console.log(`Recommendation service listening at http://localhost:${port}/api`);
 });
 server.on('error', console.error);
+
+// Initialize WebSocket gateway for realtime score updates
+initScoreWebSocket(server);
