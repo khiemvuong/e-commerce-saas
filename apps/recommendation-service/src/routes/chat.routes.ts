@@ -20,6 +20,7 @@ import { loadProducts } from '../data/product-loader';
 import { scoreProducts, getTopRecommendations } from '../core/recommendation-engine';
 import { getAllSuggestionTerms, fuzzyMatch } from '../core/keyword-extractor';
 import prisma from '@packages/libs/prisma';
+import { emitScoreUpdate } from '../websocket/score-websocket';
 
 const router = Router();
 
@@ -129,7 +130,7 @@ router.post('/search-intent', async (req: Request, res: Response) => {
     const analytics = await prisma.userAnalytics.findUnique({ where: { userId } });
     const now = new Date();
     const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    const existingActions = (analytics?.actions as any[]) || [];
+    const existingActions = Array.isArray(analytics?.actions) ? (analytics.actions as any[]) : [];
     const isDuplicate = existingActions.some(
       (a: any) => a.action === 'search_intent' && a.keyword === trimmed &&
         new Date(a.timestamp) > fiveMinAgo
@@ -144,9 +145,75 @@ router.post('/search-intent', async (req: Request, res: Response) => {
       });
     }
 
+    // Emit realtime score update for search
+    emitScoreUpdate(userId, {
+      action: 'search_intent',
+      productTitle: trimmed,
+      timestamp: new Date().toISOString(),
+    }).catch(() => {});
+
     res.status(200).json({ success: true });
   } catch (err) {
     console.error('[SearchIntent] Error:', err);
+    res.status(200).json({ success: true }); // never block the client
+  }
+});
+
+// ========== Unified Action Tracker ==========
+
+const VALID_ACTIONS = ['product_view', 'add_to_cart', 'add_to_wishlist', 'purchase', 'remove_from_cart', 'remove_from_wishlist', 'search_intent'] as const;
+
+/**
+ * POST /api/chat/track-action
+ * Unified action tracker — records ANY user action and emits realtime score update.
+ * 
+ * Body: { userId: string, action: ActionType, productId?: string, keyword?: string, productTitle?: string }
+ */
+router.post('/track-action', async (req: Request, res: Response) => {
+  try {
+    const { userId, action, productId, keyword, productTitle } = req.body;
+    if (!userId || !action || !VALID_ACTIONS.includes(action)) {
+      res.status(200).json({ success: true });
+      return;
+    }
+
+    // Build action record
+    const now = new Date();
+    const actionRecord: Record<string, any> = {
+      action,
+      timestamp: now.toISOString(),
+    };
+    if (productId) actionRecord.productId = productId;
+    if (keyword) actionRecord.keyword = keyword.trim().substring(0, 100);
+
+    // Deduplicate: don't store same action+product within 30 seconds
+    const analytics = await prisma.userAnalytics.findUnique({ where: { userId } });
+    const thirtySecAgo = new Date(now.getTime() - 30 * 1000);
+    const existingActions = Array.isArray(analytics?.actions) ? (analytics.actions as any[]) : [];
+    const isDuplicate = existingActions.some(
+      (a: any) => a.action === action && a.productId === productId &&
+        new Date(a.timestamp) > thirtySecAgo
+    );
+
+    if (!isDuplicate) {
+      await prisma.userAnalytics.upsert({
+        where: { userId },
+        create: { userId, actions: [actionRecord] },
+        update: { actions: { push: actionRecord } },
+      });
+    }
+
+    // Emit realtime score update with trigger info
+    emitScoreUpdate(userId, {
+      action,
+      productId,
+      productTitle: productTitle || productId,
+      timestamp: now.toISOString(),
+    }).catch(() => {});
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error('[TrackAction] Error:', err);
     res.status(200).json({ success: true }); // never block the client
   }
 });
@@ -261,6 +328,11 @@ router.post('/start', async (req: Request, res: Response) => {
     const { userId } = req.body;
     const conversation = await startConversation(userId);
     
+    // Emit initial score update for logged-in users
+    if (userId) {
+      emitScoreUpdate(userId).catch(() => {});
+    }
+
     res.json({
       success: true,
       data: {
@@ -325,6 +397,16 @@ router.post('/message', async (req: Request, res: Response): Promise<void> => {
     
     const response = await processMessage(conversationId, message);
     
+    // Emit realtime score update after every message
+    const conv = getConversation(conversationId);
+    if (conv?.userId) {
+      emitScoreUpdate(conv.userId, {
+        action: 'chat_message',
+        productTitle: message.substring(0, 60),
+        timestamp: new Date().toISOString(),
+      }).catch(() => {});
+    }
+
     res.json({
       success: true,
       data: {

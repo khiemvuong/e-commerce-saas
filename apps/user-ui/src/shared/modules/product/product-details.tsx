@@ -14,6 +14,7 @@ import ProductCard from '../../components/cards/product-card';
 import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { useRouter } from 'next/navigation';
 import { sendKafkaEvent } from 'apps/user-ui/src/actions/track-user';
+import { trackAction } from 'apps/user-ui/src/shared/utils/trackAction';
 import { optimizeImageUrl, IMAGE_PRESETS } from 'apps/user-ui/src/utils/imageOptimizer';
 import toast from 'react-hot-toast';
 import { getProductPrices } from 'apps/user-ui/src/utils/productPriceUtils';
@@ -141,6 +142,9 @@ const ProductDetails = ({productDetails}:{productDetails: any}) => {
                 country: location.country || undefined,
                 city: location.city || undefined,
             });
+            if (user?.id) {
+                trackAction({ userId: user.id, action: 'product_view', productId: productDetails.id, productTitle: productDetails.title });
+            }
             hasTrackedView.current = true;
         }
     }, [productDetails?.id, location, deviceInfo, user?.id, isLoadingUser]);

@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import { persist } from 'zustand/middleware';
 import { sendKafkaEvent } from '../actions/track-user';
+import { trackAction } from '../shared/utils/trackAction';
 
 type Product={
     id: string;
@@ -89,6 +90,7 @@ const useStore = create<Store>()(
                         country: location?.country || "Unknown",
                         city: location?.city || "Unknown",
                     });
+                    trackAction({ userId: user.id, action: 'add_to_cart', productId: product?.id, productTitle: product?.title });
                 }
             },
             removeFromCart: (cartId,user,location,deviceInfo) => {
@@ -111,6 +113,7 @@ const useStore = create<Store>()(
                         country: location?.country || "Unknown",
                         city: location?.city || "Unknown",
                     });
+                    trackAction({ userId: user.id, action: 'remove_from_cart', productId: removeProduct?.id, productTitle: removeProduct?.title });
                 }
             },
             addToWishlist: (product,user,location,deviceInfo) => {
@@ -137,6 +140,7 @@ const useStore = create<Store>()(
                         country: location?.country || "Unknown",
                         city: location?.city || "Unknown",
                     });
+                    trackAction({ userId: user.id, action: 'add_to_wishlist', productId: product?.id, productTitle: product?.title });
                 }
             },
             removeFromWishlist: (id,user,location,deviceInfo) => {
@@ -155,6 +159,7 @@ const useStore = create<Store>()(
                         country: location?.country || "Unknown",
                         city: location?.city || "Unknown",
                     });
+                    trackAction({ userId: user.id, action: 'remove_from_wishlist', productId: removeProduct?.id, productTitle: removeProduct?.title });
                 }
             },
             clearWishlist: () => {
