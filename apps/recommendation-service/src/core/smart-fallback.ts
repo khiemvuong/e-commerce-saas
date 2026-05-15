@@ -1,9 +1,9 @@
 /**
  * Smart Fallback Engine
- * 
+ *
  * Handles UNKNOWN intent with 4 layers of intelligent recovery
  * instead of returning a static "I don't understand" message.
- * 
+ *
  * Layers:
  * 1. Fuzzy dictionary match (Levenshtein) — typo correction
  * 2. Phonetic similarity (Soundex) — sound-alike words
@@ -11,8 +11,17 @@
  * 4. Graceful generic fallback — trending/popular products + helpful suggestions
  */
 
-import { BRAND_KEYWORDS, CATEGORY_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
-import { fuzzyMatch, ExtractedKeywords } from './keyword-extractor';
+import { BRAND_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
+import { fuzzyMatch } from './text-utils';
+import { soundsLike, ngramSimilarity } from './text-utils';
+import { getAllKnownTerms, getFlatCategoryKeywords } from './dictionary';
+import { createLogger } from './logger';
+import type { ExtractedKeywords } from './keyword-extractor';
+
+// Re-export for backward compatibility (intent-detector etc. may import from here)
+export { soundex, soundsLike, ngramSimilarity } from './text-utils';
+
+const log = createLogger('SmartFallback');
 
 // ========== Types ==========
 
@@ -39,111 +48,12 @@ export interface FallbackResult {
   message: string;
 }
 
-// ========== Soundex Algorithm ==========
-
-/**
- * Soundex phonetic algorithm.
- * Maps words to a 4-character code based on pronunciation.
- * e.g., "niike" → "N200", "nike" → "N200" → match!
- */
-export function soundex(word: string): string {
-  if (!word || word.length === 0) return '';
-
-  const upper = word.toUpperCase();
-  let code = upper[0];
-
-  const map: Record<string, string> = {
-    B: '1', F: '1', P: '1', V: '1',
-    C: '2', G: '2', J: '2', K: '2', Q: '2', S: '2', X: '2', Z: '2',
-    D: '3', T: '3',
-    L: '4',
-    M: '5', N: '5',
-    R: '6',
-  };
-
-  let prevCode = map[upper[0]] || '0';
-
-  for (let i = 1; i < upper.length && code.length < 4; i++) {
-    const charCode = map[upper[i]] || '0';
-    if (charCode !== '0' && charCode !== prevCode) {
-      code += charCode;
-    }
-    prevCode = charCode;
-  }
-
-  return code.padEnd(4, '0');
-}
-
-/**
- * Check if two words sound similar using Soundex.
- */
-export function soundsLike(word1: string, word2: string): boolean {
-  if (word1.length < 3 || word2.length < 3) return false;
-  return soundex(word1) === soundex(word2);
-}
-
-// ========== N-gram Similarity ==========
-
-/**
- * Calculate n-gram similarity between two strings.
- * Returns a score from 0 to 1.
- */
-export function ngramSimilarity(word: string, candidate: string, n: number = 2): number {
-  if (word.length < n || candidate.length < n) return 0;
-
-  const getNgrams = (str: string): Set<string> => {
-    const ngrams = new Set<string>();
-    const lower = str.toLowerCase();
-    for (let i = 0; i <= lower.length - n; i++) {
-      ngrams.add(lower.substring(i, i + n));
-    }
-    return ngrams;
-  };
-
-  const ngrams1 = getNgrams(word);
-  const ngrams2 = getNgrams(candidate);
-
-  let intersection = 0;
-  for (const ng of ngrams1) {
-    if (ngrams2.has(ng)) intersection++;
-  }
-
-  const union = ngrams1.size + ngrams2.size - intersection;
-  return union === 0 ? 0 : intersection / union;
-}
-
-// ========== Flat dictionaries for lookup ==========
-
-function getAllKnownTerms(): { term: string; type: 'brand' | 'category' | 'color' }[] {
-  const terms: { term: string; type: 'brand' | 'category' | 'color' }[] = [];
-
-  for (const brand of BRAND_KEYWORDS) {
-    terms.push({ term: brand.toLowerCase(), type: 'brand' });
-  }
-  for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    for (const kw of keywords) {
-      terms.push({ term: kw.toLowerCase(), type: 'category' });
-    }
-  }
-  for (const color of COLOR_KEYWORDS) {
-    terms.push({ term: color.toLowerCase(), type: 'color' });
-  }
-
-  return terms;
-}
-
-// Cache the flat dictionary
-let _knownTermsCache: ReturnType<typeof getAllKnownTerms> | null = null;
-function getKnownTerms() {
-  if (!_knownTermsCache) _knownTermsCache = getAllKnownTerms();
-  return _knownTermsCache;
-}
-
 // ========== Layer 1: Fuzzy Dictionary Match ==========
 
 function tryFuzzyCorrection(words: string[]): FallbackResult | null {
   const corrections: string[] = [];
   const originals: string[] = [];
+  const flatCategories = getFlatCategoryKeywords();
 
   for (const word of words) {
     if (word.length < 3) continue;
@@ -156,12 +66,8 @@ function tryFuzzyCorrection(words: string[]): FallbackResult | null {
       continue;
     }
 
-    // Try category fuzzy match
-    const allCatKeywords: string[] = [];
-    for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-      allCatKeywords.push(...keywords);
-    }
-    const catMatch = fuzzyMatch(word, allCatKeywords, 2);
+    // Try category fuzzy match (using cached flat array)
+    const catMatch = fuzzyMatch(word, flatCategories, 2);
     if (catMatch && catMatch.toLowerCase() !== word.toLowerCase()) {
       corrections.push(catMatch);
       originals.push(word);
@@ -199,7 +105,7 @@ function tryFuzzyCorrection(words: string[]): FallbackResult | null {
 // ========== Layer 2: Phonetic Match ==========
 
 function tryPhoneticMatch(words: string[]): FallbackResult | null {
-  const knownTerms = getKnownTerms();
+  const knownTerms = getAllKnownTerms();
   const matches: string[] = [];
   const originals: string[] = [];
 
@@ -234,7 +140,7 @@ function tryPhoneticMatch(words: string[]): FallbackResult | null {
 // ========== Layer 3: Partial/Substring Match ==========
 
 function tryPartialMatch(words: string[]): FallbackResult | null {
-  const knownTerms = getKnownTerms();
+  const knownTerms = getAllKnownTerms();
   const suggestions: string[] = [];
 
   for (const word of words) {
@@ -340,30 +246,30 @@ export function smartFallback(
   const words = trimmed.toLowerCase().split(/\s+/).filter(w => w.length > 1);
   if (words.length === 0) return genericFallback();
 
-  console.log(`[SmartFallback] Processing "${trimmed}" through 4 fallback layers...`);
+  log.debug('Processing through 4 fallback layers', { message: trimmed });
 
   // Layer 1: Fuzzy dictionary match (typo correction)
   const fuzzyResult = tryFuzzyCorrection(words);
   if (fuzzyResult) {
-    console.log(`[SmartFallback] Layer 1 (fuzzy): corrected to "${fuzzyResult.correctedQuery}"`);
+    log.info('Layer 1 (fuzzy): corrected', { correctedQuery: fuzzyResult.correctedQuery });
     return fuzzyResult;
   }
 
   // Layer 2: Phonetic similarity
   const phoneticResult = tryPhoneticMatch(words);
   if (phoneticResult) {
-    console.log(`[SmartFallback] Layer 2 (phonetic): matched "${phoneticResult.correctedQuery}"`);
+    log.info('Layer 2 (phonetic): matched', { correctedQuery: phoneticResult.correctedQuery });
     return phoneticResult;
   }
 
   // Layer 3: Partial/substring match
   const partialResult = tryPartialMatch(words);
   if (partialResult) {
-    console.log(`[SmartFallback] Layer 3 (partial): suggestions = [${partialResult.suggestions}]`);
+    log.info('Layer 3 (partial): suggestions', { suggestions: partialResult.suggestions });
     return partialResult;
   }
 
   // Layer 4: Generic fallback
-  console.log(`[SmartFallback] Layer 4 (generic): no correction found, showing popular products`);
+  log.info('Layer 4 (generic): no correction found, showing popular products');
   return genericFallback();
 }

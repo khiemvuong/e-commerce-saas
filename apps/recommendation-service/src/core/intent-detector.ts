@@ -7,8 +7,10 @@
 
 import { Intent, INTENT_PATTERNS, QUICK_REPLIES, RESPONSE_TEMPLATES, ENHANCED_TEMPLATES } from '../config/intents.config';
 import { BRAND_KEYWORDS, CATEGORY_KEYWORDS, COLOR_KEYWORDS } from '../config/keywords.config';
-import { fuzzyMatch, ExtractedKeywords } from './keyword-extractor';
+import { fuzzyMatch } from './text-utils';
+import { getFlatCategoryKeywords } from './dictionary';
 import { smartFallback, FallbackResult } from './smart-fallback';
+import type { ExtractedKeywords } from './keyword-extractor';
 
 export interface DetectionResult {
   intent: Intent;
@@ -145,13 +147,10 @@ function detectImplicitProductSearch(message: string): DetectionResult | null {
     if (confidence >= 70) break;
   }
   if (confidence < 70) {
-    // Fuzzy category check
-    const allCatKeywords: string[] = [];
-    for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-      allCatKeywords.push(...keywords);
-    }
+    // Fuzzy category check (using cached flat array)
+    const flatCategories = getFlatCategoryKeywords();
     for (const word of words) {
-      const match = fuzzyMatch(word, allCatKeywords, 2);
+      const match = fuzzyMatch(word, flatCategories, 2);
       if (match) {
         hasProductSignal = true;
         confidence += 30;
