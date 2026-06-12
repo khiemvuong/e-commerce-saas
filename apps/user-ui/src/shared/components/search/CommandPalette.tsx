@@ -215,10 +215,12 @@ const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
   return (
     <div
       className="fixed inset-0 z-[9999] flex items-start justify-center"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" />
+      {/* Backdrop — click to close */}
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
+        onClick={onClose}
+      />
 
       {/* Palette */}
       <div
@@ -244,9 +246,13 @@ const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
               <X size={16} className="text-gray-400" />
             </button>
           )}
-          <kbd className="hidden sm:flex items-center gap-0.5 px-2 py-1 bg-gray-100 rounded-md text-[11px] text-gray-400 font-medium">
-            ESC
-          </kbd>
+          <button
+            onClick={onClose}
+            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Close (Esc)"
+          >
+            <X size={18} className="text-gray-400" />
+          </button>
         </div>
 
         {/* Content Area */}

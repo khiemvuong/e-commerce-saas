@@ -302,11 +302,6 @@ function calculateBehaviorScore(
     score += 10;
   }
   
-  // Already in cart → lower priority (user already has it)
-  if (context.cartProductIds.includes(product.id)) {
-    score -= 15;
-  }
-  
   // Already wishlisted → slight boost (user expressed moderate interest)
   if (context.wishlistProductIds.includes(product.id)) {
     score += 10;
@@ -324,6 +319,11 @@ function calculateBehaviorScore(
   // Already viewed this exact product → lower priority (avoid repetition)
   if (context.viewedProductIds.includes(product.id)) {
     score -= 10;
+  }
+
+  // Already in cart → lower priority (user already has it)
+  if (context.cartProductIds.includes(product.id)) {
+    score -= 15;
   }
   
   return Math.max(0, Math.min(score, 100));

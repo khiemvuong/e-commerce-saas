@@ -235,8 +235,14 @@ router.get('/search-recommendations', async (req: Request, res: Response) => {
     const userId = req.query.userId as string;
     const limit = Math.min(parseInt(req.query.limit as string) || 6, 12);
 
-    // Cache check (30s TTL)
-    const cacheKey = `${userId || 'anon'}:${limit}`;
+    // Merge in-memory chat session keywords FIRST
+    const chatKeywords = userId ? getActiveSessionKeywords(userId) : undefined;
+
+    // Build cache key that includes chat state so cache invalidates when chat changes
+    const chatHash = chatKeywords
+      ? `${(chatKeywords.rawKeywords || []).join(',')}`
+      : '';
+    const cacheKey = `${userId || 'anon'}:${limit}:${chatHash}`;
     const cached = searchRecsCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < 30_000) {
       res.json(cached.data);
@@ -246,9 +252,36 @@ router.get('/search-recommendations', async (req: Request, res: Response) => {
     // Load user context + products + score
     const userContext = userId
       ? (await loadUserContext(userId)) || { userId, chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] }
-      : { chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] };
+      : { chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] } as any;
 
-    const products = await loadProducts({ limit: 30 });
+    // Merge chat session keywords into user context (same pattern as user-recommendations)
+    if (chatKeywords) {
+      if (chatKeywords.categories?.length) {
+        userContext.chatCategories = [...new Set([...(userContext.chatCategories || []), ...chatKeywords.categories])];
+      }
+      if (chatKeywords.brands?.length) {
+        userContext.chatBrands = [...new Set([...(userContext.chatBrands || []), ...chatKeywords.brands])];
+      }
+      if (chatKeywords.rawKeywords?.length) {
+        userContext.chatKeywords = [...new Set([...(userContext.chatKeywords || []), ...chatKeywords.rawKeywords])];
+      }
+    }
+
+    // Include BOTH behavioral + chat categories/brands in the product query
+    const allCategories = [...new Set([
+      ...(userContext.viewedCategories || []),
+      ...(userContext.chatCategories || []),
+    ])];
+    const allBrands = [...new Set([
+      ...(userContext.cartBrands || []),
+      ...(userContext.chatBrands || []),
+    ])];
+
+    const products = await loadProducts({
+      limit: 30,
+      categories: allCategories.length ? allCategories : undefined,
+      brands: allBrands.length ? allBrands : undefined,
+    });
     const scored = scoreProducts(products, userContext);
     const top = getTopRecommendations(scored, limit, 0);
 

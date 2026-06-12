@@ -67,6 +67,8 @@ export interface ConversationState {
   // Follow-up: track last shown product IDs and objects (for context-aware comparison)
   lastShownProductIds: string[];
   lastShownProducts: import('./recommendation-engine').ProductForScoring[];
+  // Price filter: stores last search params when user clicks "Filter by price"
+  pendingPriceFilter?: { keyword?: string; categories?: string[]; brands?: string[]; colors?: string[] };
 }
 
 /**
@@ -243,6 +245,108 @@ export async function processMessage(
     state.pendingClarification = undefined;
   }
 
+  // ===== Step 0.5: Handle price bucket selection after "Filter by price" =====
+  // When user clicks a price bucket ("Under $100", "$40 – $100", "Over $100"),
+  // re-run the ORIGINAL search with the price filter applied.
+  if (state.pendingPriceFilter) {
+    const priceSelection = userMessage.trim();
+    const pendingSearch = state.pendingPriceFilter;
+
+    // Parse price range from the selection
+    let priceRange: { min?: number; max?: number } | undefined;
+    const underMatch = priceSelection.match(/under\s*\$?([\d,]+)/i);
+    const overMatch = priceSelection.match(/over\s*\$?([\d,]+)/i);
+    // Match en-dash (–), em-dash (—), and hyphen (-)
+    const rangeMatch = priceSelection.match(/\$?([\d,]+)\s*[\u2013\u2014\-]\s*\$?([\d,]+)/i);
+
+    if (underMatch) {
+      priceRange = { max: parseInt(underMatch[1].replace(/,/g, '')) };
+    } else if (overMatch) {
+      priceRange = { min: parseInt(overMatch[1].replace(/,/g, '')) };
+    } else if (rangeMatch) {
+      priceRange = {
+        min: parseInt(rangeMatch[1].replace(/,/g, '')),
+        max: parseInt(rangeMatch[2].replace(/,/g, '')),
+      };
+    }
+
+    if (priceRange) {
+      // Clear the pending filter
+      state.pendingPriceFilter = undefined;
+
+      // Save user message
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        conversationId,
+        senderType: 'user',
+        content: userMessage,
+        timestamp: new Date(),
+        intent: Intent.ASK_PRICE,
+      };
+      state.messages.push(userMsg);
+
+      // Re-run the PREVIOUS search (shoes, phones, etc.) with the price filter
+      const products = await loadProducts({ ...pendingSearch, limit: 30 });
+      const mergedCtx = mergeContexts(state.userContext, state.accumulatedKeywords);
+      const kw = extractKeywords(priceSelection);
+      kw.priceRange = priceRange;
+
+      const scored = scoreProducts(products, mergedCtx, kw);
+      const filtered = scored.filter(sp => {
+        const p = sp.product.price;
+        if (priceRange!.min && priceRange!.max) return p >= priceRange!.min && p <= priceRange!.max;
+        if (priceRange!.min) return p >= priceRange!.min;
+        if (priceRange!.max) return p <= priceRange!.max;
+        return true;
+      });
+
+      let recommendations = getTopRecommendations(filtered, 5, 0);
+      let message: string;
+
+      const rangeText = priceRange.min && priceRange.max
+        ? `\$${priceRange.min} – \$${priceRange.max}`
+        : priceRange.max ? `under \$${priceRange.max}` : `over \$${priceRange.min}`;
+
+      if (recommendations.length > 0) {
+        state.lastShownProductIds = recommendations.map(r => r.product.id);
+        state.lastShownProducts = recommendations.map(r => r.product);
+        message = `Here are ${recommendations.length} product${recommendations.length > 1 ? 's' : ''} ${rangeText}:`;
+      } else {
+        // No products in range — fall back to closest options
+        recommendations = getTopRecommendations(scored, 5, 0);
+        if (recommendations.length > 0) {
+          state.lastShownProductIds = recommendations.map(r => r.product.id);
+          state.lastShownProducts = recommendations.map(r => r.product);
+          message = `No exact matches ${rangeText}, but here are the closest options:`;
+        } else {
+          message = `I couldn't find products in that price range. Try a different range!`;
+        }
+      }
+
+      const aiMsg: ChatMessage = {
+        id: generateId(),
+        conversationId,
+        senderType: 'ai',
+        content: message,
+        timestamp: new Date(),
+        recommendations: recommendations.map(r => r.product.id),
+      };
+      state.messages.push(aiMsg);
+      state.lastMessageAt = new Date();
+
+      return {
+        message,
+        quickReplies: ['Show me more', 'Filter by price', 'Compare them'],
+        recommendations,
+        intent: Intent.ASK_PRICE,
+        keywords: kw,
+      };
+    }
+
+    // If not a price selection, clear and fall through to normal processing
+    state.pendingPriceFilter = undefined;
+  }
+
   // ===== Step 1: Resolve context (follow-up detection) =====
   const contextResult: ContextualMessage = resolveContext(userMessage, state);
   const effectiveMessage = contextResult.resolvedMessage;
@@ -393,6 +497,63 @@ export async function processMessage(
       comparison: comparisonResult.success ? comparisonResult : undefined,
       isFollowUp: contextResult.isFollowUp,
       originalMessage: contextResult.isFollowUp ? userMessage : undefined,
+    };
+  }
+
+  // ===== Step 7.5: Handle "Filter by price" quick reply =====
+  // When user clicks "Filter by price", present smart price buckets based on previous results
+  // and store the search context so Step 0.5 can re-use it.
+  const isFilterByPrice = /^filter\s*(?:by\s*)?price$/i.test(userMessage.trim());
+  if (isFilterByPrice && state.lastShownProducts && state.lastShownProducts.length > 0) {
+    const prices = state.lastShownProducts.map(p => p.price).sort((a, b) => a - b);
+    const minPrice = prices[0];
+    const maxPrice = prices[prices.length - 1];
+
+    // Generate smart price bucket options
+    const buckets: string[] = [];
+    if (maxPrice > 100) {
+      const mid = Math.round((minPrice + maxPrice) / 2 / 50) * 50; // round to nearest $50
+      if (mid > minPrice && mid > 50) {
+        buckets.push(`Under $${mid}`);
+      }
+      if (mid > minPrice && mid < maxPrice) {
+        buckets.push(`$${Math.max(mid - 100, Math.round(minPrice / 10) * 10)} – $${mid}`);
+        buckets.push(`Over $${mid}`);
+      } else {
+        buckets.push(`Under $${Math.round(maxPrice * 0.5 / 50) * 50 || 50}`);
+        buckets.push(`Over $${Math.round(maxPrice * 0.5 / 50) * 50 || 50}`);
+      }
+    } else {
+      const third = Math.round((maxPrice - minPrice) / 3);
+      buckets.push(`Under $${minPrice + third}`);
+      buckets.push(`$${minPrice + third} – $${minPrice + third * 2}`);
+      buckets.push(`Over $${minPrice + third * 2}`);
+    }
+
+    // Deduplicate and clean
+    const uniqueBuckets = [...new Set(buckets)].slice(0, 3);
+
+    const rangeText = `$${minPrice.toLocaleString()} – $${maxPrice.toLocaleString()}`;
+    const message = `Current results range from **${rangeText}**. What's your budget?`;
+
+    // ★ Store current search params so Step 0.5 can re-run with price filter
+    state.pendingPriceFilter = state.lastSearchParams || undefined;
+
+    const aiMsg: ChatMessage = {
+      id: generateId(),
+      conversationId,
+      senderType: 'ai',
+      content: message,
+      timestamp: new Date(),
+    };
+    state.messages.push(aiMsg);
+    state.lastMessageAt = new Date();
+
+    return {
+      message,
+      quickReplies: uniqueBuckets,
+      intent: intentResult.intent,
+      keywords,
     };
   }
 
@@ -753,7 +914,7 @@ async function generateResponse(
 
     return {
       message: `Here's what I found for "${titleKeyword.split(' ').slice(0, 3).join(' ')}...":`,
-      quickReplies: ['Show me more', 'Filter by price', 'Different category'],
+      quickReplies: ['Show me more', 'Filter by price', 'Compare them'],
       recommendations, intent: intentResult.intent, keywords,
     };
   }

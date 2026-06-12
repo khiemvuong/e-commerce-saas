@@ -9,7 +9,8 @@ import {
     DealsOfTheDaySection,
     LatestProductsSection,
     TopShopsSection,
-    FlashSaleSection
+    FlashSaleSection,
+    RecommendedForYouSection
 } from '../shared/modules/home'
 import { motion } from 'framer-motion'
 import { ArrowRight, Sparkles } from 'lucide-react'
@@ -44,6 +45,11 @@ const HomePage = () => {
                 {/* Best Sellers Section - Light */}
                 <section className="md:w-[85%] w-[95%] mx-auto">
                     <BestSellersSection />
+                </section>
+
+                {/* Recommended For You - AI-powered */}
+                <section className="md:w-[85%] w-[95%] mx-auto">
+                    <RecommendedForYouSection />
                 </section>
 
                 {/* Deals of the Day - Dark luxury section */}
