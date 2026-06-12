@@ -1,6 +1,6 @@
 /**
  * Keyword Extractor
- * 
+ *
  * Extracts structured information from user messages:
  * - Categories, Brands, Colors, Sizes
  * - Price ranges and modifiers
@@ -19,72 +19,14 @@ import {
   OCCASION_KEYWORDS,
 } from '../config/keywords.config';
 
-// ========== Fuzzy Matching Utilities ==========
+// ========== Re-exports (backward compatibility) ==========
+// These utilities now live in text-utils.ts and dictionary.ts.
+// Re-exported here so existing consumers don't break.
+export { levenshteinDistance, fuzzyMatch } from './text-utils';
+export { getAllSuggestionTerms } from './dictionary';
 
-/**
- * Levenshtein distance between two strings.
- * Used for typo correction: "adisdas" → "adidas" (distance = 1)
- */
-export function levenshteinDistance(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-    }
-  }
-
-  return dp[m][n];
-}
-
-/**
- * Find the best fuzzy match for a word against a list of known terms.
- * Returns the matched term if distance is within threshold, otherwise null.
- */
-export function fuzzyMatch(word: string, knownTerms: string[], maxDistance: number = 2): string | null {
-  if (word.length < 3) return null; // Don't fuzzy match very short words
-  
-  let bestMatch: string | null = null;
-  let bestDistance = Infinity;
-
-  for (const term of knownTerms) {
-    // Skip if length difference is too large
-    if (Math.abs(word.length - term.length) > maxDistance) continue;
-    
-    const dist = levenshteinDistance(word.toLowerCase(), term.toLowerCase());
-    // Adaptive threshold: shorter words need tighter matching
-    const threshold = term.length >= 5 ? maxDistance : 1;
-    
-    if (dist <= threshold && dist < bestDistance) {
-      bestDistance = dist;
-      bestMatch = term;
-    }
-  }
-
-  return bestMatch;
-}
-
-/**
- * Get all keyword dictionaries for autocomplete suggestions.
- */
-export function getAllSuggestionTerms(): { brands: string[]; categories: string[]; colors: string[] } {
-  const categories: string[] = [];
-  for (const [, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    categories.push(...keywords);
-  }
-  return {
-    brands: [...BRAND_KEYWORDS],
-    categories: [...new Set(categories)],
-    colors: [...COLOR_KEYWORDS],
-  };
-}
+// Import for internal use
+import { fuzzyMatch } from './text-utils';
 
 /** Re-export for use in other modules (e.g. comparison-engine) */
 export { BRAND_KEYWORDS };

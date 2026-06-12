@@ -14,11 +14,13 @@ import {
   getAccumulatedKeywords,
   getActiveSessionKeywords,
   resetConversation,
+  migrateSession,
 } from '../core/chat-service';
 import { loadUserContext } from '../data/user-context-loader';
 import { loadProducts } from '../data/product-loader';
 import { scoreProducts, getTopRecommendations } from '../core/recommendation-engine';
-import { getAllSuggestionTerms, fuzzyMatch } from '../core/keyword-extractor';
+import { fuzzyMatch } from '../core/text-utils';
+import { getAllSuggestionTerms } from '../core/dictionary';
 import prisma from '@packages/libs/prisma';
 import { emitScoreUpdate } from '../websocket/score-websocket';
 
@@ -233,8 +235,14 @@ router.get('/search-recommendations', async (req: Request, res: Response) => {
     const userId = req.query.userId as string;
     const limit = Math.min(parseInt(req.query.limit as string) || 6, 12);
 
-    // Cache check (30s TTL)
-    const cacheKey = `${userId || 'anon'}:${limit}`;
+    // Merge in-memory chat session keywords FIRST
+    const chatKeywords = userId ? getActiveSessionKeywords(userId) : undefined;
+
+    // Build cache key that includes chat state so cache invalidates when chat changes
+    const chatHash = chatKeywords
+      ? `${(chatKeywords.rawKeywords || []).join(',')}`
+      : '';
+    const cacheKey = `${userId || 'anon'}:${limit}:${chatHash}`;
     const cached = searchRecsCache.get(cacheKey);
     if (cached && Date.now() - cached.ts < 30_000) {
       res.json(cached.data);
@@ -244,9 +252,36 @@ router.get('/search-recommendations', async (req: Request, res: Response) => {
     // Load user context + products + score
     const userContext = userId
       ? (await loadUserContext(userId)) || { userId, chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] }
-      : { chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] };
+      : { chatKeywords: [], chatCategories: [], chatBrands: [], viewedProductIds: [], viewedCategories: [], cartProductIds: [], cartBrands: [], wishlistProductIds: [], preferredColors: [] } as any;
 
-    const products = await loadProducts({ limit: 30 });
+    // Merge chat session keywords into user context (same pattern as user-recommendations)
+    if (chatKeywords) {
+      if (chatKeywords.categories?.length) {
+        userContext.chatCategories = [...new Set([...(userContext.chatCategories || []), ...chatKeywords.categories])];
+      }
+      if (chatKeywords.brands?.length) {
+        userContext.chatBrands = [...new Set([...(userContext.chatBrands || []), ...chatKeywords.brands])];
+      }
+      if (chatKeywords.rawKeywords?.length) {
+        userContext.chatKeywords = [...new Set([...(userContext.chatKeywords || []), ...chatKeywords.rawKeywords])];
+      }
+    }
+
+    // Include BOTH behavioral + chat categories/brands in the product query
+    const allCategories = [...new Set([
+      ...(userContext.viewedCategories || []),
+      ...(userContext.chatCategories || []),
+    ])];
+    const allBrands = [...new Set([
+      ...(userContext.cartBrands || []),
+      ...(userContext.chatBrands || []),
+    ])];
+
+    const products = await loadProducts({
+      limit: 30,
+      categories: allCategories.length ? allCategories : undefined,
+      brands: allBrands.length ? allBrands : undefined,
+    });
     const scored = scoreProducts(products, userContext);
     const top = getTopRecommendations(scored, limit, 0);
 
@@ -307,6 +342,48 @@ router.post('/reset', async (req: Request, res: Response) => {
         message: newConversation.isAuthenticated
           ? `Fresh start! I still remember your preferences. How can I help you today?`
           : 'Starting fresh! How can I help you today?',
+        quickReplies: ['Search products', 'Get recommendations', 'Browse categories'],
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: (error as Error).message });
+  }
+});
+
+/**
+ * POST /api/chat/migrate
+ * Migrate an anonymous session to an authenticated one.
+ * Preserves all accumulated keywords and messages from the anonymous chat.
+ *
+ * Body: { conversationId: string, userId: string }
+ */
+router.post('/migrate', async (req: Request, res: Response) => {
+  try {
+    const { conversationId, userId } = req.body;
+
+    if (!conversationId || !userId) {
+      res.status(400).json({ success: false, error: 'conversationId and userId are required' });
+      return;
+    }
+
+    const migrated = await migrateSession(conversationId, userId);
+
+    if (!migrated) {
+      // Session not found (expired or invalid) — tell frontend to start fresh
+      res.json({
+        success: false,
+        error: 'session_not_found',
+        message: 'Anonymous session expired. Starting fresh.',
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        conversationId: migrated.conversationId,
+        isAuthenticated: migrated.isAuthenticated,
+        message: `Welcome back! I've linked your chat history and loaded your preferences.`,
         quickReplies: ['Search products', 'Get recommendations', 'Browse categories'],
       },
     });
@@ -395,6 +472,15 @@ router.post('/message', async (req: Request, res: Response): Promise<void> => {
     }
     // ====================================
     
+    // Auto-migrate: if user is logged in but session is anonymous, link it now
+    const { userId } = req.body;
+    if (userId) {
+      const conv = getConversation(conversationId);
+      if (conv && !conv.userId) {
+        await migrateSession(conversationId, userId);
+      }
+    }
+
     const response = await processMessage(conversationId, message);
     
     // Emit realtime score update after every message
@@ -599,14 +685,32 @@ router.get('/user-recommendations/:userId', async (req: Request, res: Response):
       return;
     }
 
-    // Load products — use user's viewed categories for relevance, or popular products
-    const categories = userContext.viewedCategories.length > 0
-      ? userContext.viewedCategories
-      : undefined;
-    
-    const brands = userContext.cartBrands.length > 0
-      ? userContext.cartBrands
-      : undefined;
+    // Merge in-memory chat session keywords FIRST (before product loading)
+    const chatKeywords = getActiveSessionKeywords(userId);
+    if (chatKeywords) {
+      if (chatKeywords.categories?.length) {
+        userContext.chatCategories = [...new Set([...userContext.chatCategories, ...chatKeywords.categories])];
+      }
+      if (chatKeywords.brands?.length) {
+        userContext.chatBrands = [...new Set([...userContext.chatBrands, ...chatKeywords.brands])];
+      }
+      if (chatKeywords.rawKeywords?.length) {
+        userContext.chatKeywords = [...new Set([...userContext.chatKeywords, ...chatKeywords.rawKeywords])];
+      }
+    }
+
+    // Include BOTH behavioral + chat categories/brands in the product query
+    const allCategories = [...new Set([
+      ...userContext.viewedCategories,
+      ...userContext.chatCategories,
+    ])];
+    const allBrands = [...new Set([
+      ...userContext.cartBrands,
+      ...userContext.chatBrands,
+    ])];
+
+    const categories = allCategories.length > 0 ? allCategories : undefined;
+    const brands = allBrands.length > 0 ? allBrands : undefined;
 
     const products = await loadProducts({
       categories,
@@ -639,21 +743,6 @@ router.get('/user-recommendations/:userId', async (req: Request, res: Response):
       }
       
       products.push(...fallbackProducts);
-    }
-
-    // Merge in-memory chat session keywords if user has an active chat
-    const chatKeywords = getActiveSessionKeywords(userId);
-    if (chatKeywords) {
-      // Merge chat keywords into user context for scoring
-      if (chatKeywords.categories?.length) {
-        userContext.chatCategories = [...new Set([...userContext.chatCategories, ...chatKeywords.categories])];
-      }
-      if (chatKeywords.brands?.length) {
-        userContext.chatBrands = [...new Set([...userContext.chatBrands, ...chatKeywords.brands])];
-      }
-      if (chatKeywords.rawKeywords?.length) {
-        userContext.chatKeywords = [...new Set([...userContext.chatKeywords, ...chatKeywords.rawKeywords])];
-      }
     }
 
     // Score all products (now includes chat keywords if available)

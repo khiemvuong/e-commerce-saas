@@ -163,7 +163,7 @@ export const INTENT_PATTERNS: IntentPattern[] = [
  * RULE: Every quick reply text MUST be recognizable by at least one pattern above.
  */
 export const QUICK_REPLIES: Record<Intent, string[]> = {
-  [Intent.SEARCH_PRODUCT]: ['Show me more', 'Filter by price', 'Different category'],
+  [Intent.SEARCH_PRODUCT]: ['Show me more', 'Filter by price', 'Compare them'],
   [Intent.ASK_PRICE]: ['Show me more', 'See similar', 'Check availability'],
   [Intent.ASK_STOCK]: ['Notify when available', 'See alternatives', 'Search products'],
   [Intent.RECOMMEND]: ['Top rated', 'Best sellers', 'New arrivals'],

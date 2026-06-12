@@ -55,13 +55,18 @@ export const SIZE_KEYWORDS: string[] = [
  */
 export const PRICE_MODIFIERS: Record<string, 'cheap' | 'mid' | 'expensive'> = {
   'cheap': 'cheap',
+  'cheaper': 'cheap',
+  'cheapest': 'cheap',
   'affordable': 'cheap',
+  'more affordable': 'cheap',
   'budget': 'cheap',
   'inexpensive': 'cheap',
   'low price': 'cheap',
   'mid-range': 'mid',
   'moderate': 'mid',
   'expensive': 'expensive',
+  'more expensive': 'expensive',
+  'pricier': 'expensive',
   'premium': 'expensive',
   'luxury': 'expensive',
   'high-end': 'expensive',

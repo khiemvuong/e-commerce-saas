@@ -136,18 +136,8 @@ async function buildScorePayload(userId: string): Promise<ScorePayload | null> {
     const userContext = await loadUserContext(userId);
     if (!userContext) return null;
 
-    const categories = userContext.viewedCategories.length > 0
-      ? userContext.viewedCategories : undefined;
-    const brands = userContext.cartBrands.length > 0
-      ? userContext.cartBrands : undefined;
-
-    let products = await loadProducts({ categories, brands, limit: 30 });
-    if (products.length === 0) {
-      products = await loadProducts({ limit: 30 });
-    }
-    if (products.length === 0) return null;
-
-    // Merge chat session keywords
+    // Merge chat session keywords FIRST (before product loading)
+    // so the product query includes categories/brands from the chat
     const chatKeywords = getActiveSessionKeywords(userId);
     if (chatKeywords) {
       if (chatKeywords.categories?.length) {
@@ -160,6 +150,25 @@ async function buildScorePayload(userId: string): Promise<ScorePayload | null> {
         userContext.chatKeywords = [...new Set([...userContext.chatKeywords, ...chatKeywords.rawKeywords])];
       }
     }
+
+    // Include BOTH behavioral + chat categories/brands in the product query
+    const allCategories = [...new Set([
+      ...userContext.viewedCategories,
+      ...userContext.chatCategories,
+    ])];
+    const allBrands = [...new Set([
+      ...userContext.cartBrands,
+      ...userContext.chatBrands,
+    ])];
+
+    const categories = allCategories.length > 0 ? allCategories : undefined;
+    const brands = allBrands.length > 0 ? allBrands : undefined;
+
+    let products = await loadProducts({ categories, brands, limit: 30 });
+    if (products.length === 0) {
+      products = await loadProducts({ limit: 30 });
+    }
+    if (products.length === 0) return null;
 
     const scored = scoreProducts(products, userContext, chatKeywords);
     const topRecs = getTopRecommendations(scored, 5, 0);

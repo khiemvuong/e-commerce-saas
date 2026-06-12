@@ -116,13 +116,18 @@ async function startChatSession(userId?: string) {
   return res.data;
 }
 
-async function sendChatMessage(conversationId: string, message: string) {
-  const res = await axiosInstance.post('/ai-chat/api/chat/message', { conversationId, message });
+async function sendChatMessage(conversationId: string, message: string, userId?: string) {
+  const res = await axiosInstance.post('/ai-chat/api/chat/message', { conversationId, message, userId });
   return res.data;
 }
 
 async function resetChat(conversationId: string) {
   const res = await axiosInstance.post('/ai-chat/api/chat/reset', { conversationId });
+  return res.data;
+}
+
+async function migrateChatSession(conversationId: string, userId: string) {
+  const res = await axiosInstance.post('/ai-chat/api/chat/migrate', { conversationId, userId });
   return res.data;
 }
 
@@ -221,58 +226,72 @@ const ChatProductCard = ({
 );
 
 /** Comparison table component */
-const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => (
-  <div className="mt-2 bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm max-w-[320px]">
-    {/* Product headers */}
-    <div className="flex border-b border-gray-100">
-      <div className="w-20 flex-shrink-0 bg-gray-50 p-2" />
-      {comparison.products.map((p, i) => (
-        <div key={i} className="flex-1 p-2 text-center border-l border-gray-100">
-          {p.image && (
-            <img src={p.image} alt={p.title} className="w-10 h-10 rounded-lg mx-auto mb-1 object-cover" />
-          )}
-          <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.title}</p>
-        </div>
-      ))}
-    </div>
-    {/* Comparison rows */}
-    {comparison.comparisonTable.map((row, i) => (
-      <div key={i} className={`flex border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-        <div className="w-20 flex-shrink-0 p-2 text-[10px] font-medium text-gray-500 flex items-center gap-1">
-          {row.icon && <span>{row.icon}</span>}
-          {row.field}
-        </div>
-        {row.values.map((val, vi) => (
-          <div
-            key={vi}
-            className={`flex-1 p-2 text-xs text-center border-l border-gray-100 ${
-              row.winner === vi ? 'text-green-600 font-semibold bg-green-50/50' : 'text-gray-700'
-            }`}
-          >
-            {typeof val === 'number' && row.field === 'Price' ? `$${val.toLocaleString()}` : String(val)}
-            {row.winner === vi && <span className="ml-0.5 text-green-500">✓</span>}
+const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => {
+  const productCount = comparison.products.length;
+  // Column width: 80px for labels, 72px per product (min)
+  const tableMinWidth = 80 + productCount * 72;
+
+  return (
+    <div className="mt-2 bg-white border border-gray-100 rounded-xl shadow-sm w-full">
+      {/* Scrollable table area */}
+      <div
+        className="overflow-x-auto overscroll-x-contain"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}
+      >
+        <div style={{ minWidth: `${tableMinWidth}px` }}>
+          {/* Product headers */}
+          <div className="flex border-b border-gray-100">
+            <div className="w-20 flex-shrink-0 bg-gray-50 p-2" />
+            {comparison.products.map((p, i) => (
+              <div key={i} className="flex-1 min-w-[72px] p-2 text-center border-l border-gray-100">
+                {p.image && (
+                  <img src={p.image} alt={p.title} className="w-10 h-10 rounded-lg mx-auto mb-1 object-cover" />
+                )}
+                <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.title}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    ))}
-    {/* Verdict — split into individual insight cards */}
-    {comparison.verdict && (
-      <div className="px-3 py-2.5 bg-gradient-to-r from-[#C9A86C]/5 to-transparent space-y-1.5">
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">💡 Key Insights</p>
-        {comparison.verdict
-          .split(/\.\s+/)
-          .filter(s => s.trim().length > 0)
-          .map((sentence, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-700 leading-snug">
-              <span className="text-[#C9A86C] mt-0.5 flex-shrink-0">▸</span>
-              <span dangerouslySetInnerHTML={{ __html: sentence.replace(/\.$/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '.' }} />
+          {/* Comparison rows */}
+          {comparison.comparisonTable.map((row, i) => (
+            <div key={i} className={`flex border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+              <div className="w-20 flex-shrink-0 p-2 text-[10px] font-medium text-gray-500 flex items-center gap-1">
+                {row.icon && <span>{row.icon}</span>}
+                {row.field}
+              </div>
+              {row.values.map((val, vi) => (
+                <div
+                  key={vi}
+                  className={`flex-1 min-w-[72px] p-2 text-xs text-center border-l border-gray-100 ${
+                    row.winner === vi ? 'text-green-600 font-semibold bg-green-50/50' : 'text-gray-700'
+                  }`}
+                >
+                  {typeof val === 'number' && row.field === 'Price' ? `$${val.toLocaleString()}` : String(val)}
+                  {row.winner === vi && <span className="ml-0.5 text-green-500">✓</span>}
+                </div>
+              ))}
             </div>
-          ))
-        }
+          ))}
+        </div>
       </div>
-    )}
-  </div>
-);
+      {/* Verdict — outside the scroll area so it's always fully visible */}
+      {comparison.verdict && (
+        <div className="px-3 py-2.5 bg-gradient-to-r from-[#C9A86C]/5 to-transparent space-y-1.5 border-t border-gray-50">
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">💡 Key Insights</p>
+          {comparison.verdict
+            .split(/\.\s+/)
+            .filter(s => s.trim().length > 0)
+            .map((sentence, i) => (
+              <div key={i} className="flex items-start gap-1.5 text-[11px] text-gray-700 leading-snug">
+                <span className="text-[#C9A86C] mt-0.5 flex-shrink-0">▸</span>
+                <span dangerouslySetInnerHTML={{ __html: sentence.replace(/\.$/, '').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '.' }} />
+              </div>
+            ))
+          }
+        </div>
+      )}
+    </div>
+  );
+};
 
 /** Clarification options component */
 const ClarificationOptions = ({
@@ -368,7 +387,7 @@ const MessageBubble = ({
       </div>
 
       {/* Content */}
-      <div className={`max-w-[80%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+      <div className={`flex flex-col ${isUser ? 'items-end max-w-[80%]' : 'items-start'}`} style={!isUser ? { maxWidth: 'calc(100% - 44px)' } : undefined}>
         <div
           className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
             isUser
@@ -384,9 +403,11 @@ const MessageBubble = ({
           <CorrectionBanner fallback={message.fallback} />
         )}
 
-        {/* Comparison table */}
+        {/* Comparison table — rendered outside the text bubble with full available width */}
         {!isUser && message.comparison && (
-          <ComparisonTable comparison={message.comparison} />
+          <div className="w-full">
+            <ComparisonTable comparison={message.comparison} />
+          </div>
         )}
 
         {/* Clarification options */}
@@ -399,7 +420,7 @@ const MessageBubble = ({
 
         {/* Product recommendations */}
         {message.recommendations && message.recommendations.length > 0 && (
-          <div className="mt-2 flex gap-2 overflow-x-auto pb-1 max-w-[300px] scrollbar-thin">
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-2 w-full scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#d1d5db transparent' }}>
             {message.recommendations.map((product, i) => (
               <ChatProductCard key={i} product={product} onViewProduct={onViewProduct} />
             ))}
@@ -500,13 +521,44 @@ const AIChatbox = () => {
   // Re-initialize conversation when user logs in/out
   useEffect(() => {
     const currentUserId = user?.id;
-    if (prevUserIdRef.current !== currentUserId && conversationId) {
-      // User identity changed — clear stored session and start fresh
-      clearPersistedSession();
-      setConversationId(null);
-      setMessages([]);
-      if (isOpen) {
-        setTimeout(() => initConversation(), 100);
+    const prevUserId = prevUserIdRef.current;
+
+    if (prevUserId !== currentUserId && conversationId) {
+      if (!prevUserId && currentUserId) {
+        // Anonymous → Logged in: MIGRATE the session (preserve keywords & history)
+        migrateChatSession(conversationId, currentUserId)
+          .then((res) => {
+            if (res.success) {
+              // Session upgraded — add a system message
+              const migratedMsg: ChatMessage = {
+                id: `migrate-${Date.now()}`,
+                senderType: 'ai',
+                content: res.data.message,
+                timestamp: new Date(),
+                quickReplies: res.data.quickReplies,
+              };
+              setMessages((prev) => [...prev, migratedMsg]);
+            } else {
+              // Session expired — start fresh
+              clearPersistedSession();
+              setConversationId(null);
+              setMessages([]);
+              if (isOpen) setTimeout(() => initConversation(), 100);
+            }
+          })
+          .catch(() => {
+            // Fallback: start fresh if migration fails
+            clearPersistedSession();
+            setConversationId(null);
+            setMessages([]);
+            if (isOpen) setTimeout(() => initConversation(), 100);
+          });
+      } else {
+        // Logged out or user switched — clear and restart
+        clearPersistedSession();
+        setConversationId(null);
+        setMessages([]);
+        if (isOpen) setTimeout(() => initConversation(), 100);
       }
     }
     prevUserIdRef.current = currentUserId;
@@ -557,7 +609,51 @@ const AIChatbox = () => {
   // Initialize conversation when chat opens
   // Passes userId so backend can load behavior data for logged-in users
   const initConversation = useCallback(async () => {
-    if (conversationId) return;
+    if (conversationId) {
+      // Session exists (possibly from localStorage). If user is logged in,
+      // ensure the backend session is linked to this user (may be anonymous).
+      if (user?.id) {
+        try {
+          const res = await migrateChatSession(conversationId, user.id);
+          if (!res.success) {
+            // Session expired on backend (server restart) — start fresh
+            clearPersistedSession();
+            setConversationId(null);
+            setMessages([]);
+            const fresh = await startChatSession(user.id);
+            if (fresh.success) {
+              setConversationId(fresh.data.conversationId);
+              setMessages([{
+                id: `welcome-${Date.now()}`,
+                senderType: 'ai',
+                content: fresh.data.message || 'Hi! How can I help you find the perfect product today?',
+                timestamp: new Date(),
+                quickReplies: fresh.data.quickReplies || ['Search products', 'Get recommendations'],
+              }]);
+            }
+          }
+        } catch {
+          // Migration failed — session likely doesn't exist. Start fresh.
+          clearPersistedSession();
+          setConversationId(null);
+          setMessages([]);
+          try {
+            const fresh = await startChatSession(user.id);
+            if (fresh.success) {
+              setConversationId(fresh.data.conversationId);
+              setMessages([{
+                id: `welcome-${Date.now()}`,
+                senderType: 'ai',
+                content: fresh.data.message || 'Hi! How can I help you find the perfect product today?',
+                timestamp: new Date(),
+                quickReplies: fresh.data.quickReplies || ['Search products', 'Get recommendations'],
+              }]);
+            }
+          } catch { /* ignore */ }
+        }
+      }
+      return;
+    }
     try {
       const res = await startChatSession(user?.id);
       if (res.success) {
@@ -583,7 +679,7 @@ const AIChatbox = () => {
         },
       ]);
     }
-  }, [conversationId, user?.id]);
+  }, [conversationId, user?.id, clearPersistedSession]);
 
   // Open/close handler
   const toggleChat = useCallback(() => {
@@ -616,7 +712,7 @@ const AIChatbox = () => {
 
       try {
         if (conversationId) {
-          const res = await sendChatMessage(conversationId, messageText);
+          const res = await sendChatMessage(conversationId, messageText, user?.id);
           if (res.success) {
             const aiMsg: ChatMessage = {
               id: `ai-${Date.now()}`,
@@ -656,6 +752,8 @@ const AIChatbox = () => {
         setMessages((prev) => [...prev, errorMsg]);
       } finally {
         setIsLoading(false);
+        // Keep input focused so the user can keep typing without re-clicking
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [inputValue, isLoading, conversationId, initConversation]

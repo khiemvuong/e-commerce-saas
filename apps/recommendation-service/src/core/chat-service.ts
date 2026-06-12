@@ -24,6 +24,9 @@ import {
   PRICE_MODIFIER_RANGES,
   getBrandDomains,
 } from '../config/keywords.config';
+import { createLogger } from './logger';
+
+const log = createLogger('ChatService');
 
 
 /**
@@ -64,6 +67,8 @@ export interface ConversationState {
   // Follow-up: track last shown product IDs and objects (for context-aware comparison)
   lastShownProductIds: string[];
   lastShownProducts: import('./recommendation-engine').ProductForScoring[];
+  // Price filter: stores last search params when user clicks "Filter by price"
+  pendingPriceFilter?: { keyword?: string; categories?: string[]; brands?: string[]; colors?: string[] };
 }
 
 /**
@@ -128,7 +133,7 @@ function cleanupSessions(): void {
   }
 
   if (removed > 0) {
-    console.log(`[ChatService] Cleanup: removed ${removed} sessions, ${conversationStore.size} remaining`);
+    log.debug('Cleanup: removed sessions', { removed, remaining: conversationStore.size });
   }
 }
 
@@ -157,10 +162,10 @@ export async function startConversation(userId?: string): Promise<ConversationSt
     const dbContext = await loadUserContext(userId);
     userContext = dbContext || createAnonymousContext();
     userContext.userId = userId;
-    console.log(`[ChatService] Loaded DB context for user ${userId}: ${userContext.viewedCategories.length} viewed categories, ${userContext.cartProductIds.length} cart items`);
+    log.info('Loaded DB context', { userId, viewedCategories: userContext.viewedCategories.length, cartItems: userContext.cartProductIds.length });
   } else {
     userContext = createAnonymousContext();
-    console.log('[ChatService] Anonymous session started');
+    log.info('Anonymous session started');
   }
 
   const state: ConversationState = {
@@ -186,7 +191,7 @@ export async function startConversation(userId?: string): Promise<ConversationSt
   };
   
   conversationStore.set(conversationId, state);
-  console.log(`[ChatService] New session ${conversationId}, total active: ${conversationStore.size}`);
+  log.info('New session', { conversationId, totalActive: conversationStore.size });
   return state;
 }
 
@@ -238,6 +243,108 @@ export async function processMessage(
     }
     // Not a valid clarification response — clear and process normally
     state.pendingClarification = undefined;
+  }
+
+  // ===== Step 0.5: Handle price bucket selection after "Filter by price" =====
+  // When user clicks a price bucket ("Under $100", "$40 – $100", "Over $100"),
+  // re-run the ORIGINAL search with the price filter applied.
+  if (state.pendingPriceFilter) {
+    const priceSelection = userMessage.trim();
+    const pendingSearch = state.pendingPriceFilter;
+
+    // Parse price range from the selection
+    let priceRange: { min?: number; max?: number } | undefined;
+    const underMatch = priceSelection.match(/under\s*\$?([\d,]+)/i);
+    const overMatch = priceSelection.match(/over\s*\$?([\d,]+)/i);
+    // Match en-dash (–), em-dash (—), and hyphen (-)
+    const rangeMatch = priceSelection.match(/\$?([\d,]+)\s*[\u2013\u2014\-]\s*\$?([\d,]+)/i);
+
+    if (underMatch) {
+      priceRange = { max: parseInt(underMatch[1].replace(/,/g, '')) };
+    } else if (overMatch) {
+      priceRange = { min: parseInt(overMatch[1].replace(/,/g, '')) };
+    } else if (rangeMatch) {
+      priceRange = {
+        min: parseInt(rangeMatch[1].replace(/,/g, '')),
+        max: parseInt(rangeMatch[2].replace(/,/g, '')),
+      };
+    }
+
+    if (priceRange) {
+      // Clear the pending filter
+      state.pendingPriceFilter = undefined;
+
+      // Save user message
+      const userMsg: ChatMessage = {
+        id: generateId(),
+        conversationId,
+        senderType: 'user',
+        content: userMessage,
+        timestamp: new Date(),
+        intent: Intent.ASK_PRICE,
+      };
+      state.messages.push(userMsg);
+
+      // Re-run the PREVIOUS search (shoes, phones, etc.) with the price filter
+      const products = await loadProducts({ ...pendingSearch, limit: 30 });
+      const mergedCtx = mergeContexts(state.userContext, state.accumulatedKeywords);
+      const kw = extractKeywords(priceSelection);
+      kw.priceRange = priceRange;
+
+      const scored = scoreProducts(products, mergedCtx, kw);
+      const filtered = scored.filter(sp => {
+        const p = sp.product.price;
+        if (priceRange!.min && priceRange!.max) return p >= priceRange!.min && p <= priceRange!.max;
+        if (priceRange!.min) return p >= priceRange!.min;
+        if (priceRange!.max) return p <= priceRange!.max;
+        return true;
+      });
+
+      let recommendations = getTopRecommendations(filtered, 5, 0);
+      let message: string;
+
+      const rangeText = priceRange.min && priceRange.max
+        ? `\$${priceRange.min} – \$${priceRange.max}`
+        : priceRange.max ? `under \$${priceRange.max}` : `over \$${priceRange.min}`;
+
+      if (recommendations.length > 0) {
+        state.lastShownProductIds = recommendations.map(r => r.product.id);
+        state.lastShownProducts = recommendations.map(r => r.product);
+        message = `Here are ${recommendations.length} product${recommendations.length > 1 ? 's' : ''} ${rangeText}:`;
+      } else {
+        // No products in range — fall back to closest options
+        recommendations = getTopRecommendations(scored, 5, 0);
+        if (recommendations.length > 0) {
+          state.lastShownProductIds = recommendations.map(r => r.product.id);
+          state.lastShownProducts = recommendations.map(r => r.product);
+          message = `No exact matches ${rangeText}, but here are the closest options:`;
+        } else {
+          message = `I couldn't find products in that price range. Try a different range!`;
+        }
+      }
+
+      const aiMsg: ChatMessage = {
+        id: generateId(),
+        conversationId,
+        senderType: 'ai',
+        content: message,
+        timestamp: new Date(),
+        recommendations: recommendations.map(r => r.product.id),
+      };
+      state.messages.push(aiMsg);
+      state.lastMessageAt = new Date();
+
+      return {
+        message,
+        quickReplies: ['Show me more', 'Filter by price', 'Compare them'],
+        recommendations,
+        intent: Intent.ASK_PRICE,
+        keywords: kw,
+      };
+    }
+
+    // If not a price selection, clear and fall through to normal processing
+    state.pendingPriceFilter = undefined;
   }
 
   // ===== Step 1: Resolve context (follow-up detection) =====
@@ -390,6 +497,63 @@ export async function processMessage(
       comparison: comparisonResult.success ? comparisonResult : undefined,
       isFollowUp: contextResult.isFollowUp,
       originalMessage: contextResult.isFollowUp ? userMessage : undefined,
+    };
+  }
+
+  // ===== Step 7.5: Handle "Filter by price" quick reply =====
+  // When user clicks "Filter by price", present smart price buckets based on previous results
+  // and store the search context so Step 0.5 can re-use it.
+  const isFilterByPrice = /^filter\s*(?:by\s*)?price$/i.test(userMessage.trim());
+  if (isFilterByPrice && state.lastShownProducts && state.lastShownProducts.length > 0) {
+    const prices = state.lastShownProducts.map(p => p.price).sort((a, b) => a - b);
+    const minPrice = prices[0];
+    const maxPrice = prices[prices.length - 1];
+
+    // Generate smart price bucket options
+    const buckets: string[] = [];
+    if (maxPrice > 100) {
+      const mid = Math.round((minPrice + maxPrice) / 2 / 50) * 50; // round to nearest $50
+      if (mid > minPrice && mid > 50) {
+        buckets.push(`Under $${mid}`);
+      }
+      if (mid > minPrice && mid < maxPrice) {
+        buckets.push(`$${Math.max(mid - 100, Math.round(minPrice / 10) * 10)} – $${mid}`);
+        buckets.push(`Over $${mid}`);
+      } else {
+        buckets.push(`Under $${Math.round(maxPrice * 0.5 / 50) * 50 || 50}`);
+        buckets.push(`Over $${Math.round(maxPrice * 0.5 / 50) * 50 || 50}`);
+      }
+    } else {
+      const third = Math.round((maxPrice - minPrice) / 3);
+      buckets.push(`Under $${minPrice + third}`);
+      buckets.push(`$${minPrice + third} – $${minPrice + third * 2}`);
+      buckets.push(`Over $${minPrice + third * 2}`);
+    }
+
+    // Deduplicate and clean
+    const uniqueBuckets = [...new Set(buckets)].slice(0, 3);
+
+    const rangeText = `$${minPrice.toLocaleString()} – $${maxPrice.toLocaleString()}`;
+    const message = `Current results range from **${rangeText}**. What's your budget?`;
+
+    // ★ Store current search params so Step 0.5 can re-run with price filter
+    state.pendingPriceFilter = state.lastSearchParams || undefined;
+
+    const aiMsg: ChatMessage = {
+      id: generateId(),
+      conversationId,
+      senderType: 'ai',
+      content: message,
+      timestamp: new Date(),
+    };
+    state.messages.push(aiMsg);
+    state.lastMessageAt = new Date();
+
+    return {
+      message,
+      quickReplies: uniqueBuckets,
+      intent: intentResult.intent,
+      keywords,
     };
   }
 
@@ -731,7 +895,7 @@ async function generateResponse(
   // ── Product title search fast path ──
   if (keywords.isProductTitleSearch) {
     const titleKeyword = keywords.rawKeywords.join(' ');
-    console.log(`[ChatService] Product title search: "${titleKeyword}"`);
+    log.info('Product title search', { titleKeyword });
     const products = await loadProducts({ keyword: titleKeyword, limit: 30 });
 
     if (products.length === 0) {
@@ -750,7 +914,7 @@ async function generateResponse(
 
     return {
       message: `Here's what I found for "${titleKeyword.split(' ').slice(0, 3).join(' ')}...":`,
-      quickReplies: ['Show me more', 'Filter by price', 'Different category'],
+      quickReplies: ['Show me more', 'Filter by price', 'Compare them'],
       recommendations, intent: intentResult.intent, keywords,
     };
   }
@@ -762,7 +926,7 @@ async function generateResponse(
 
   // Log search params
   const rawLogKeyword = intentResult.extractedText || keywords.rawKeywords.join(' ') || undefined;
-  console.log(`[ChatService] Search params — intent: ${intentResult.intent}, keyword: "${rawLogKeyword}", categories: [${keywords.categories}], brands: [${keywords.brands}]`);
+  log.info('Search params', { intent: intentResult.intent, keyword: rawLogKeyword, categories: keywords.categories, brands: keywords.brands });
 
   // ── Brand-category conflict detection ──
   const conflictResponse = detectBrandCategoryConflict(keywords, searchBrands, intentResult, state);
@@ -818,8 +982,10 @@ async function generateResponse(
       }
     }
 
-    // For show-more + relative follow-up: exclude previously shown products
-    if ((isShowMore || isRelativeFollowUp) && state.lastShownProductIds.length > 0) {
+    // For show-more: exclude previously shown products to avoid duplicates
+    // Note: relative price follow-ups ("cheaper") should NOT exclude previous products
+    // because the user is refining by price, not asking for more of the same.
+    if (isShowMore && state.lastShownProductIds.length > 0) {
       filteredScored = filteredScored.filter(sp => !state.lastShownProductIds.includes(sp.product.id));
     }
 
@@ -831,6 +997,9 @@ async function generateResponse(
 
       if (isShowMore) {
         message = `Here are more results:`;
+      } else if (isRelativeFollowUp) {
+        const direction = RELATIVE_PRICE_PATTERNS.cheaper.test(lastUserMessage) ? 'more affordable' : 'higher-end';
+        message = `Here are ${direction} options for you:`;
       } else if (!message.includes('closest options')) {
         message = `I found ${recommendations.length} products for you:`;
       }
@@ -886,12 +1055,33 @@ export function getAccumulatedKeywords(conversationId: string): ExtractedKeyword
 export function getActiveSessionKeywords(userId: string): ExtractedKeywords | undefined {
   let latest: ConversationState | undefined;
 
+  const allSessions = Array.from(conversationStore.values());
+  const matchingSessions = allSessions.filter(s => s.userId === userId);
+
+  log.info('getActiveSessionKeywords lookup', {
+    searchUserId: userId,
+    totalSessions: allSessions.length,
+    matchingSessions: matchingSessions.length,
+    sessionUserIds: allSessions.map(s => s.userId ?? '(anonymous)').join(', '),
+  });
+
   for (const state of conversationStore.values()) {
     if (state.userId === userId) {
       if (!latest || state.lastMessageAt > latest.lastMessageAt) {
         latest = state;
       }
     }
+  }
+
+  if (latest) {
+    log.info('Found active session', {
+      conversationId: latest.conversationId,
+      keywords: latest.accumulatedKeywords.rawKeywords,
+      categories: latest.accumulatedKeywords.categories,
+      brands: latest.accumulatedKeywords.brands,
+    });
+  } else {
+    log.info('No active session found for userId', { userId });
   }
 
   return latest?.accumulatedKeywords;
@@ -918,6 +1108,46 @@ export async function resetConversation(oldConversationId: string): Promise<Conv
 
   // Start fresh session (re-loads DB context if authenticated)
   return startConversation(userId);
+}
+
+/**
+ * Migrate an anonymous session to an authenticated one.
+ * Preserves accumulated keywords, messages, and intents from the anonymous chat.
+ * Enriches the session with the user's DB behavior context.
+ *
+ * Use case: user starts chatting anonymously, then logs in mid-conversation.
+ */
+export async function migrateSession(
+  oldConversationId: string,
+  userId: string
+): Promise<ConversationState | null> {
+  const state = conversationStore.get(oldConversationId);
+  if (!state) return null;
+
+  // Already owned by this user → no-op
+  if (state.userId === userId) return state;
+
+  // Load the authenticated user's DB context
+  const dbContext = await loadUserContext(userId);
+  const freshContext = dbContext || createAnonymousContext();
+  freshContext.userId = userId;
+
+  // Merge: DB context + existing chat keywords from the anonymous session
+  const mergedContext = mergeContexts(freshContext, state.accumulatedKeywords);
+
+  // Upgrade the session in-place
+  state.userId = userId;
+  state.isAuthenticated = true;
+  state.userContext = mergedContext;
+
+  log.info('Session migrated', {
+    conversationId: oldConversationId,
+    userId,
+    keywords: state.accumulatedKeywords.rawKeywords.length,
+    categories: state.accumulatedKeywords.categories.length,
+  });
+
+  return state;
 }
 
 /**
