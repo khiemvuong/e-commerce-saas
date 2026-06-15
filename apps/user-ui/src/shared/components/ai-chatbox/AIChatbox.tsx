@@ -389,7 +389,7 @@ const MessageBubble = ({
       {/* Content */}
       <div className={`flex flex-col ${isUser ? 'items-end max-w-[80%]' : 'items-start'}`} style={!isUser ? { maxWidth: 'calc(100% - 44px)' } : undefined}>
         <div
-          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+          className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed break-words ${
             isUser
               ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-tr-sm'
               : 'bg-gray-100 text-gray-800 rounded-tl-sm'
@@ -808,12 +808,23 @@ const AIChatbox = () => {
 
   // Fetch suggestions on input change (debounced)
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+    let value = e.target.value;
+    
+    // Limit any single word to 30 characters to prevent gibberish spam
+    const words = value.split(/(\s+)/);
+    const processedWords = words.map(w => {
+      if (w.trim() && w.length > 30) {
+        return w.slice(0, 30);
+      }
+      return w;
+    });
+    value = processedWords.join('');
+    
     setInputValue(value);
     
     // Get the last word being typed for suggestions
-    const words = value.trim().split(/\s+/);
-    const lastWord = words[words.length - 1] || '';
+    const wordsForSuggest = value.trim().split(/\s+/);
+    const lastWord = wordsForSuggest[wordsForSuggest.length - 1] || '';
 
     // Clear previous timer
     if (suggestTimerRef.current) {
@@ -967,6 +978,7 @@ const AIChatbox = () => {
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 placeholder-gray-400 outline-none focus:border-[#C9A86C] focus:ring-1 focus:ring-[#C9A86C]/20 transition-all"
                 disabled={isLoading}
                 autoComplete="off"
+                maxLength={150}
               />
               <button
                 onClick={() => handleSend()}

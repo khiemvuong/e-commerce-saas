@@ -153,6 +153,7 @@ export const PRODUCT_DETAIL_SELECT = {
   regular_price: true,
   compareAtPrice: true,
   rating: true,
+  totalSales: true,
   warranty: true,
   custom_specifications: true,
   custom_properties: true,
