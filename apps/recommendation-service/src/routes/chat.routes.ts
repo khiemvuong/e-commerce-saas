@@ -523,6 +523,7 @@ router.post('/message', async (req: Request, res: Response): Promise<void> => {
             price: p.price,
             image: p.image || '',
             rating: p.rating,
+            slug: p.slug || '',
           })),
           comparisonTable: response.comparison.comparisonTable,
           verdict: response.comparison.verdict,
