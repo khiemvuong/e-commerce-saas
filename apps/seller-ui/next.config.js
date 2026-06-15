@@ -19,6 +19,9 @@ const nextConfig = {
       {
         hostname: 'bunchobagels.com',
       },
+      {
+        hostname: 'images.unsplash.com',
+      },
     ],
   },
   // Suppress HMR WebSocket connection warnings

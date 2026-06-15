@@ -12,7 +12,7 @@ import axiosInstance from 'apps/user-ui/src/utils/axiosInstance';
 import { BadgeCheck, Bell, CheckCircle, Clock, Gift, Inbox, Lock, LogOutIcon, MapPin, Pencil, PhoneCall, Receipt, Settings, Shield, ShoppingBag, Sparkles, Truck, User, X, Camera, User2Icon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, {useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react';
 import toast from 'react-hot-toast';
 import PageLoader from 'apps/user-ui/src/shared/components/loading/page-loader';
 import useLogout from 'apps/user-ui/src/hooks/useLogout';
@@ -30,7 +30,7 @@ const NavItems = ({label,Icon,active,danger,onClick}:any)=>(
     </button>
 )
 
-const Page = () => {
+const ProfileContent = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const queryClient = useQueryClient();
@@ -398,4 +398,12 @@ const Page = () => {
   )
 }
 
-export default Page
+const Page = () => {
+    return (
+        <Suspense fallback={<PageLoader />}>
+            <ProfileContent />
+        </Suspense>
+    );
+};
+
+export default Page;

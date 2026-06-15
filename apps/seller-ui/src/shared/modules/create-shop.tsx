@@ -17,10 +17,42 @@ const CreateShop = ({
         register,
         handleSubmit,
         formState: { errors },
-    } = useForm();
+        reset,
+        watch,
+    } = useForm({
+        defaultValues: {
+            name: '',
+            bio: '',
+            address: '',
+            opening_hours: '',
+            website: '',
+            category: '',
+            sellerId: ''
+        }
+    });
 
     const { data: siteConfig, isLoading: isConfigLoading } = useSiteConfig();
     const shopCategories = siteConfig?.shopCategories || [];
+
+    // Load initial shop data draft from localStorage
+    React.useEffect(() => {
+        const savedShopData = localStorage.getItem('seller_signup_shop_data');
+        if (savedShopData) {
+            try {
+                reset(JSON.parse(savedShopData));
+            } catch (e) {
+                console.error("Failed to parse saved shop data:", e);
+            }
+        }
+    }, [reset]);
+
+    // Watch values and autosave to localStorage
+    const watchedValues = watch();
+    React.useEffect(() => {
+        if (watchedValues && Object.keys(watchedValues).length > 0) {
+            localStorage.setItem('seller_signup_shop_data', JSON.stringify(watchedValues));
+        }
+    }, [watchedValues]);
 
     const shopCreateMutation = useMutation({
         mutationFn: async (data: FormData) => {
@@ -37,14 +69,16 @@ const CreateShop = ({
     });
 
     const OnSubmit = (data: any) => {
+        localStorage.setItem('seller_signup_shop_data', JSON.stringify(data));
         const shopData = {...data, sellerId};
 
         shopCreateMutation.mutate(shopData);
     };
 
-    const countWords = (text: string) =>  text.trim().split(/\s+/).length;
-
-    ;
+    const countWords = (text: string) => {
+        if (!text) return 0;
+        return text.trim().split(/\s+/).length;
+    };
 
     return (<div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md relative">
         <button 

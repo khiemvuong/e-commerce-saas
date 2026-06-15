@@ -22,7 +22,7 @@ const Signup = () => {
     const [otp,setOtp] = useState(["", "", "", ""]);
     const [sellerData, setSellerData] = useState<FormData | null>(null);
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
-    const {register, handleSubmit, formState: {errors}} = useForm();
+    const {register, handleSubmit, formState: {errors}, reset} = useForm();
     const [sellerId, setSellerId] = useState("");
     const [isStripeLoading, setIsStripeLoading] = useState(false);
     
@@ -48,6 +48,12 @@ const Signup = () => {
         if (sellerId) localStorage.setItem('seller_signup_id', sellerId);
         if (sellerData) localStorage.setItem('seller_signup_data', JSON.stringify(sellerData));
     }, [activeStep, sellerId, sellerData, isMounted]);
+
+    useEffect(() => {
+        if (sellerData) {
+            reset(sellerData);
+        }
+    }, [sellerData, reset]);
 
     const { data: siteConfig } = useSiteConfig();
     const countries = siteConfig?.countries || [];
@@ -379,12 +385,22 @@ return (
                 <CreateShop
                     sellerId={sellerId}
                     setActiveStep={setActiveStep}
-                    onBack={() => setActiveStep(1)}
+                    onBack={() => {
+                        setShowOtp(false);
+                        setActiveStep(1);
+                    }}
                 />
             )}
             {activeStep === 3 && (
-                <div className="text-center rounded-lg">
-                    <h3 className ="text-2xl font-bold mb-4">
+                <div className="text-center rounded-lg relative">
+                    <button 
+                        type="button" 
+                        onClick={() => setActiveStep(2)}
+                        className="absolute top-0 left-0 text-gray-400 hover:text-black transition flex items-center gap-1 text-sm font-medium"
+                    >
+                        ← Back
+                    </button>
+                    <h3 className ="text-2xl font-bold mb-4 mt-6">
                         Withdraw Method
                     </h3>
                     <br/>
@@ -402,6 +418,7 @@ return (
                             localStorage.removeItem('seller_signup_step');
                             localStorage.removeItem('seller_signup_id');
                             localStorage.removeItem('seller_signup_data');
+                            localStorage.removeItem('seller_signup_shop_data');
                             window.location.href = '/dashboard';
                         }}
                         className="w-full mt-4 justify-center flex items-center gap-3 p-2 bg-white text-gray-700 border border-gray-300 font-Roboto text-lg hover:bg-gray-50 transition rounded-xl"

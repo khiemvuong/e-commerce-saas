@@ -233,16 +233,58 @@ export function resolveContext(
   const { type, extractedPart } = detectFollowUpType(trimmed);
   const standalone = extractKeywords(trimmed);
 
-  const hasStandaloneSignal =
+  // A message has a "product-identifying" signal if it contains a category or brand.
+  // Price-only messages (e.g., "under 100", "under 500$") do NOT count as
+  // product-identifying — they are constraints that need prior context.
+  const hasProductSignal =
     standalone.categories.length > 0 ||
-    standalone.brands.length > 0 ||
-    !!standalone.priceRange ||
-    !!standalone.priceModifier;
+    standalone.brands.length > 0;
 
+  // Price-only signal: message has price info but no product-identifying keywords.
+  // These should ALWAYS inherit context from the previous search.
+  const isPriceOnlySignal =
+    !hasProductSignal &&
+    (!!standalone.priceRange || !!standalone.priceModifier);
+
+  const hasStandaloneSignal = hasProductSignal || isPriceOnlySignal;
+
+  // "Enough standalone detail" requires actual product signals (brand/category),
+  // not just a raw number from a price pattern.
   const hasEnoughStandaloneDetail =
-    hasStandaloneSignal && (standalone.rawKeywords.length >= 1 || standalone.categories.length > 0 || standalone.brands.length > 0);
+    hasProductSignal && (standalone.rawKeywords.length >= 1 || standalone.categories.length > 0 || standalone.brands.length > 0);
 
   if (!type) {
+    // If the message consists ONLY of brand names and we have an active category context,
+    // treat it as a brand switch/refinement follow-up so it inherits the category.
+    // Example: "samsung" after "phone" → should become "samsung phone"
+    const isBrandOnly = standalone.brands.length > 0 && standalone.categories.length === 0 &&
+      standalone.rawKeywords.filter(k => !standalone.brands.map(b => b.toLowerCase()).includes(k.toLowerCase())).length === 0;
+
+    if (isBrandOnly && accumulated.categories.length > 0) {
+      const resolvedMessage = buildResolvedMessage('switch', trimmed, accumulated, trimmed);
+      return {
+        originalMessage: trimmed,
+        resolvedMessage,
+        isFollowUp: true,
+        followUpType: 'switch',
+        referenceIntent: getLastProductIntent(state),
+      };
+    }
+
+    // Price-only queries without a follow-up pattern should still inherit context.
+    // Example: "under 100" after "nike shoes" → should become "nike shoes under 100"
+    if (isPriceOnlySignal) {
+      // Build resolved message by prepending accumulated context
+      const resolvedMessage = buildResolvedMessage('modifier', undefined, accumulated, trimmed);
+      return {
+        originalMessage: trimmed,
+        resolvedMessage,
+        isFollowUp: true,
+        followUpType: 'modifier',
+        referenceIntent: getLastProductIntent(state),
+      };
+    }
+
     // Standalone query with explicit product signal should not inherit old context.
     // Example: "affordable shoes" should stay independent, not become "bags affordable shoes".
     if (hasStandaloneSignal) {
@@ -266,6 +308,8 @@ export function resolveContext(
   // Smart guard: only use previous context when the new message is underspecified.
   // - "cheaper" => underspecified, keep context
   // - "affordable shoes" => specific enough, do NOT keep context
+  // - "under 100" => price-only modifier, ALWAYS keep context (handled above for !type,
+  //   and here we let it through for type === 'modifier' too)
   if ((type === 'modifier' || type === 'refinement') && hasEnoughStandaloneDetail) {
     return {
       originalMessage: trimmed,

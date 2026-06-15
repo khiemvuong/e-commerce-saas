@@ -136,6 +136,14 @@ export function extractKeywords(message: string): ExtractedKeywords {
   // Extract raw keywords (all meaningful words)
   result.rawKeywords = extractRawKeywords(normalizedMessage);
 
+  // Filter out price numbers from rawKeywords if priceRange is set
+  if (result.priceRange) {
+    const priceStrings = new Set<string>();
+    if (result.priceRange.min !== undefined) priceStrings.add(result.priceRange.min.toString());
+    if (result.priceRange.max !== undefined) priceStrings.add(result.priceRange.max.toString());
+    result.rawKeywords = result.rawKeywords.filter(k => !priceStrings.has(k));
+  }
+
   return result;
 }
 
@@ -181,7 +189,7 @@ function extractCategories(message: string): string[] {
     if (!found.includes(category)) {
       for (const word of words) {
         if (FUZZY_BLOCKLIST.has(word.toLowerCase())) continue;
-        const match = fuzzyMatch(word, keywords, 2);
+        const match = fuzzyMatch(word, keywords, 1);
         if (match) { found.push(category); break; }
       }
     }

@@ -145,7 +145,7 @@ export async function loadProducts(options: {
 
     if (keyword) {
       products = await searchByKeyword(keyword, categories, brands, colors, limit, skip);
-    } else if (categories && categories.length > 0) {
+    } else if ((categories && categories.length > 0) || (brands && brands.length > 0) || (colors && colors.length > 0)) {
       products = await loadByCategories(categories, brands, colors, limit, skip);
     } else {
       products = await loadPopularProducts(limit, skip);
@@ -265,7 +265,7 @@ async function searchByKeyword(
  * Load products by categories (and optionally brands/colors).
  */
 async function loadByCategories(
-  categories: string[],
+  categories?: string[],
   brands?: string[],
   colors?: string[],
   limit: number = 30,
@@ -274,11 +274,14 @@ async function loadByCategories(
   const where: any = {
     isDeleted: { not: true },
     isPublic: { not: false },
-    OR: categories.flatMap((cat) => [
+  };
+
+  if (categories && categories.length > 0) {
+    where.OR = categories.flatMap((cat) => [
       { category: { contains: cat, mode: 'insensitive' as const } },
       { subCategory: { contains: cat, mode: 'insensitive' as const } },
-    ]),
-  };
+    ]);
+  }
 
   if (brands && brands.length > 0) {
     where.brand = { in: brands, mode: 'insensitive' as const };

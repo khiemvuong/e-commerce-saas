@@ -142,7 +142,7 @@ const SellerShop = () => {
     <AuthGuard>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 text-gray-800 font-sans selection:bg-purple-300 pb-20">
       {/* Cover Image Section */}
-      <div className="relative h-[250px] w-full group overflow-hidden">
+      <div className="relative h-[320px] md:h-[400px] w-full group overflow-hidden">
         {getCover() ? (
           <>
             <img
@@ -150,7 +150,8 @@ const SellerShop = () => {
               alt="Cover"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-blue-100/90 via-transparent to-purple-900/30 opacity-90" />
+            {/* Elegant transparent overlay for subtle depth */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-400 to-purple-600">
@@ -160,8 +161,8 @@ const SellerShop = () => {
           </div>
         )}
         {/* Hover Overlay for Cover Upload */}
-        <label className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-          <div className="bg-white/90 px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-sm hover:bg-white transition text-purple-600 font-medium">
+        <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer">
+          <div className="bg-white/90 px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-sm hover:bg-white transition text-purple-600 font-medium shadow-lg transform hover:scale-105 duration-200">
             <Upload size={20} />
             <span>Change Cover</span>
           </div>
