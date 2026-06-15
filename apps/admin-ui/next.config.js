@@ -14,7 +14,7 @@ const nextConfig = {
     svgr: false,
   },
   images: {
-    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com','png.pngtree.com'],
+    domains: ['ik.imagekit.io','img.favpng.com','bunchobagels.com','png.pngtree.com','images.unsplash.com'],
   },
 };
 

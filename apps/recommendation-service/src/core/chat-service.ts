@@ -372,6 +372,15 @@ export async function processMessage(
     keywords,
   };
   state.messages.push(userMsg);
+
+  // ===== Step 4.5: Clear stale brand context for standalone queries =====
+  // When the user sends a standalone query (not a follow-up) without mentioning
+  // any brand, previously accumulated brands are irrelevant and should be cleared.
+  // Example: "laptop" after "samsung phone" → Samsung should NOT carry over.
+  // This prevents stale brand filters from polluting unrelated searches.
+  if (!contextResult.isFollowUp && keywords.brands.length === 0) {
+    state.accumulatedKeywords.brands = [];
+  }
   
   // ===== Step 5: Accumulate keywords into session context =====
   accumulateKeywords(state.accumulatedKeywords, keywords);
@@ -946,13 +955,40 @@ async function generateResponse(
   );
   if (isShowMore) { state.lastSearchOffset += 5; } else { state.lastSearchOffset = 0; }
 
-  // ── Build search keyword (strip brands from keyword) ──
+  // ── Build search keyword (strip brands and category NAMES from keyword) ──
+  // IMPORTANT: Only strip category NAMES (e.g., "electronics", "shoes"), NOT
+  // category dictionary keywords (e.g., "laptop", "phone", "watch").
+  // Dictionary keywords are the user's actual search terms and must be preserved
+  // for DB text matching. Stripping them loses the user's intent entirely.
+  // Example: "laptop" should remain as keyword to find laptop products within electronics.
   const rawSearchKeyword = keywords.rawKeywords.join(' ') || intentResult.extractedText || undefined;
-  const searchKeyword = searchBrands.length > 0 && rawSearchKeyword
-    ? rawSearchKeyword.split(/\s+/)
-        .filter(w => !searchBrands.map(b => b.toLowerCase()).includes(w.toLowerCase()))
-        .join(' ').trim() || rawSearchKeyword
-    : rawSearchKeyword;
+  let searchKeyword = rawSearchKeyword;
+  if (rawSearchKeyword) {
+    const brandsLower = searchBrands.map(b => b.toLowerCase());
+    
+    // Only strip category NAMES (the keys of the category map), not their keywords
+    const categoryNamesLower = new Set<string>();
+    for (const cat of searchCategories) {
+      const catLower = cat.toLowerCase();
+      categoryNamesLower.add(catLower);
+      // Stem: "shoes" → "shoe", "electronics" → "electronic"
+      if (catLower.endsWith('s') && catLower.length > 3) {
+        categoryNamesLower.add(catLower.slice(0, -1));
+      }
+      if (catLower.endsWith('ies') && catLower.length > 4) {
+        categoryNamesLower.add(catLower.slice(0, -3) + 'y');
+      }
+    }
+
+    searchKeyword = rawSearchKeyword.split(/\s+/)
+      .filter(w => {
+        const wLower = w.toLowerCase();
+        const isBrand = brandsLower.includes(wLower);
+        const isCategoryName = categoryNamesLower.has(wLower);
+        return !isBrand && !isCategoryName;
+      })
+      .join(' ').trim() || undefined;
+  }
 
   // ── Build search params + load products ──
   const searchParams = buildSearchParams(isShowMore, state, searchKeyword, searchCategories, searchBrands, searchColors);

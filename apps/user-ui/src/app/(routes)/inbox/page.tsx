@@ -8,9 +8,9 @@ import axiosInstance from "apps/user-ui/src/utils/axiosInstance";
 import { Send, ArrowLeft, User } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 
-const Page = () => {
+const InboxContent = () => {
     const searchParams = useSearchParams();
     const { user } = useRequiredAuth();
     const router = useRouter();
@@ -404,6 +404,14 @@ const Page = () => {
                 </div>
             </div>
         </div>
+    );
+};
+
+const Page = () => {
+    return (
+        <Suspense fallback={<PageLoader />}>
+            <InboxContent />
+        </Suspense>
     );
 };
 

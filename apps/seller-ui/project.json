@@ -57,6 +57,21 @@
           "dev": false
         }
       }
+    },
+    "start": {
+      "executor": "@nx/next:server",
+      "defaultConfiguration": "production",
+      "options": {
+        "buildTarget": "seller-ui:build",
+        "dev": false,
+        "port": 3001
+      },
+      "configurations": {
+        "production": {
+          "buildTarget": "seller-ui:build:production",
+          "dev": false
+        }
+      }
     }
   },
   "tags": []

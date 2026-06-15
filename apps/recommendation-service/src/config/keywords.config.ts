@@ -12,7 +12,7 @@ export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   'shoes': ['shoes', 'sneakers', 'boots', 'sandals', 'heels', 'loafers', 'footwear'],
   'clothing': ['shirt', 't-shirt', 'tshirt', 'pants', 'jeans', 'jacket', 'coat', 'dress', 'skirt', 'sweater', 'hoodie', 'polo', 'blouse', 'tee', 'cardigan', 'blazer', 'shorts', 'trousers', 'leggings', 'top', 'flannel', 'oversized'],
   'bags': ['bag', 'backpack', 'handbag', 'purse', 'wallet', 'tote', 'clutch', 'luggage', 'suitcase'],
-  'electronics': ['phone', 'laptop', 'computer', 'tablet', 'headphones', 'earbuds', 'camera', 'tv', 'television', 'monitor', 'smartphone', 'notebook', 'macbook', 'ipad', 'airpods', 'wireless', 'gaming', 'smartwatch', 'wearable', 'charger', 'speaker', 'iphone', 'galaxy', 'pixel', 'dell', 'lenovo', 'asus', 'acer', 'razer', 'xperia', 'surface', 'chromebook', 'playstation', 'xbox', 'nintendo'],
+  'electronics': ['phone', 'laptop', 'computer', 'tablet', 'headphones', 'earbuds', 'camera', 'tv', 'television', 'monitor', 'smartphone', 'notebook', 'macbook', 'ipad', 'airpods', 'wireless', 'gaming', 'smartwatch', 'watch', 'wearable', 'charger', 'speaker', 'iphone', 'galaxy', 'pixel', 'dell', 'lenovo', 'asus', 'acer', 'razer', 'xperia', 'surface', 'chromebook', 'playstation', 'xbox', 'nintendo'],
   'accessories': ['watch', 'glasses', 'sunglasses', 'belt', 'hat', 'cap', 'scarf', 'jewelry', 'necklace', 'bracelet', 'ring'],
   'sports': ['running', 'gym', 'fitness', 'yoga', 'basketball', 'football', 'soccer', 'tennis', 'golf'],
   'beauty': ['makeup', 'skincare', 'perfume', 'cosmetics', 'lipstick', 'foundation'],

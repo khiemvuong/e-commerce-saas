@@ -41,6 +41,11 @@ const SellerSuccessPage = () => {
     useEffect(() => {
         const verifySellerStatus = async () => {
             try {
+                // Clear temporary signup data on success
+                localStorage.removeItem('seller_signup_step');
+                localStorage.removeItem('seller_signup_id');
+                localStorage.removeItem('seller_signup_data');
+                localStorage.removeItem('seller_signup_shop_data');
 
                 await axiosInstance.post('/auth/api/login-seller'); 
                 // Kích hoạt hiệu ứng chúc mừng
