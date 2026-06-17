@@ -1,7 +1,8 @@
 /**
  * Verify 2FA During Login Use Case
- * 
+ *
  * Verifies the TOTP code during login and completes authentication.
+ * Falls back to backup code verification if TOTP fails.
  */
 
 import { Response } from 'express';
@@ -33,8 +34,10 @@ export type VerifyLoginWith2FA = (
 
 export const makeVerifyLoginWith2FA = ({ sellerRepository }: VerifyLoginWith2FADeps): VerifyLoginWith2FA => {
     return async (input, res) => {
-        if (!input.totpCode || input.totpCode.length !== 6) {
-            throw new ValidationError('Invalid TOTP code format');
+        // Accept 6-digit TOTP codes or 9-char backup codes (format: XXXX-XXXX)
+        const isValidFormat = /^\d{6}$/.test(input.totpCode) || /^[A-F0-9]{4}-[A-F0-9]{4}$/i.test(input.totpCode);
+        if (!input.totpCode || !isValidFormat) {
+            throw new ValidationError('Invalid code format. Enter your 6-digit TOTP or backup code.');
         }
 
         const seller = await sellerRepository.findById(input.sellerId);
@@ -46,16 +49,37 @@ export const makeVerifyLoginWith2FA = ({ sellerRepository }: VerifyLoginWith2FAD
             throw new AuthError('2FA is not enabled for this account');
         }
 
-        // Verify the TOTP code
-        const isValid = TOTPService.verifyTOTP(seller.twoFactorSecret, input.totpCode);
-        
+        // Step 1: Verify the TOTP code
+        let isValid = TOTPService.verifyTOTP(seller.twoFactorSecret, input.totpCode);
+        let isBackupCode = false;
+
+        // Step 2: Fallback — verify backup code if TOTP fails
+        if (!isValid) {
+            const storedBackupCodes = seller.backupCodes ?? [];
+            const backupCodeIndex = TOTPService.verifyBackupCode(input.totpCode, storedBackupCodes);
+
+            if (backupCodeIndex !== -1) {
+                isValid = true;
+                isBackupCode = true;
+                // Consume the backup code — one-time use only
+                const remainingCodes = storedBackupCodes.filter((_, i) => i !== backupCodeIndex);
+                await sellerRepository.update(seller.id, { backupCodes: remainingCodes });
+
+                await sendLog({
+                    type: 'warning',
+                    message: `Seller logged in with backup code: ${seller.email}. ${remainingCodes.length} backup codes remaining.`,
+                    source: 'auth-service',
+                });
+            }
+        }
+
         if (!isValid) {
             await sendLog({
                 type: 'warning',
                 message: `2FA login verification failed for seller: ${seller.email}`,
                 source: 'auth-service',
             });
-            throw new ValidationError('Invalid TOTP code. Please try again.');
+            throw new ValidationError('Invalid TOTP code or backup code. Please try again.');
         }
 
         // Clear user cookies
@@ -67,7 +91,7 @@ export const makeVerifyLoginWith2FA = ({ sellerRepository }: VerifyLoginWith2FAD
 
         await sendLog({
             type: 'success',
-            message: `Seller logged in successfully with 2FA: ${seller.email}`,
+            message: `Seller logged in successfully with ${isBackupCode ? 'backup code' : '2FA'}: ${seller.email}`,
             source: 'auth-service',
         });
 
