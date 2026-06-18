@@ -84,11 +84,21 @@ export function detectIntent(
       .replace('{corrected}', fallbackResult.correctedQuery)
       .replace('{original}', fallbackResult.originalTerm || trimmed);
 
+    // Build contextual quick replies: include the corrected term for easy one-click search
+    const correctedLabel = fallbackResult.correctedQuery
+      .split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    const quickReplies = [
+      `Search ${correctedLabel}`,
+      ...QUICK_REPLIES[Intent.SEARCH_PRODUCT].filter(qr => qr !== 'Compare them'),
+    ];
+
     return {
       intent: Intent.SEARCH_PRODUCT,
       confidence: fallbackResult.confidence,
       extractedText: fallbackResult.correctedQuery,
-      quickReplies: QUICK_REPLIES[Intent.SEARCH_PRODUCT],
+      quickReplies,
       responseTemplate: template,
       fallback: fallbackResult,
     };

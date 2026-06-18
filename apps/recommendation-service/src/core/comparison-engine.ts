@@ -143,7 +143,7 @@ async function findBestProduct(
   subject: string,
 ): Promise<ProductForScoring | null> {
   // Strip price hints before searching: "Nike Air Max ($130)" → "Nike Air Max"
-  const cleanedSubject = subject
+  let cleanedSubject = subject
     .replace(/\s*\(\$[\d,.]+\)\s*/g, '')
     .replace(/\s*\$[\d,.]+\s*/g, ' ')
     .trim();
@@ -151,17 +151,32 @@ async function findBestProduct(
   const keywords = extractKeywords(cleanedSubject);
 
   // Fuzzy brand resolution: if no exact brand found, try fuzzy match on each word
+  // Use threshold=2 (consistent with smart-fallback) to catch typos like "adidsa"→"adidas"
   let resolvedBrands = keywords.brands;
+  const fuzzyMatchedWords: string[] = []; // Track which words were brand typos
   if (resolvedBrands.length === 0) {
     for (const word of cleanedSubject.split(/\s+/)) {
       if (word.length < 3) continue;
-      const fuzzy = fuzzyMatch(word, BRAND_KEYWORDS, 1);
-      if (fuzzy && !resolvedBrands.includes(fuzzy)) resolvedBrands = [fuzzy];
+      const fuzzy = fuzzyMatch(word, BRAND_KEYWORDS, 2);
+      if (fuzzy && fuzzy.toLowerCase() !== word.toLowerCase() && !resolvedBrands.includes(fuzzy)) {
+        resolvedBrands = [fuzzy];
+        fuzzyMatchedWords.push(word);
+      }
     }
   }
 
+  // When a brand was fuzzy-matched from a typo, strip the misspelled word
+  // from the keyword to avoid searching DB for "addidas" (which matches nothing).
+  // Keep only non-brand words in the keyword for title/category matching.
+  if (fuzzyMatchedWords.length > 0) {
+    const typoSet = new Set(fuzzyMatchedWords.map(w => w.toLowerCase()));
+    const filteredWords = cleanedSubject.split(/\s+/)
+      .filter(w => !typoSet.has(w.toLowerCase()));
+    cleanedSubject = filteredWords.join(' ').trim();
+  }
+
   const products = await loadProducts({
-    keyword: cleanedSubject,
+    keyword: cleanedSubject || undefined, // undefined if only a typo brand name was provided
     categories:
       keywords.categories.length > 0 ? keywords.categories : undefined,
     brands: resolvedBrands.length > 0 ? resolvedBrands : undefined,
@@ -171,7 +186,7 @@ async function findBestProduct(
   if (products.length === 0) return null;
 
   // Score by title similarity (fuzzy)
-  const subjectLower = cleanedSubject.toLowerCase();
+  const subjectLower = subject.toLowerCase(); // Use original subject for scoring
   const subjectWords = subjectLower.split(/\s+/).filter(w => w.length > 2);
   let best = products[0];
   let bestScore = -1;

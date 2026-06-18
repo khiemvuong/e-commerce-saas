@@ -11,6 +11,7 @@
 
 import { detectIntent, DetectionResult } from './intent-detector';
 import { extractKeywords, ExtractedKeywords } from './keyword-extractor';
+import { fuzzyMatch } from './text-utils';
 import { scoreProducts, getTopRecommendations, UserContext, ScoredProduct, ProductForScoring } from './recommendation-engine';
 import { loadUserContext, createAnonymousContext } from '../data/user-context-loader';
 import { loadProducts } from '../data/product-loader';
@@ -22,6 +23,7 @@ import { Intent, ENHANCED_TEMPLATES } from '../config/intents.config';
 import {
   RELATIVE_PRICE_PATTERNS,
   PRICE_MODIFIER_RANGES,
+  BRAND_KEYWORDS,
   getBrandDomains,
 } from '../config/keywords.config';
 import { createLogger } from './logger';
@@ -229,6 +231,12 @@ export async function processMessage(
     throw new Error(`Conversation ${conversationId} not found`);
   }
 
+  // ===== Step 0.3: Detect if this is a pagination request =====
+  const isShowMore = state.lastSearchParams != null && (
+    /show\s+(?:me\s+)?more|more\s+(?:products?|options?|results?)/i.test(userMessage.trim()) ||
+    /^(?:more|next|next\s+page)$/i.test(userMessage.trim())
+  );
+
   // ===== Step 0: Check if this is a response to a pending clarification =====
   if (state.pendingClarification) {
     const clarificationOptions = state.pendingClarification.options;
@@ -360,7 +368,34 @@ export async function processMessage(
   
   // ===== Step 3: Extract keywords =====
   const keywords = extractKeywords(effectiveMessage);
-  
+
+  // ===== Step 3.5: Merge fallback typo correction into keywords =====
+  // When smart-fallback corrects a typo (e.g., "adidsa" → "adidas"), the corrected
+  // term is only stored in intentResult.fallback.correctedQuery for display purposes.
+  // The keyword extractor still works with the original misspelled text, so
+  // keywords.brands remains empty and the DB query searches for "adidsa" → 0 results.
+  // Fix: inject the corrected brand/keyword into keywords so the search actually works.
+  if (intentResult.fallback?.correctedQuery && intentResult.fallback?.shouldSearchProducts) {
+    const correctedTerms = intentResult.fallback.correctedQuery.toLowerCase().split(/\s+/);
+    const originalTerm = intentResult.fallback.originalTerm?.toLowerCase();
+
+    for (const term of correctedTerms) {
+      // If corrected term is a known brand, add it to keywords.brands
+      const isBrand = BRAND_KEYWORDS.some(b => b.toLowerCase() === term);
+      if (isBrand && !keywords.brands.some(b => b.toLowerCase() === term)) {
+        keywords.brands.push(term);
+      }
+    }
+
+    // Remove the misspelled term from rawKeywords to avoid polluting the DB query
+    if (originalTerm) {
+      const originalTerms = originalTerm.split(/,\s*/).map(t => t.trim());
+      keywords.rawKeywords = keywords.rawKeywords.filter(
+        k => !originalTerms.includes(k.toLowerCase())
+      );
+    }
+  }
+
   // ===== Step 4: Save user message =====
   const userMsg: ChatMessage = {
     id: generateId(),
@@ -399,7 +434,8 @@ export async function processMessage(
     intentResult.intent === Intent.UNKNOWN || 
     intentResult.intent === Intent.GREETING || 
     intentResult.intent === Intent.HELP ||
-    userHasSpecificKeywords;
+    userHasSpecificKeywords ||
+    isShowMore;
 
   if (!skipClarification) {
     const estimatedCount = await estimateResultCount(keywords, state);
@@ -653,6 +689,34 @@ function accumulateKeywords(accumulated: ExtractedKeywords, newKeywords: Extract
     );
     if (!hasOverlap) {
       topicChanged = true;
+    }
+  }
+
+  // Detect topic change when new brand is incompatible with accumulated categories
+  // (e.g., searching "laptop" [electronics] then selecting "Zara" [clothing])
+  if (!topicChanged && newKeywords.brands.length > 0 && accumulated.categories.length > 0) {
+    const brandDomains = getBrandDomains(newKeywords.brands);
+    if (brandDomains.length > 0) {
+      const isCompatible = brandDomains.some(domain =>
+        accumulated.categories.some(ac => ac.toLowerCase() === domain.toLowerCase())
+      );
+      if (!isCompatible) {
+        topicChanged = true;
+      }
+    }
+  }
+
+  // Detect topic change when new category is incompatible with accumulated brands
+  // (e.g., accumulated "apple" [electronics] then searching "shoes" [shoes])
+  if (!topicChanged && newKeywords.categories.length > 0 && accumulated.brands.length > 0) {
+    const brandDomains = getBrandDomains(accumulated.brands);
+    if (brandDomains.length > 0) {
+      const isCompatible = brandDomains.some(domain =>
+        newKeywords.categories.some(nc => nc.toLowerCase() === domain.toLowerCase())
+      );
+      if (!isCompatible) {
+        topicChanged = true;
+      }
     }
   }
 
@@ -983,7 +1047,9 @@ async function generateResponse(
     searchKeyword = rawSearchKeyword.split(/\s+/)
       .filter(w => {
         const wLower = w.toLowerCase();
-        const isBrand = brandsLower.includes(wLower);
+        // Exact brand match OR fuzzy match (catches typos like "addidas" → "adidas")
+        const isBrand = brandsLower.includes(wLower) ||
+          (brandsLower.length > 0 && wLower.length >= 3 && fuzzyMatch(wLower, brandsLower, 2) !== null);
         const isCategoryName = categoryNamesLower.has(wLower);
         return !isBrand && !isCategoryName;
       })

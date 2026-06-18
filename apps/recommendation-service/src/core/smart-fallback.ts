@@ -161,7 +161,7 @@ function tryPartialMatch(words: string[]): FallbackResult | null {
     if (word.length >= 4 && suggestions.length < 3) {
       for (const { term, type } of knownTerms) {
         const similarity = ngramSimilarity(word, term);
-        if (similarity > 0.4) {
+        if (similarity > 0.3) {
           const label = `${term} (${type})`;
           if (!suggestions.includes(label)) {
             suggestions.push(label);
@@ -243,7 +243,19 @@ export function smartFallback(
   const trimmed = message.trim();
   if (!trimmed) return genericFallback();
 
-  const words = trimmed.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+  // Blocklist: common confirmation, negation, and filler words
+  // that must never be fuzzy/phonetic matched to product terms.
+  // e.g., "yes" Soundex = Y200 = "yoga" Soundex → false match
+  const FALLBACK_BLOCKLIST = new Set([
+    'yes', 'yeah', 'yep', 'yup', 'sure', 'ok', 'okay', 'alright', 'right',
+    'no', 'nah', 'nope', 'not', 'none', 'never',
+    'thanks', 'thank', 'thx', 'please', 'pls',
+    'hi', 'hey', 'hello', 'bye', 'cool', 'nice', 'great', 'good', 'fine',
+    'hmm', 'umm', 'idk', 'wow', 'lol',
+  ]);
+
+  const words = trimmed.toLowerCase().split(/\s+/)
+    .filter(w => w.length > 1 && !FALLBACK_BLOCKLIST.has(w));
   if (words.length === 0) return genericFallback();
 
   log.debug('Processing through 4 fallback layers', { message: trimmed });
