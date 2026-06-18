@@ -159,6 +159,7 @@ const FUZZY_BLOCKLIST = new Set([
   'all', 'any', 'one', 'top', 'hot', 'new', 'old', 'big', 'good', 'bad',
   'product', 'item', 'thing', 'stuff', 'some', 'more', 'less',
   'show', 'find', 'get', 'give', 'want', 'need', 'like',
+  'brand', 'brands', 'price', 'prices',
   // Material & texture words that collide with brand names
   'camel', 'vegan', 'vintage', 'leather', 'suede', 'canvas', 'velvet',
   'linen', 'denim', 'cotton', 'nylon', 'mesh', 'wool', 'silk', 'satin',
@@ -371,6 +372,7 @@ function extractRawKeywords(message: string): string[] {
     'best', 'good', 'great', 'nice', 'like', 'something', 'anything', 'products', 'items',
     // Generic nouns that add no search value
     'product', 'item', 'thing', 'things', 'stuff', 'one', 'type', 'kind', 'way',
+    'brand', 'brands', 'price', 'prices',
     ...Object.keys(PRICE_MODIFIERS),
     ...Object.keys(GENDER_KEYWORDS),
   ]);

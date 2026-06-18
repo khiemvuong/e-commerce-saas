@@ -116,7 +116,6 @@ export function shouldClarify(
 
       const options: ClarOption[] = [
         ...popularBrands.map(b => ({ label: b, value: b.toLowerCase(), type: 'brand' as const })),
-        { label: 'Any brand', value: '', type: 'brand' as const },
       ];
 
       const priceOptions: ClarOption[] = [
@@ -124,7 +123,6 @@ export function shouldClarify(
         { label: '$50 - $100', value: '50 to 100', type: 'price_range' },
         { label: '$100 - $200', value: '100 to 200', type: 'price_range' },
         { label: '$200+', value: 'over 200', type: 'price_range' },
-        { label: 'Any price', value: '', type: 'price_range' },
       ];
 
       return {

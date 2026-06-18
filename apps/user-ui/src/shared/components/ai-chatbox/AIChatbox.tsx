@@ -13,6 +13,9 @@ import {
   Loader2,
   ChevronDown,
   RotateCcw,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import useUser from '../../../hooks/useUser';
 import axiosInstance from '../../../utils/axiosInstance';
@@ -79,6 +82,7 @@ interface ComparisonData {
     price: number;
     image: string;
     rating: number;
+    slug?: string;
   }>;
   comparisonTable: Array<{
     field: string;
@@ -226,7 +230,13 @@ const ChatProductCard = ({
 );
 
 /** Comparison table component */
-const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => {
+const ComparisonTable = ({
+  comparison,
+  onViewProduct,
+}: {
+  comparison: ComparisonData;
+  onViewProduct: (id: string) => void;
+}) => {
   const productCount = comparison.products.length;
   // Column width: 80px for labels, 72px per product (min)
   const tableMinWidth = 80 + productCount * 72;
@@ -243,11 +253,17 @@ const ComparisonTable = ({ comparison }: { comparison: ComparisonData }) => {
           <div className="flex border-b border-gray-100">
             <div className="w-20 flex-shrink-0 bg-gray-50 p-2" />
             {comparison.products.map((p, i) => (
-              <div key={i} className="flex-1 min-w-[72px] p-2 text-center border-l border-gray-100">
+              <div
+                key={i}
+                className="flex-1 min-w-[72px] p-2 text-center border-l border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onViewProduct(p.slug || p.id)}
+              >
                 {p.image && (
                   <img src={p.image} alt={p.title} className="w-10 h-10 rounded-lg mx-auto mb-1 object-cover" />
                 )}
-                <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight">{p.title}</p>
+                <p className="text-[10px] font-semibold text-gray-800 line-clamp-2 leading-tight hover:text-[#C9A86C] transition-colors">
+                  {p.title}
+                </p>
               </div>
             ))}
           </div>
@@ -406,7 +422,7 @@ const MessageBubble = ({
         {/* Comparison table — rendered outside the text bubble with full available width */}
         {!isUser && message.comparison && (
           <div className="w-full">
-            <ComparisonTable comparison={message.comparison} />
+            <ComparisonTable comparison={message.comparison} onViewProduct={onViewProduct} />
           </div>
         )}
 
@@ -467,6 +483,48 @@ const AIChatbox = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const prevUserIdRef = useRef<string | undefined>(undefined);
   const persistedRef = useRef(false); // guard to avoid double-restore
+
+  // Workspace-specific states
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [isWorkspaceCollapsed, setIsWorkspaceCollapsed] = useState(false);
+
+  // Filter messages that contain dynamic product recommendations or comparisons
+  const resultMessages = React.useMemo(() => {
+    return messages.filter(
+      (m) =>
+        m.senderType === 'ai' &&
+        ((m.recommendations && m.recommendations.length > 0) || m.comparison)
+    );
+  }, [messages]);
+
+  // Auto-select latest search results and expand workspace when they arrive
+  useEffect(() => {
+    if (resultMessages.length > 0) {
+      const latestResult = resultMessages[resultMessages.length - 1];
+      setActiveMessageId((prev) => {
+        if (!prev) return latestResult.id;
+        const exists = resultMessages.some((m) => m.id === prev);
+        if (!exists) return latestResult.id;
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg && lastMsg.id === latestResult.id) {
+          return latestResult.id;
+        }
+        return prev;
+      });
+
+      const lastMsg = messages[messages.length - 1];
+      if (
+        lastMsg &&
+        lastMsg.senderType === 'ai' &&
+        ((lastMsg.recommendations && lastMsg.recommendations.length > 0) ||
+          lastMsg.comparison)
+      ) {
+        setIsWorkspaceCollapsed(false);
+      }
+    } else {
+      setActiveMessageId(null);
+    }
+  }, [messages, resultMessages]);
 
   const STORAGE_KEY = 'ilan_chat_session';
 
@@ -856,7 +914,7 @@ const AIChatbox = () => {
           isOpen
             ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 scale-95 translate-y-4 pointer-events-none'
-        }`}
+        } ${isOpen && resultMessages.length > 0 && !isWorkspaceCollapsed ? 'hidden lg:block' : ''}`}
       >
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col h-[520px] max-h-[70vh]">
           {/* Header */}
@@ -874,6 +932,24 @@ const AIChatbox = () => {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {/* Workspace Toggle Button */}
+              {resultMessages.length > 0 && (
+                <button
+                  onClick={() => setIsWorkspaceCollapsed(!isWorkspaceCollapsed)}
+                  title={isWorkspaceCollapsed ? "Expand workspace" : "Collapse workspace"}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                    !isWorkspaceCollapsed
+                      ? 'bg-[#C9A86C] text-white shadow-md'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                >
+                  {!isWorkspaceCollapsed ? (
+                    <Minimize2 size={15} />
+                  ) : (
+                    <Maximize2 size={15} />
+                  )}
+                </button>
+              )}
               {/* New Conversation button */}
               <button
                 onClick={handleNewConversation}
@@ -1002,6 +1078,327 @@ const AIChatbox = () => {
           </div>
         </div>
       </div>
+
+      {/* ===== Visual Workspace Panel ===== */}
+      {resultMessages.length > 0 && (
+        <div
+          className={`fixed left-4 md:left-6 top-24 bottom-6 md:bottom-8 right-4 lg:right-[390px] z-[998] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-stone-200/50 flex flex-col md:flex-row overflow-hidden transition-all duration-300 ease-out ${
+            isOpen && !isWorkspaceCollapsed
+              ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto'
+              : 'opacity-0 -translate-x-4 scale-95 pointer-events-none'
+          }`}
+        >
+          {/* Sidebar - search history */}
+          <div className="w-full md:w-64 bg-stone-50/80 backdrop-blur-sm border-r border-stone-200/30 flex flex-col flex-shrink-0">
+            <div className="p-4 border-b border-stone-200/30">
+              <h4 className="text-xs font-bold text-stone-400 uppercase tracking-wider">AI Search History</h4>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {resultMessages.map((msg) => {
+                const msgIdx = messages.findIndex((m) => m.id === msg.id);
+                let userQuery = 'Product Search';
+                if (msgIdx > 0) {
+                  const prevMsg = messages[msgIdx - 1];
+                  if (prevMsg && prevMsg.senderType === 'user') {
+                    userQuery = prevMsg.content;
+                  }
+                }
+                const isSelected = activeMessageId === msg.id;
+
+                return (
+                  <button
+                    key={msg.id}
+                    onClick={() => setActiveMessageId(msg.id)}
+                    className={`w-full text-left p-3 rounded-xl transition-all flex flex-col gap-1 border ${
+                      isSelected
+                        ? 'border-l-4 border-l-[#C9A86C] bg-white border-stone-200 shadow-sm text-stone-900 font-bold'
+                        : 'bg-transparent border-transparent hover:bg-stone-100/50 text-stone-600'
+                    }`}
+                  >
+                    <span className="text-xs font-semibold truncate block w-full">{userQuery}</span>
+                    <span className="text-[10px] text-gray-400 font-normal">
+                      {new Date(msg.timestamp).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Main Workspace content */}
+          {(() => {
+            const activeMsg =
+              resultMessages.find((m) => m.id === activeMessageId) ||
+              resultMessages[resultMessages.length - 1];
+            if (!activeMsg) return null;
+
+            return (
+              <div className="flex-1 flex flex-col min-w-0 bg-white/95">
+                {/* Workspace Header */}
+                <div className="px-6 py-4 border-b border-stone-200/30 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#C9A86C]" />
+                      AI Search Workspace
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Spacious interactive view of your recommended products
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => setIsWorkspaceCollapsed(true)}
+                    title="Collapse workspace"
+                    className="p-2 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-xl hover:text-gray-800 transition flex items-center justify-center gap-1"
+                  >
+                    <span className="lg:hidden px-1.5 py-0.5 text-xs font-semibold">Back to Chat</span>
+                    <ChevronRight size={20} className="hidden lg:block" />
+                  </button>
+                </div>
+
+                {/* Workspace Body */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {/* If it's a comparison view */}
+                  {activeMsg.comparison ? (() => {
+                    // Calculate overall winning product based on feature rows
+                    const winCounts = new Array(activeMsg.comparison.products.length).fill(0);
+                    activeMsg.comparison.comparisonTable.forEach(row => {
+                      if (row.winner !== undefined && row.winner !== null && row.winner >= 0) {
+                        winCounts[row.winner]++;
+                      }
+                    });
+                    const maxWins = Math.max(...winCounts);
+                    const winnerIndex = maxWins > 0 ? winCounts.indexOf(maxWins) : -1;
+
+                    return (
+                      <div className="space-y-6 animate-fade-in">
+                        <div className="bg-[#C9A86C]/5 p-5 rounded-2xl border border-[#C9A86C]/10 shadow-sm">
+                          <h4 className="text-xs font-extrabold text-[#B8963F] uppercase tracking-wider mb-2 flex items-center gap-1">
+                            ✨ Comparison Overview
+                          </h4>
+                          <p className="text-stone-700 text-sm leading-relaxed">{activeMsg.content}</p>
+                        </div>
+
+                        {/* Large Comparison Table */}
+                        <div className="bg-white border border-stone-200/50 rounded-2xl shadow-sm overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="bg-stone-50/50 border-b border-stone-200/30">
+                                  <th className="p-4 text-xs font-extrabold text-stone-500 uppercase tracking-wider w-[180px] align-middle">
+                                    Feature
+                                  </th>
+                                  {activeMsg.comparison.products.map((p, idx) => {
+                                    const isAIWinner = idx === winnerIndex;
+                                    return (
+                                      <th
+                                        key={idx}
+                                        onClick={() => handleViewProduct(p.slug || p.id)}
+                                        className={`p-4 border-l border-stone-200/30 text-center cursor-pointer hover:bg-stone-50/50 transition-colors group relative ${
+                                          isAIWinner ? 'bg-[#C9A86C]/5 pt-8' : 'pt-5'
+                                        }`}
+                                      >
+                                        {isAIWinner && (
+                                          <div className="absolute top-1.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#C9A86C] to-[#B8963F] text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap z-10 animate-pulse">
+                                            ★ AI Choice
+                                          </div>
+                                        )}
+                                        {p.image && (
+                                          <div className={`relative w-28 h-28 mx-auto mb-2 overflow-hidden rounded-xl border bg-gray-50 transition-all ${
+                                            isAIWinner ? 'border-[#C9A86C]/50 shadow-md shadow-[#C9A86C]/10' : 'border-stone-200/30'
+                                          }`}>
+                                            <img
+                                              src={p.image}
+                                              alt={p.title}
+                                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+                                            />
+                                          </div>
+                                        )}
+                                        <p className="text-xs font-extrabold text-stone-800 line-clamp-2 leading-snug group-hover:text-[#C9A86C] transition-colors duration-200">
+                                          {p.title}
+                                        </p>
+                                        <p className="text-sm font-black text-[#C9A86C] mt-1">
+                                          ${p.price.toLocaleString()}
+                                        </p>
+                                      </th>
+                                    );
+                                  })}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {activeMsg.comparison.comparisonTable.map((row, rowIdx) => (
+                                  <tr
+                                    key={rowIdx}
+                                    className={`border-b border-stone-100 ${
+                                      rowIdx % 2 === 0 ? 'bg-white' : 'bg-stone-50/20'
+                                    }`}
+                                  >
+                                    <td className="p-4 text-xs font-bold text-stone-600 flex items-center gap-2">
+                                      {row.icon && <span className="text-base">{row.icon}</span>}
+                                      {row.field}
+                                    </td>
+                                    {row.values.map((val, valIdx) => {
+                                      const isWinner = row.winner === valIdx;
+                                      return (
+                                        <td
+                                          key={valIdx}
+                                          className={`p-4 text-sm text-center border-l border-stone-100 ${
+                                            isWinner ? 'bg-green-50/20' : ''
+                                          }`}
+                                        >
+                                          {isWinner ? (
+                                            <div className="flex flex-col items-center justify-center gap-1">
+                                              <span className="font-semibold text-green-700">
+                                                {typeof val === 'number' && row.field === 'Price'
+                                                  ? `$${val.toLocaleString()}`
+                                                  : String(val)}
+                                              </span>
+                                              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-green-100/70 border border-green-200 text-green-700 text-[9px] font-extrabold shadow-sm">
+                                                ✓ Win
+                                              </span>
+                                            </div>
+                                          ) : (
+                                            <span className="text-stone-600">
+                                              {typeof val === 'number' && row.field === 'Price'
+                                                ? `$${val.toLocaleString()}`
+                                                : String(val)}
+                                            </span>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* Bento Grid Verdict / Insights */}
+                        {activeMsg.comparison.verdict && (
+                          <div className="bg-stone-50/50 rounded-2xl p-6 border border-stone-200/50 shadow-sm">
+                            <h4 className="text-xs font-extrabold text-stone-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                              💡 Key Insights & Verdict
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {activeMsg.comparison.verdict
+                                .split(/\.\s+/)
+                                .filter((s) => s.trim().length > 0)
+                                .map((sentence, sIdx) => (
+                                  <div
+                                    key={sIdx}
+                                    className="bg-white/90 backdrop-blur-sm p-4 rounded-xl border border-stone-200/30 shadow-sm flex items-start gap-3 hover:border-[#C9A86C]/30 hover:shadow-md transition-all duration-300"
+                                  >
+                                    <span className="w-6 h-6 rounded-full bg-[#C9A86C]/10 text-[#B8963F] flex items-center justify-center text-xs font-black flex-shrink-0 shadow-inner">
+                                      {sIdx + 1}
+                                    </span>
+                                    <p
+                                      className="text-stone-700 text-sm leading-relaxed"
+                                      dangerouslySetInnerHTML={{
+                                        __html:
+                                          sentence
+                                            .replace(/\.$/, '')
+                                            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') + '.',
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : (
+                    <div className="space-y-6">
+                      {/* Conversation Summary Text */}
+                      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-gray-700 text-sm leading-relaxed">
+                        {activeMsg.content}
+                      </div>
+
+                      {/* Large Products Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+                        {activeMsg.recommendations?.map((prod, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleViewProduct(prod.slug || prod.productId)}
+                            className="bg-white border border-stone-200/50 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#C9A86C]/5 hover:border-[#C9A86C]/30 transition-all duration-300 cursor-pointer flex flex-col group"
+                          >
+                            {/* Product Image */}
+                            <div className="relative aspect-square w-full overflow-hidden bg-stone-50">
+                              {prod.score > 0 && (
+                                <div className="absolute top-3 left-3 z-10 backdrop-blur-md bg-gradient-to-r from-[#C9A86C] to-[#B8963F] text-white text-[9px] font-extrabold px-2.5 py-0.5 rounded-full shadow-sm tracking-wider uppercase">
+                                  ★ {prod.score > 0 && prod.score <= 1 ? Math.round(prod.score * 100) : Math.round(prod.score)}% Match
+                                </div>
+                              )}
+                              {prod.image ? (
+                                <img
+                                  src={prod.image}
+                                  alt={prod.title}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                  <ShoppingBag size={48} />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Content */}
+                            <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-extrabold text-stone-800 line-clamp-2 leading-snug group-hover:text-[#C9A86C] transition-colors duration-200">
+                                  {prod.title}
+                                </h4>
+                                <p className="text-lg font-black text-[#C9A86C]">
+                                  ${prod.price?.toLocaleString('en-US')}
+                                </p>
+                              </div>
+
+                              {/* Spec badges */}
+                              {(() => {
+                                const badges = getSpecBadges(prod.specs);
+                                return badges.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {badges.map((badge, i) => (
+                                      <span
+                                        key={i}
+                                        className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full font-medium"
+                                      >
+                                        {badge.icon} {badge.text}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+
+                              {/* Match reasons */}
+                              {prod.matchReasons && prod.matchReasons.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {prod.matchReasons.map((reason, i) => (
+                                    <span
+                                      key={i}
+                                      className="text-[10px] px-2.5 py-0.5 bg-[#C9A86C]/10 text-[#B8963F] rounded-full font-semibold"
+                                    >
+                                      {reason}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* ===== Floating Bubble Trigger ===== */}
       <button

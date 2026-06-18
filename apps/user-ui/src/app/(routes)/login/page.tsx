@@ -23,6 +23,7 @@ const Login = () => {
     const [requires2FA, setRequires2FA] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [totpCode, setTotpCode] = useState('');
+    const [useBackupCode, setUseBackupCode] = useState(false);
     const router = useRouter();
     const queryClient = useQueryClient();
     const { user, isLoading: isUserLoading } = useUser();
@@ -94,8 +95,25 @@ const Login = () => {
 
     const handle2FASubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (totpCode.length === 6) {
+        const isTOTP = /^\d{6}$/.test(totpCode);
+        const isBackup = /^[A-F0-9]{4}-[A-F0-9]{4}$/i.test(totpCode);
+        if (isTOTP || isBackup) {
             verify2FAMutation.mutate(totpCode);
+        }
+    }
+
+    const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const raw = e.target.value.toUpperCase();
+        if (useBackupCode) {
+            // Format as XXXX-XXXX: keep hex chars and dash only
+            const stripped = raw.replace(/[^A-F0-9]/g, '');
+            if (stripped.length <= 4) {
+                setTotpCode(stripped);
+            } else {
+                setTotpCode(stripped.slice(0, 4) + '-' + stripped.slice(4, 8));
+            }
+        } else {
+            setTotpCode(raw.replace(/\D/g, '').slice(0, 6));
         }
     }
 
@@ -117,51 +135,72 @@ const Login = () => {
         );
     }
 
-    // Render 2FA verification form if needed
     if (requires2FA) {
+        const isValidCode = useBackupCode
+            ? /^[A-F0-9]{4}-[A-F0-9]{4}$/i.test(totpCode)
+            : /^\d{6}$/.test(totpCode);
+
         return (
             <div className="w-full py-10 min-h-screen bg-[f1f1f1]">
                 <h1 className="text-4xl font-Poppins font-semibold text-black text-center">
                     Two-Factor Authentication
                 </h1>
                 <p className="text-center text-lg font-medium py-3 text-[#00000099]">
-                    Enter the 6-digit code from your authenticator app
+                    {useBackupCode
+                        ? 'Enter one of your backup codes (format: XXXX-XXXX)'
+                        : 'Enter the 6-digit code from your authenticator app'}
                 </p>
                 <div className="w-full flex justify-center">
                     <div className="md:w-[480px] p-8 bg-white shadow rounded-lg">
                         <form onSubmit={handle2FASubmit}>
                             <label className="block text-gray-700 mb-1">
-                                Verification Code
+                                {useBackupCode ? 'Backup Code' : 'Verification Code'}
                             </label>
                             <input
                                 type="text"
-                                placeholder="000000"
-                                maxLength={6}
-                                className="w-full p-2 border border-gray-300 outline-0 text-center text-2xl tracking-widest"
+                                placeholder={useBackupCode ? 'XXXX-XXXX' : '000000'}
+                                maxLength={useBackupCode ? 9 : 6}
+                                className="w-full p-2 border border-gray-300 outline-0 text-center text-2xl tracking-widest uppercase"
                                 value={totpCode}
-                                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                                onChange={handleCodeChange}
+                                autoComplete="one-time-code"
                             />
                             <button
                                 type="submit"
-                                disabled={verify2FAMutation.isPending || totpCode.length !== 6}
+                                disabled={verify2FAMutation.isPending || !isValidCode}
                                 className="w-full p-2 mt-4 bg-black text-white font-Roboto text-xl rounded-lg hover:bg-gray-800 transition disabled:bg-gray-400"
                             >
-                                {verify2FAMutation.isPending ? "Verifying..." : "Verify"}
+                                {verify2FAMutation.isPending ? 'Verifying...' : 'Verify'}
                             </button>
                             {serverError && (
                                 <p className="text-red-500 text-sm mt-2">
                                     {serverError}
                                 </p>
                             )}
+                            {/* Toggle between TOTP and backup code */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setUseBackupCode(!useBackupCode);
+                                    setTotpCode('');
+                                    setServerError(null);
+                                }}
+                                className="w-full p-2 mt-3 text-blue-600 hover:text-blue-800 text-sm underline transition"
+                            >
+                                {useBackupCode
+                                    ? 'Use authenticator app instead'
+                                    : "Can't access your app? Use a backup code"}
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => {
                                     setRequires2FA(false);
                                     setUserId(null);
                                     setTotpCode('');
+                                    setUseBackupCode(false);
                                     setServerError(null);
                                 }}
-                                className="w-full p-2 mt-2 text-gray-600 hover:text-black transition"
+                                className="w-full p-2 mt-1 text-gray-600 hover:text-black transition"
                             >
                                 Back to login
                             </button>
